@@ -19,11 +19,10 @@ class dsource_unsup (eb_dsource):
 
     def size(self): return len(inputs)
     def fprop(input, output):
-        x = self.inputs[self.shuffle[self.current], :]
-        x = (x + bias) * coeff
+        x = (self.inputs[self.shuffle[self.current]] + self.bias) * self.coeff
         
         input.resize(x.shape)
-        input[:] = x
+        input.x[:] = x
         
         output.resize(x.shape)
-        output[:] = x
+        output.x[:] = x
