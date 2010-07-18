@@ -14,6 +14,10 @@ class linear (module_1_1):
         z = arg.lin_value / (fanin ** (1.0 / arg.lin_exponent))
         self.w.x = sp.random.random(self.w.shape) * (2*z) - z
 
+    def normalize(self):
+        for col in self.w.x.T:
+            col *= 1.0 / sqrt((col ** 2).sum())
+
     def fprop(self, input, output):
         assert (self.shape_in  == input.shape)
         output.resize(self.shape_out)
@@ -38,6 +42,9 @@ class bias (module_1_1):
         arg = self.parameter.forget
         z = arg.lin_value
         self.b.x = sp.random.random(self.b.shape) * (2*z) - z
+
+    def normalize(self):
+        self.b *= 1.0 / sqrt((self.b ** 2).sum())
     
     def fprop(self, input, output):
         assert (self.b.shape  == input.shape)

@@ -42,6 +42,9 @@ class eb_module (object):
 
     def forget(self):
         if self.has_params(): raise NotImplementedError()
+
+    def normalize(self):
+        if self.has_params(): raise NotImplementedError()
         
     def param(self, shape):
         s = state(shape)
@@ -49,8 +52,10 @@ class eb_module (object):
         return s
     
     def _merge_parameters(self, other):
-        if self.parameter is None: self.parameter = other.parameter
-        else: self.parameter.merge(other.parameter)
+        if self.parameter is None: 
+            self.parameter = other.parameter
+        else:
+            self.parameter.merge(other.parameter)
 
 
 class module_1_1 (eb_module):

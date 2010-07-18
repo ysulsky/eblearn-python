@@ -13,7 +13,7 @@ class state (object):
         self._gradient = None
         self._deltax   = None
         self._ddeltax  = None
-        self._epsilons = None
+        self._epsilon  = None
 
     def clear_dx(self):
         if self._dx is not None: self._dx.fill(0)
@@ -28,7 +28,7 @@ class state (object):
         if self._gradient is not None: self._gradient.resize(shape)
         if self._deltax   is not None: self._deltax.resize(shape)
         if self._ddeltax  is not None: self._ddeltax.resize(shape)
-        if self._epsilons is not None: self._epsilons.resize(shape)
+        if self._epsilon  is not None: self._epsilon.resize(shape)
 
     shape = property(lambda self: self.x.shape)
     size  = property(lambda self: self.x.size)
@@ -63,12 +63,12 @@ class state (object):
             self._ddeltax = zeros(self.shape)
         return self._ddeltax
 
-    def get_epsilons(self):
-        if self._epsilons is None:
-            self._epsilons = ones(self.shape)
-        return self._epsilons
+    def get_epsilon(self):
+        if self._epsilon is None:
+            self._epsilon = ones(self.shape)
+        return self._epsilon
 
     gradient = property(get_gradient)
     deltax   = property(get_deltax)
     ddeltax  = property(get_ddeltax)
-    epsilons = property(get_epsilons)
+    epsilon  = property(get_epsilon)

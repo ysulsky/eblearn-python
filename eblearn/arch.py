@@ -10,6 +10,9 @@ class layers (module_1_1):
 
     def forget(self):
         for lyr in self.layers: lyr.forget()
+
+    def normalize(self):
+        for lyr in self.layers: lyr.normalize()
     
     def fprop(self, input, output):
         inputs  = [input] + self.hidden
@@ -54,6 +57,10 @@ class ebm_2 (module_2_1):
     def forget(self):
         self.machine.forget()
         self.cost.forget()
+
+    def normalize(self):
+        self.machine.normalize()
+        self.cost.normalize()
 
     def fprop(self, input1, input2, output):
         self.machine.fprop(input1, self.machine_out)

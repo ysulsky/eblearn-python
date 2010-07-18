@@ -3,13 +3,13 @@ from util import *
 
 class parameter_update (object):
     def __init__(self,
-                 eta         = 0.001,
+                 eta         = 0.01,
                  max_iters   = 0,
                  decay_l1    = 0,
                  decay_l2    = 0,
                  decay_time  = 1000,
                  inertia     = 0,
-                 anneal_amt  = 0.95,
+                 anneal_amt  = 0.1,
                  anneal_time = 1000,
                  grad_thresh = 0.001):
         vals = dict(locals())
@@ -27,13 +27,15 @@ class parameter_forget (object):
 class parameter (object):
     def __init__(self):
         self.age    = 0
+        self.indep  = False
         self.states = []
         self.forget = parameter_forget()
 
     def merge(self, other):
         if other is None: return
         self.states.extend(other.states)
-        other.__dict__.update(self.__dict__)
+        if not other.indep:
+            other.__dict__.update(self.__dict__)
     
     def append(self, state):
         self.states.append(state)
@@ -50,18 +52,29 @@ class parameter (object):
     def clear_ddeltax(self):
         for state in self.states: state.ddeltax.fill(0.)
     
-    def set_epsilons(self, v):
-        for state in self.states: state.epsilons.fill(v)
+    def set_epsilon(self, v):
+        for state in self.states: state.epsilon.fill(v)
 
+    def compute_epsilon(self, mu):
+        for state in self.states: state.epsilon = 1.0 / (state.ddeltax + mu)
+    
+    def update_ddeltax(self, knew, kold):
+        for state in self.states:
+            state.ddeltax = kold * state.ddeltax + knew * state.ddx
+    
     def update(self, arg):
         '''arg is of type parameter_update'''
 
-        eta      = arg.eta
-        decay_l1 = arg.decay_l1
-        decay_l2 = arg.decay_l2
-        inertia  = arg.inertia
-        states   = self.states
+        eta         = arg.eta
+        anneal_time = arg.anneal_amt
+        decay_l1    = arg.decay_l1
+        decay_l2    = arg.decay_l2
+        inertia     = arg.inertia
+        states      = self.states
 
+        if anneal_time > 0 and (self.age % anneal_time) == 0:
+            eta /= 1. + (arg.anneal_amt * self.age / anneal_time)
+        
         if self.age >= arg.decay_time:
             if decay_l2 > 0:
                 for state in states: 
@@ -72,11 +85,11 @@ class parameter (object):
 
         if inertia == 0:
             for state in states:
-                state.x += state.dx     * state.epsilons * (-eps)
+                state.x += state.dx     * state.epsilon * (-eta)
         else:
             for state in states:
                 state.deltax = inertia * state.deltax + (1.-inertia) * state.dx
-                state.x += state.deltax * state.epsilons * (-eps)
+                state.x += state.deltax * state.epsilon * (-eta)
 
         self.age += 1
 
@@ -87,9 +100,9 @@ class parameter (object):
                 for x in xs.flat: yield x
         return iter
 
-    x        = property(iter_state_prop('x'))
-    dx       = property(iter_state_prop('dx'))
-    ddx      = property(iter_state_prop('ddx'))
-    deltax   = property(iter_state_prop('deltax'))
-    ddeltax  = property(iter_state_prop('ddeltax'))
-    epsilons = property(iter_state_prop('epsilons'))
+    x       = property(iter_state_prop('x'))
+    dx      = property(iter_state_prop('dx'))
+    ddx     = property(iter_state_prop('ddx'))
+    deltax  = property(iter_state_prop('deltax'))
+    ddeltax = property(iter_state_prop('ddeltax'))
+    epsilon = property(iter_state_prop('epsilon'))
