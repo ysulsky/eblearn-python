@@ -45,30 +45,33 @@ class state (object):
         return self._ddx
     def set_ddx(self, val): self._ddx = val
 
-    dx  = property(get_dx,  set_dx)
-    ddx = property(get_ddx, set_ddx)    
-
     def get_gradient(self):
         if self._gradient is None:
             self._gradient = zeros(self.shape)
         return self._gradient
+    def set_gradient(self, val): self._gradient = val
 
     def get_deltax(self):
         if self._deltax is None:
             self._deltax = zeros(self.shape)
         return self._deltax
+    def set_deltax(self, val): self._deltax = val
 
     def get_ddeltax(self):
         if self._ddeltax is None:
             self._ddeltax = zeros(self.shape)
         return self._ddeltax
+    def set_ddeltax(self, val): self._ddeltax = val
 
     def get_epsilon(self):
         if self._epsilon is None:
             self._epsilon = ones(self.shape)
         return self._epsilon
+    def set_epsilon(self, val): self._epsilon = val
 
-    gradient = property(get_gradient)
-    deltax   = property(get_deltax)
-    ddeltax  = property(get_ddeltax)
-    epsilon  = property(get_epsilon)
+    dx       = property(get_dx,       set_dx)
+    ddx      = property(get_ddx,      set_ddx)    
+    gradient = property(get_gradient, set_gradient)
+    deltax   = property(get_deltax,   set_deltax)
+    ddeltax  = property(get_ddeltax,  set_ddeltax)
+    epsilon  = property(get_epsilon,  set_epsilon)

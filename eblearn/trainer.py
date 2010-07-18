@@ -48,7 +48,6 @@ class eb_trainer (object):
         
     def train_online(self, niter):
         print 'Starting training on %s (%d iterations)'%(time.asctime(),niter)
-        age             = self.age
         hess_interval   = self.hess_interval
         report_interval = self.report_interval
         valid_interval  = self.valid_interval
@@ -61,6 +60,8 @@ class eb_trainer (object):
             self.machine.parameter.set_epsilon(1.)
 
         for i in xrange(niter):
+            age = self.age
+            
             if hess_interval > 0 and (age % hess_interval) == 0:
                 self.compute_diag_hessian()
                 

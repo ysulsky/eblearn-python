@@ -57,6 +57,10 @@ class eb_module (object):
         else:
             self.parameter.merge(other.parameter)
 
+class no_params (object):
+    def param(self, shape):  assert('No parameters allowed' == 0)
+    def bprop_param(*args):  pass
+    def bbprop_param(*args): pass
 
 class module_1_1 (eb_module):
     def fprop(self, input, output):
@@ -65,12 +69,12 @@ class module_1_1 (eb_module):
     def bprop_input(self, input, output):
         raise NotImplementedError()
     def bprop_param(self, input, output):
-        if self.has_params(): raise NotImplementedError()
+        raise NotImplementedError()
 
     def bbprop_input(self, input, output):
         raise NotImplementedError()
     def bbprop_param(self, input, output):
-        if self.has_params(): raise NotImplementedError()
+        raise NotImplementedError()
 
     def bprop(self, input, output):
         self.bprop_input(input, output)
@@ -88,18 +92,18 @@ class module_2_1 (eb_module):
     def bprop_input(self, input1, input2, output):
         raise NotImplementedError()
     def bprop_param(self, input1, input2, output):
-        if self.has_params(): raise NotImplementedError()
+        raise NotImplementedError()
 
     def bbprop_input(self, input1, input2, output):
         raise NotImplementedError()
     def bbprop_param(self, input1, input2, output):
-        if self.has_params(): raise NotImplementedError()
+        raise NotImplementedError()
 
     def bprop(self, input1, input2, output):
         self.bprop_input(input1, input2, output)
         self.bprop_param(input1, input2, output)
 
-    def bbprop(self, input, output):
+    def bbprop(self, input1, input2, output):
         self.bbprop_input(input1, input2, output)
         self.bbprop_param(input1, input2, output)
 

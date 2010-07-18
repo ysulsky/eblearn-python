@@ -1,6 +1,6 @@
 from module import *
 
-class distance_l2 (module_2_1):
+class distance_l2 (no_params, module_2_1):
     def fprop(self, input1, input2, energy):
         energy.resize((1,))
         assert (input1.shape == input2.shape)
@@ -11,12 +11,12 @@ class distance_l2 (module_2_1):
         input1.dx += r
         input2.dx -= r
     
-    def bbprop_input(self, input, input2, energy):
+    def bbprop_input(self, input1, input2, energy):
         r = energy.dx[0] / input1.size
         input1.ddx += r
         input2.ddx += r
 
-class cross_entropy (module_2_1):
+class cross_entropy (no_params, module_2_1):
     def fprop(self, input1, input2, energy):
         energy.resize((1,))
         assert (input1.shape == input2.shape)

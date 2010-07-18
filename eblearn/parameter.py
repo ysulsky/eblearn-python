@@ -79,7 +79,7 @@ class parameter (object):
             if decay_l2 > 0:
                 for state in states: 
                     state.dx += state.x * decay_l2
-            if decau_l1 > 0:
+            if decay_l1 > 0:
                 for state in states: 
                     state.dx += sp.sign(state.x) * decay_l1
 
