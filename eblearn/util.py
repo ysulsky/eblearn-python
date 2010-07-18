@@ -5,7 +5,4 @@ from _util import rtype
 zeros = lambda shape: sp.zeros(shape, rtype, 'C')
 ones  = lambda shape: sp.ones(shape, rtype, 'C')
 product = sp.prod
-
-def sqdist(a, b):
-    m = a - b
-    return (m * m).sum()
+sqdist = lambda a, b: ((a - b) ** 2).sum()

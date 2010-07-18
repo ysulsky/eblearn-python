@@ -15,6 +15,12 @@ class state (object):
         self._ddeltax  = None
         self._epsilons = None
 
+    def clear_dx(self):
+        if self._dx is not None: self._dx.fill(0)
+
+    def clear_ddx(self):
+        if self._ddx is not None: self._ddx.fill(0)
+
     def resize(self, shape):
         self.x.resize(shape)
         if self._dx       is not None: self._dx.resize(shape)

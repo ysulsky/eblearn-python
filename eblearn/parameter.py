@@ -31,6 +31,7 @@ class parameter (object):
         self.forget = parameter_forget()
 
     def merge(self, other):
+        if other is None: return
         self.states.extend(other.states)
         other.__dict__.update(self.__dict__)
     

@@ -17,7 +17,6 @@ def always_init (fn_start, fn_end):
     return always_init_meta
 
 def ebmod_init_start(self):
-    self.has_params = False
     if eb_module.init_lvl == 0:
         print 'dynamic extent started'
         eb_module.cur_parameter = parameter()
@@ -37,38 +36,67 @@ class eb_module (object):
     cur_parameter = None
     init_lvl = 0
 
+
+    def has_params(self):
+        return self.parameter is not None and self.parameter.size() > 0
+
     def forget(self):
-        if self.has_params:
-            raise NotImplementedError()
+        if self.has_params(): raise NotImplementedError()
         
     def param(self, shape):
         s = state(shape)
         self.parameter.append(s)
-        self.has_params = True
         return s
+    
+    def _merge_parameters(self, other):
+        if self.parameter is None: self.parameter = other.parameter
+        else: self.parameter.merge(other.parameter)
+
 
 class module_1_1 (eb_module):
     def fprop(self, input, output):
         raise NotImplementedError()
 
-    def bprop_param(self, input, output):
-        raise NotImplementedError()
     def bprop_input(self, input, output):
         raise NotImplementedError()
+    def bprop_param(self, input, output):
+        if self.has_params(): raise NotImplementedError()
 
-    def bbprop_param(self, input, output):
-        raise NotImplementedError()
     def bbprop_input(self, input, output):
         raise NotImplementedError()
+    def bbprop_param(self, input, output):
+        if self.has_params(): raise NotImplementedError()
 
     def bprop(self, input, output):
-        self.bprop_param(input, output)
         self.bprop_input(input, output)
+        self.bprop_param(input, output)
 
     def bbprop(self, input, output):
-        self.bbprop_param(input, output)
         self.bbprop_input(input, output)
+        self.bbprop_param(input, output)
 
+
+class module_2_1 (eb_module):
+    def fprop(self, input1, input2, output):
+        raise NotImplementedError()
+
+    def bprop_input(self, input1, input2, output):
+        raise NotImplementedError()
+    def bprop_param(self, input1, input2, output):
+        if self.has_params(): raise NotImplementedError()
+
+    def bbprop_input(self, input1, input2, output):
+        raise NotImplementedError()
+    def bbprop_param(self, input1, input2, output):
+        if self.has_params(): raise NotImplementedError()
+
+    def bprop(self, input1, input2, output):
+        self.bprop_input(input1, input2, output)
+        self.bprop_param(input1, input2, output)
+
+    def bbprop(self, input, output):
+        self.bbprop_input(input1, input2, output)
+        self.bbprop_param(input1, input2, output)
 
 class linear (module_1_1):
     def __init__(self, shape_in, shape_out):
@@ -87,19 +115,19 @@ class linear (module_1_1):
     def fprop(self, input, output):
         assert (self.shape_in  == input.shape)
         output.resize(self.shape_out)
-        output.x = sp.dot(self.w.x, input.x.flat).reshape(output.shape)
-
-    def bprop_param(self, input, output):
-        self.w.dx += sp.outer(output.dx.flat, input.x.flat)
+        output.x = sp.dot(self.w.x, input.x.ravel()).reshape(output.shape)
 
     def bprop_input(self, input, output):
-        input.dx.flat += sp.dot(self.w.x.T, output.dx.flat)
+        input.dx.ravel()[:] += sp.dot(self.w.x.T, output.dx.ravel())
+    def bprop_param(self, input, output):
+        self.w.dx += sp.outer(output.dx.ravel(), input.x.ravel())
 
-    def bbprop_param(self, input, output):
-        self.w.ddx += sp.outer(output.ddx.flat ** 2, input.x.flat)
-    
     def bbprop_input(self, input, output):
-        input.ddx.flat += sp.dot(self.w.x.T ** 2, output.ddx.flat)
+        input.ddx.ravel()[:] += sp.dot(self.w.x.T ** 2, output.ddx.ravel())
+    def bbprop_param(self, input, output):
+        self.w.ddx += sp.outer(output.ddx.ravel() ** 2, input.x.ravel())
+    
+
 
 
 class bias (module_1_1):
@@ -116,15 +144,14 @@ class bias (module_1_1):
         output.resize(self.b.shape)
         output.x = input.x + self.b.x
 
+    def bprop_input(self, input, output):
+        input.dx  += output.dx
     def bprop_param(self, input, output):
         self.b.dx += output.dx
 
-    def bprop_input(self, input, output):
-        input.dx  += output.dx
-
+    def bbprop_input(self, input, output):
+        input.ddx  += output.ddx
     def bbprop_param(self, input, output):
         self.b.ddx += output.ddx
 
-    def bbprop_input(self, input, output):
-        input.ddx  += output.ddx
 
