@@ -242,7 +242,7 @@ def make_test_cost_jac(ctor):
 
 test_distance_l2_jac = make_test_cost_jac(distance_l2)
 test_crossent_jac    = make_test_cost_jac(cross_entropy)
-    
+test_penalty_l1_jac  = make_test_xfer_jac(penalty_l1)
 
 def test_jac():
     print '##########################################'
@@ -272,6 +272,9 @@ def test_jac():
     print '##########################################'
     print 'TEST DISTANCE-L2 JACOBIAN'
     test_distance_l2_jac( (23,4,6) )
+    print '##########################################'
+    print 'TEST PENALTY-L1 JACOBIAN'
+    test_penalty_l1_jac( (23,4,6) )
     print '##########################################'
     print 'TEST CROSS ENTROPY JACOBIAN'
     test_crossent_jac( (10,4,6) )

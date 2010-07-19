@@ -39,3 +39,16 @@ class cross_entropy (no_params, module_2_1):
         input1.ddx += energy.ddx[0] * dd1
         input2.ddx += energy.ddx[0] * dd2
 
+class penalty_l1 (no_params, module_1_1):
+    def __init__(self, thresh = 0.0001):
+        self.thresh = thresh
+    def fprop(self, input, energy):
+        energy.resize((1,))
+        energy.x[0] = sp.absolute(input.x).sum() / input.size
+    def bprop_input (self, input, energy):
+        sx = input.x / self.thresh
+        sp.trunc(sx, sx)
+        sp.sign(sx, sx)
+        input.dx += sx * (energy.dx[0] / input.size)
+    def bbprop_input(self, input, energy):
+        input.ddx += energy.ddx[0]
