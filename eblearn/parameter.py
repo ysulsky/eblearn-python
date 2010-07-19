@@ -89,6 +89,15 @@ class parameter (object):
                 for state in states: 
                     state.dx += sp.sign(state.x) * decay_l1
 
+        
+        dx_scale = 0.
+        for state in states:
+            dx_scale += (state.dx ** 2).sum()
+        dx_scale = sqrt(dx_scale)
+
+        if not age % 2000:
+            print '*** |dx| =', dx_scale
+            print '*** |1/epsilon| =', sqrt(((1/sp.fromiter(self.epsilon, rtype)) ** 2).sum())
         if inertia == 0:
             for state in states:
                 state.x += state.dx     * state.epsilon * (-eta)

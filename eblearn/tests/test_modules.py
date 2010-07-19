@@ -78,7 +78,7 @@ def test_module_1_1_jac (mod, sin, sout, minval=-2., maxval=2.):
     return (jac_fprop, jac_bprop)
 
 def test_module_1_1_jac_param (mod, sin, sout, minval=-2., maxval=2.):
-    if not mod.parameter or not mod.parameter.size(): return
+    if not mod.has_params(): return
     sin.x = sp.random.random(sin.shape) * (maxval - minval) - minval
     for state in mod.parameter.states:
         state.x = sp.random.random(state.shape) * (maxval - minval) - minval
@@ -177,7 +177,7 @@ def test_module_2_1_jac (mod, sin1, sin2, sout, minval=-2., maxval=2.):
     return (jac1_fprop, jac2_fprop, jac1_bprop, jac2_bprop)
 
 def test_module_2_1_jac_param (mod, sin1, sin2, sout, minval=-2., maxval=2.):
-    if not mod.parameter or not mod.parameter.size(): return
+    if not mod.has_params(): return
     sin1.x = sp.random.random(sin1.shape) * (maxval - minval) - minval
     sin2.x = sp.random.random(sin2.shape) * (maxval - minval) - minval
     for state in mod.parameter.states:
@@ -215,21 +215,33 @@ def test_layers_jac(*shapes):
     test_module_1_1_jac(mod, sin, sout)
     test_module_1_1_jac_param(mod, sin, sout)
 
-def test_distance_l2_jac(size):
-    sin1 = state(size)
-    sin2 = state(size)
-    sout = state((1,))
-    mod  = distance_l2()
-    test_module_2_1_jac(mod, sin1, sin2, sout)
-    test_module_2_1_jac_param(mod, sin1, sin2, sout)
+def make_test_xfer_jac(ctor):
+    def test_jac(size):
+        sin  = state(size)
+        sout = state(size)
+        mod  = ctor()
+        test_module_1_1_jac(mod, sin, sout)
+        test_module_1_1_jac_param(mod, sin, sout)
+    return test_jac
+    
+test_tanh_jac          = make_test_xfer_jac(transfer_tanh)
+test_abs_jac           = make_test_xfer_jac(transfer_abs)
+test_copy_flipsign_jac = make_test_xfer_jac(transfer_copy_flipsign)
+test_greater_jac       = make_test_xfer_jac(transfer_greater)
+test_double_abs_jac    = make_test_xfer_jac(transfer_double_abs)
 
-def test_crossent_jac(size):
-    sin1 = state(size)
-    sin2 = state(size)
-    sout = state((1,))
-    mod  = cross_entropy()
-    test_module_2_1_jac(mod, sin1, sin2, sout)
-    test_module_2_1_jac_param(mod, sin1, sin2, sout)
+def make_test_cost_jac(ctor):
+    def test_jac(size):
+        sin1 = state(size)
+        sin2 = state(size)
+        sout = state(size)
+        mod  = ctor()
+        test_module_2_1_jac(mod, sin1, sin2, sout)
+        test_module_2_1_jac_param(mod, sin1, sin2, sout)
+    return test_jac
+
+test_distance_l2_jac = make_test_cost_jac(distance_l2)
+test_crossent_jac    = make_test_cost_jac(cross_entropy)
     
 
 def test_jac():
@@ -242,6 +254,21 @@ def test_jac():
     print '##########################################'
     print 'TEST LAYERS JACOBIAN'
     test_layers_jac( (5,), (3,), (5,), (3,) )
+    print '##########################################'
+    print 'TEST TANH JACOBIAN'
+    test_tanh_jac( (20,3,4) )
+    print '##########################################'
+    print 'TEST ABS JACOBIAN'
+    test_abs_jac( (20,3,4) )
+    print '##########################################'
+    print 'TEST COPY-FLIPSIGN JACOBIAN'
+    test_copy_flipsign_jac( (20,3,4) )
+    print '##########################################'
+    print 'TEST GREATER JACOBIAN'
+    test_greater_jac( (20,3,4) )
+    print '##########################################'
+    print 'TEST DOUBLE-ABS JACOBIAN'
+    test_double_abs_jac( (20,3,4) )
     print '##########################################'
     print 'TEST DISTANCE-L2 JACOBIAN'
     test_distance_l2_jac( (23,4,6) )

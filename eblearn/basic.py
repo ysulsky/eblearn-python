@@ -21,7 +21,7 @@ class linear (module_1_1):
     def fprop(self, input, output):
         assert (self.shape_in  == input.shape)
         output.resize(self.shape_out)
-        output.x = sp.dot(self.w.x, input.x.ravel()).reshape(output.shape)
+        output.x[:] = sp.dot(self.w.x, input.x.ravel()).reshape(output.shape)
 
     def bprop_input(self, input, output):
         input.dx.ravel()[:] += sp.dot(self.w.x.T, output.dx.ravel())
@@ -49,7 +49,7 @@ class bias (module_1_1):
     def fprop(self, input, output):
         assert (self.b.shape  == input.shape)
         output.resize(self.b.shape)
-        output.x = input.x + self.b.x
+        output.x[:] = input.x + self.b.x
 
     def bprop_input(self, input, output):
         input.dx  += output.dx

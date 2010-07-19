@@ -10,18 +10,18 @@ class eb_module (object):
     
     def _init_around(self, old_init, *args, **kwargs):
         if eb_module.init_lvl == 0:
-            print 'dynamic extent started'
+            #print 'dynamic extent started'
             eb_module.cur_parameter = parameter()
         self.parameter = eb_module.cur_parameter
         eb_module.init_lvl += 1
-        print '   ebmod_init_start'
+        #print '   ebmod_init_start'
     
         old_init(*args, **kwargs)
     
-        print '   ebmod_init_end'
+        #print '   ebmod_init_end'
         eb_module.init_lvl -= 1
         if eb_module.init_lvl == 0:
-            print 'dynamic extent ended'
+            #print 'dynamic extent ended'
             eb_module.cur_parameter = None
 
     @around(_init_around)
