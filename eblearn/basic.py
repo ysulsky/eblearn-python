@@ -44,7 +44,7 @@ class bias (module_1_1):
         self.b.x = sp.random.random(self.b.shape) * (2*z) - z
 
     def normalize(self):
-        self.b *= 1.0 / sqrt(sqmag(self.b))
+        self.b.x *= 1.0 / sqrt(sqmag(self.b.x))
     
     def fprop(self, input, output):
         assert (self.b.shape  == input.shape)
