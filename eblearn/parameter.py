@@ -63,7 +63,12 @@ class parameter (object):
     def compute_epsilon(self, mu):
         for state in self.states: state.epsilon = 1.0 / (state.ddeltax + mu)
     
+    def update_deltax(self, knew, kold):
+        for state in self.states:
+            state.deltax = kold * state.deltax + knew * state.dx
+    
     def update_ddeltax(self, knew, kold):
+        assert (sp.all(sp.all(state.ddx > -1e-6) for state in self.states))
         for state in self.states:
             state.ddeltax = kold * state.ddeltax + knew * state.ddx
     
@@ -89,22 +94,16 @@ class parameter (object):
                 for state in states: 
                     state.dx += sp.sign(state.x) * decay_l1
 
-        
-        dx_scale = 0.
-        for state in states:
-            dx_scale += (state.dx ** 2).sum()
-        dx_scale = sqrt(dx_scale)
-
-        if not age % 2000:
-            print '*** |dx| =', dx_scale
-            print '*** |1/epsilon| =', sqrt(((1/sp.fromiter(self.epsilon, rtype)) ** 2).sum())
+        grad = None
         if inertia == 0:
-            for state in states:
-                state.x += state.dx     * state.epsilon * (-eta)
+            grad = [state.dx * state.epsilon for state in states]
         else:
-            for state in states:
-                state.deltax = inertia * state.deltax + (1.-inertia) * state.dx
-                state.x += state.deltax * state.epsilon * (-eta)
+            self.update_deltax(inertia, 1.-inertia)
+            grad = [state.deltax * state.epsilon for state in states]
+        
+        grad_norm = max(eta, sqrt(sum(sqmag(g) for g in grad)))
+        for (g, state) in zip(grad,states):
+            state.x += (-eta / grad_norm) * g
 
         self.age += 1
 

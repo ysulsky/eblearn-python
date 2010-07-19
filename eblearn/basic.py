@@ -16,7 +16,7 @@ class linear (module_1_1):
 
     def normalize(self):
         for col in self.w.x.T:
-            col *= 1.0 / sqrt((col ** 2).sum())
+            col *= 1.0 / sqrt(sqmag(col))
 
     def fprop(self, input, output):
         assert (self.shape_in  == input.shape)
@@ -29,9 +29,9 @@ class linear (module_1_1):
         self.w.dx += sp.outer(output.dx.ravel(), input.x.ravel())
 
     def bbprop_input(self, input, output):
-        input.ddx.ravel()[:] += sp.dot(self.w.x.T ** 2, output.ddx.ravel())
+        input.ddx.ravel()[:] += sp.dot(sp.square(self.w.x.T),output.ddx.ravel())
     def bbprop_param(self, input, output):
-        self.w.ddx += sp.outer(output.ddx.ravel() ** 2, input.x.ravel())
+        self.w.ddx += sp.outer(output.ddx.ravel(), sp.square(input.x.ravel()))
 
 
 class bias (module_1_1):
@@ -44,7 +44,7 @@ class bias (module_1_1):
         self.b.x = sp.random.random(self.b.shape) * (2*z) - z
 
     def normalize(self):
-        self.b *= 1.0 / sqrt((self.b ** 2).sum())
+        self.b *= 1.0 / sqrt(sqmag(self.b))
     
     def fprop(self, input, output):
         assert (self.b.shape  == input.shape)

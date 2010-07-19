@@ -9,7 +9,7 @@ class eb_trainer (object):
                  valid_iter        = -1,
                  valid_err_tol     = 0.1,
                  report_interval   = 2000,
-                 hess_interval     = 4000,
+                 hess_interval     = 2000,
                  hess_iter         = 500,
                  hess_mu           = 0.02,
                  backup_interval   = 0,
@@ -36,11 +36,29 @@ class eb_trainer (object):
         self.energy.dx[0]  = 1.
         self.energy.ddx[0] = 1.
 
+        self.msg = self.make_msg()
         self.clear_log()
 
     def clear_log(self):
         self.train_loss = []
         self.valid_loss = []
+
+    def make_msg(self):
+        prev_age = [-1]
+        prefix_width = 20
+        def prefix_age(age):
+            s_age = str(age)
+            dots  = '.' * (prefix_width - 6 - len(s_age))
+            return 'Age %s%s: ' % (s_age, dots)
+        def prefix_noage():
+            return '.' * (prefix_width - 1) + ' '
+        def msg(s):
+            prefix = prefix_noage()
+            if self.age != prev_age[0]:
+                prefix = prefix_age(self.age)
+                prev_age[0] = self.age
+            print prefix + s
+        return msg
 
     def train(self, niter):
         self.age = 0
@@ -48,9 +66,12 @@ class eb_trainer (object):
         self.ds_train.seek(0)
         self.machine.forget()
         self.train_online(niter)
+        self.msg = self.make_msg()
         
     def train_online(self, niter):
         print 'Starting training on %s (%d iterations)'%(time.asctime(),niter)
+
+        msg             = self.msg
         hess_interval   = self.hess_interval
         report_interval = self.report_interval
         valid_interval  = self.valid_interval
@@ -58,7 +79,6 @@ class eb_trainer (object):
         backup_interval = self.backup_interval
         prev_vld_loss   = None
 
-        
         if hess_interval <= 0:
             self.machine.parameter.set_epsilon(1.)
 
@@ -75,12 +95,12 @@ class eb_trainer (object):
                 if      report_interval > 0 and \
                         age > 0 and (age % report_interval) == 0:
                     avloss = sp.mean(self.train_loss[-report_interval:])
-                    print 'age %d ... av. loss = %g' % (age+1, avloss)
+                    msg('av. loss = %g' % avloss)
 
             if valid_interval > 0 and age > 0 and (age % valid_interval) == 0:
                 vld_loss = self.validate()
                 if self.keep_log: self.valid_loss.append((age, vld_loss))
-                print 'age %d ... validation loss = %g' % (age+1, vld_loss)
+                msg('validation loss = %g' % vld_loss)
 
                 if valid_err_tol >= 0 and prev_vld_loss is not None:
                     if vld_loss - prev_vld_loss > valid_err_tol * prev_vld_loss:
@@ -132,8 +152,7 @@ class eb_trainer (object):
         return energy.x[0]
 
     def compute_diag_hessian(self):
-        print "age %d ... computing diagonal Hessian approximation" \
-            % (1+self.age)
+        self.msg('computing diagonal Hessian approximation')
         start_pos = self.ds_train.tell()
         for i in xrange(self.hess_iter):
             self.train_sample_bbprop()

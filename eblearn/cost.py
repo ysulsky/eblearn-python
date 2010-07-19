@@ -34,8 +34,8 @@ class cross_entropy (no_params, module_2_1):
     def bbprop_input(self, input1, input2, energy):
         expin1 = sp.exp(input1.x)
         softmaxin1 = expin1 * (1.0 / expin1.sum())
-        dd1 = input2.x.sum() * softmaxin1 - input2.x
-        dd2 = sp.log(softmaxin1)
-        input1.ddx += energy.ddx[0] * (dd1 ** 2)
-        input2.ddx += energy.ddx[0] * (dd2 ** 2)
+        dd1 = sp.square(input2.x.sum() * softmaxin1 - input2.x)
+        dd2 = sp.square(sp.log(softmaxin1))
+        input1.ddx += energy.ddx[0] * dd1
+        input2.ddx += energy.ddx[0] * dd2
 

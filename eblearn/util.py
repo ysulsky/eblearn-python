@@ -1,7 +1,7 @@
 import sys
 import scipy as sp
 import pickle
-from math import sqrt, log, tanh
+from math import pi, sqrt
 from _util import rtype
 
 sp.seterr('raise')
@@ -11,12 +11,13 @@ empty = lambda shape: sp.empty(shape, rtype, 'C')
 zeros = lambda shape: sp.zeros(shape, rtype, 'C')
 ones  = lambda shape: sp.ones(shape, rtype, 'C')
 product = sp.prod
-sqdist = lambda a, b: ((a - b) ** 2).sum()
+sqmag  = lambda x: sp.square(x).sum()
+sqdist = lambda a, b: sqmag(a - b)
 
 def dtanh(x):
     e = x.clip(-8, 8)
     sp.exp(-2.*e, e)
-    return 4*e / (e + 1) ** 2
+    return 4*e / sp.square(e + 1)
 
 def thresh_less(inp, thresh, out=None):
     if out is None: out    = inp.copy()
