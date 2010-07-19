@@ -31,6 +31,11 @@ class parameter (object):
         self.states = []
         self.forget = parameter_forget()
 
+    def reset(self):
+        # may be called several times in a row
+        if self.age == 0: return
+        self.age = 0
+
     def merge(self, other):
         if other is None: return
         self.states.extend(other.states)
@@ -65,17 +70,18 @@ class parameter (object):
     def update(self, arg):
         '''arg is of type parameter_update'''
 
+        age         = self.age
         eta         = arg.eta
-        anneal_time = arg.anneal_amt
+        anneal_time = arg.anneal_time
         decay_l1    = arg.decay_l1
         decay_l2    = arg.decay_l2
         inertia     = arg.inertia
         states      = self.states
 
-        if anneal_time > 0 and (self.age % anneal_time) == 0:
-            eta /= 1. + (arg.anneal_amt * self.age / anneal_time)
+        if anneal_time > 0 and (age % anneal_time) == 0:
+            eta /= 1. + (arg.anneal_amt * age / anneal_time)
         
-        if self.age >= arg.decay_time:
+        if age >= arg.decay_time:
             if decay_l2 > 0:
                 for state in states: 
                     state.dx += state.x * decay_l2

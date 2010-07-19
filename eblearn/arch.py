@@ -67,6 +67,7 @@ class ebm_2 (module_2_1):
         self.cost.fprop(self.machine_out, input2, output)
 
     def bprop_input(self, input1, input2, output):
+        self.machine_out.clear_dx()
         self.cost.bprop_input(self.machine_out, input2, output)
         self.machine.bprop_input(input1, self.machine_out)
     def bprop_param(self, input1, input2, output):
@@ -74,6 +75,7 @@ class ebm_2 (module_2_1):
         self.machine.bprop_param(input1, self.machine_out)
 
     def bbprop_input(self, input1, input2, output):
+        self.machine_out.clear_ddx()
         self.cost.bbprop_input(self.machine_out, input2, output)
         self.machine.bbprop_input(input1, self.machine_out)
     def bbprop_param(self, input1, input2, output):

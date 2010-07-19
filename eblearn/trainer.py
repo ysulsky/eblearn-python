@@ -8,8 +8,8 @@ class eb_trainer (object):
                  valid_interval    = 2000,
                  valid_iter        = -1,
                  valid_err_tol     = 0.1,
-                 hess_interval     = 2000,
                  report_interval   = 2000,
+                 hess_interval     = 4000,
                  hess_iter         = 500,
                  hess_mu           = 0.02,
                  backup_interval   = 0,
@@ -24,8 +24,10 @@ class eb_trainer (object):
         del vals['self']
         self.__dict__.update(vals)
 
-        if ds_valid.size() <= 0:  self.ds_valid = None
-        if self.ds_valid is None: self.valid_interval = 0
+        if ds_valid is not None and ds_valid.size() <= 0:
+            self.ds_valid = None
+        if self.ds_valid is None: 
+            self.valid_interval = 0
         
         self.age    = 0
         self.input  = state(())
@@ -44,6 +46,7 @@ class eb_trainer (object):
         self.age = 0
         self.clear_log()
         self.ds_train.seek(0)
+        self.machine.forget()
         self.train_online(niter)
         
     def train_online(self, niter):
@@ -68,10 +71,10 @@ class eb_trainer (object):
             tr_loss = self.train_sample()
             
             if self.keep_log:
-                self.train_loss.append((age, tr_loss))
+                self.train_loss.append((tr_loss))
                 if      report_interval > 0 and \
                         age > 0 and (age % report_interval) == 0:
-                    avloss = self.train_loss[-report_interval:].mean()
+                    avloss = sp.mean(self.train_loss[-report_interval:])
                     print 'age %d ... av. loss = %g' % (age+1, avloss)
 
             if valid_interval > 0 and age > 0 and (age % valid_interval) == 0:
@@ -106,7 +109,6 @@ class eb_trainer (object):
         machine.parameter.clear_dx()
         machine.bprop(input, target, energy)
         
-        
     def train_sample(self):
         machine, energy = self.machine, self.energy
         
@@ -130,7 +132,8 @@ class eb_trainer (object):
         return energy.x[0]
 
     def compute_diag_hessian(self):
-        print "Computing diagonal Hessian approximation"
+        print "age %d ... computing diagonal Hessian approximation" \
+            % (1+self.age)
         start_pos = self.ds_train.tell()
         for i in xrange(self.hess_iter):
             self.train_sample_bbprop()

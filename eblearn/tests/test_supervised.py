@@ -4,8 +4,9 @@ def map_inputs(f, x):
     return array([f(i) for i in x])
 
 def func1(input):
-    weights = array(xrange(input.size))
-    return sp.dot(weights, input.ravel()) + 17.5
+    weights = array(xrange(1,input.size+1))
+    return sp.dot(weights, input.ravel())
+
 
 func = func1
 
@@ -22,8 +23,13 @@ shape_in, shape_out = ds_train.shape()
 machine = layers(linear(shape_in, shape_out), bias(shape_out))
 cost    = distance_l2()
 
-upd = parameter_update()
+upd = parameter_update(eta = 0.001)
 
-trainer = eb_trainer(ebm_2(machine, cost), upd, ds_train, ds_valid)
-trainer.train(1000)
+trainer = eb_trainer(ebm_2(machine, cost), upd, ds_train, 
+                     ds_valid = ds_valid,
+                     backup_location = '/tmp',
+                     backup_interval = 2000,
+#                    hess_interval = 0,
+)
 
+trainer.train(100000)

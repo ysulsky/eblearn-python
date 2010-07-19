@@ -26,7 +26,8 @@ class dsource_unsup (eb_dsource):
 
     def normalize(self):
         self.bias  = -self.inputs.mean(0)
-        self.coeff = 1.0 / self.inputs.std(0)
+        std = self.inputs.std(0).clip(1e-6)
+        self.coeff = 1.0 / std
 
     def _fprop_input(self, input):
         x = (self.inputs[self.shuffle[self.current]] + self.bias) * self.coeff

@@ -3,48 +3,45 @@ from state import *
 from parameter import *
 from module import *
 
-def always_init (fn_start, fn_end):
-    """ Depending on the inheritence chain and calls to super().__init__
-        fn_start and fn_end may be called several times """
-    class always_init_meta (type):
-        def __init__ (cls, name, bases, dct):
-            cls.cur__init__ = cls.__init__
-            def real_init (self, *args):
-                fn_start(self)
-                cls.cur__init__(self, *args)
-                fn_end(self)
-            cls.__init__ = real_init
-    return always_init_meta
-
-def ebmod_init_start(self):
-    if eb_module.init_lvl == 0:
-        print 'dynamic extent started'
-        eb_module.cur_parameter = parameter()
-    self.parameter = eb_module.cur_parameter
-    eb_module.init_lvl += 1
-    print '   ebmod_init_start'
-
-def ebmod_init_end(self):
-    print '   ebmod_init_end'
-    eb_module.init_lvl -= 1
-    if eb_module.init_lvl == 0:
-        print 'dynamic extent ended'
-        eb_module.cur_parameter = None
-
 class eb_module (object):
-    __metaclass__ = always_init(ebmod_init_start, ebmod_init_end)
+    __metaclass__ = around_methods
     cur_parameter = None
     init_lvl = 0
+    
+    def _init_around(self, old_init, *args, **kwargs):
+        if eb_module.init_lvl == 0:
+            print 'dynamic extent started'
+            eb_module.cur_parameter = parameter()
+        self.parameter = eb_module.cur_parameter
+        eb_module.init_lvl += 1
+        print '   ebmod_init_start'
+    
+        old_init(*args, **kwargs)
+    
+        print '   ebmod_init_end'
+        eb_module.init_lvl -= 1
+        if eb_module.init_lvl == 0:
+            print 'dynamic extent ended'
+            eb_module.cur_parameter = None
 
+    @around(_init_around)
+    def __init__(self): pass
 
     def has_params(self):
+        #XXX: not exact. use the "no_params" subclass to get this right
         return self.parameter is not None and self.parameter.size() > 0
 
+    def _forget_around(self, old_forget, *args, **kwargs):
+        if self.parameter is not None:
+            self.parameter.reset()
+        old_forget(*args, **kwargs)
+
+    @around(_forget_around)
     def forget(self):
-        if self.has_params(): raise NotImplementedError()
+        raise NotImplementedError()
 
     def normalize(self):
-        if self.has_params(): raise NotImplementedError()
+        raise NotImplementedError()
         
     def param(self, shape):
         s = state(shape)
@@ -61,6 +58,9 @@ class no_params (object):
     def param(self, shape):  assert('No parameters allowed' == 0)
     def bprop_param(*args):  pass
     def bbprop_param(*args): pass
+    def forget(self):        pass
+    def normalize(self):     pass
+    def has_params(self):    return False
 
 class module_1_1 (eb_module):
     def fprop(self, input, output):
