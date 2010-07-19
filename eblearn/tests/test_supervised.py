@@ -6,6 +6,29 @@ def map_inputs(f, x):
 def func(x):
     return 10 * sp.sin(x * (2*pi))
 
+def plot(ds, machine):
+    shape_in, shape_out = ds.shape()
+    assert (shape_in == shape_out == (1,))
+    inp = state((1,)); out = state((1,)); des = state((1,))
+    ds.seek(0)
+    size = ds.size()
+    coords  = empty(size); outputs = empty(size); targets = empty(size)
+    for i in xrange(size):
+        ds.fprop(inp, des)
+        machine.fprop(inp, out)
+        coords[i] = inp.x; outputs[i] = out.x; targets[i] = des.x
+        ds.next()
+    from matplotlib import pyplot
+    indices = coords.argsort()
+    coords  = coords.take(indices)
+    outputs = outputs.take(indices)
+    targets = targets.take(indices)
+    pyplot.ioff()
+    pyplot.plot(coords, outputs, label = 'machine output')
+    pyplot.plot(coords, targets, label = 'desired output')
+    pyplot.legend()
+    pyplot.show()
+
 hidden = (512,)
 
 train_data = sp.random.random((100,1))
@@ -37,3 +60,5 @@ trainer = eb_trainer(ebm_2(machine, cost), upd, ds_train,
 )
 
 trainer.train(50000)
+
+plot(ds_valid, machine)
