@@ -8,7 +8,7 @@ class eb_module (object):
     cur_parameter = None
     init_lvl = 0
     
-    def _init_around(self, old_init, *args, **kwargs):
+    def _init_around(self, inner_init, *args, **kwargs):
         if eb_module.init_lvl == 0:
             #print 'dynamic extent started'
             eb_module.cur_parameter = parameter()
@@ -16,7 +16,7 @@ class eb_module (object):
         eb_module.init_lvl += 1
         #print '   ebmod_init_start'
     
-        old_init(*args, **kwargs)
+        inner_init(self, *args, **kwargs)
     
         #print '   ebmod_init_end'
         eb_module.init_lvl -= 1
@@ -34,7 +34,7 @@ class eb_module (object):
     def _forget_around(self, old_forget, *args, **kwargs):
         if self.parameter is not None:
             self.parameter.reset()
-        old_forget(*args, **kwargs)
+        old_forget(self, *args, **kwargs)
 
     @around(_forget_around)
     def forget(self):
