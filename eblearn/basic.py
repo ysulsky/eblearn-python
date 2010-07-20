@@ -35,30 +35,45 @@ class linear (module_1_1):
 
 
 class bias (module_1_1):
-    def __init__(self, shape_in):
-        self.b = self.param((shape_in))
-
+    def __init__(self, shape_in, per_feature = False):
+        ''' if per_feature is false, out[]    = in[]    + b[]
+            otherwise                out[k][] = in[k][] + b[k] '''
+        self.per_feature = per_feature
+        shape_in = ensure_tuple(shape_in)
+        shape_b = shape_in
+        if per_feature:
+            ndim = len(shape_in)
+            shape_b = (shape_in[0],) + (ndim-1)*(1,)
+        self.b = self.param(shape_b)
+    
     def forget(self):
         arg = self.parameter.forget
         z = arg.lin_value
         self.b.x = sp.random.random(self.b.shape) * (2*z) - z
-
-    def normalize(self):
-        self.b.x *= 1.0 / sqrt(sqmag(self.b.x))
+    
+    def normalize(self): pass
     
     def fprop(self, input, output):
-        assert (self.b.shape  == input.shape)
-        output.resize(self.b.shape)
+        assert (self.b.ndim     == input.ndim)
+        assert (self.b.shape[0] == input.shape[0])
+        assert (self.per_feature or self.b.shape == input.shape)
+        output.resize(input.shape)
         output.x[:] = input.x + self.b.x
-
+    
     def bprop_input(self, input, output):
         input.dx  += output.dx
     def bprop_param(self, input, output):
-        self.b.dx += output.dx
-
+        odx = output.dx
+        if self.per_feature:
+            odx = odx.reshape((len(self.b), -1)).sum(1).reshape(self.b.shape)
+        self.b.dx += odx
+    
     def bbprop_input(self, input, output):
         input.ddx  += output.ddx
     def bbprop_param(self, input, output):
-        self.b.ddx += output.ddx
+        oddx = output.ddx
+        if self.per_feature:
+            oddx = oddx.reshape((len(self.b), -1)).sum(1).reshape(self.b.shape)
+        self.b.ddx += oddx
 
 

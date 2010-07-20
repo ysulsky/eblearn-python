@@ -200,8 +200,8 @@ def test_linear_jac(fro, to):
     test_module_1_1_jac(mod, sin, sout)
     test_module_1_1_jac_param(mod, sin, sout)
 
-def test_bias_jac(size):
-    mod  = bias(size)
+def test_bias_jac(size, per_feature = False):
+    mod  = bias(size, per_feature)
     sin  = state(size)
     sout = state(size)
     test_module_1_1_jac(mod, sin, sout)
@@ -251,6 +251,9 @@ def test_jac():
     print '##########################################'
     print 'TEST BIAS JACOBIAN'
     test_bias_jac( (2,5,5) )
+    print '##########################################'
+    print 'TEST BIAS JACOBIAN (per-feature)'
+    test_bias_jac( (2,5,5), per_feature = True )
     print '##########################################'
     print 'TEST LAYERS JACOBIAN'
     test_layers_jac( (5,), (3,), (5,), (3,) )

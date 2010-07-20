@@ -33,6 +33,7 @@ class state (object):
     def __len__(self):
         return len(self.x)
 
+    ndim  = property(lambda self: self.x.ndim)
     shape = property(lambda self: self.x.shape)
     size  = property(lambda self: self.x.size)
 
