@@ -2,8 +2,8 @@ from module import *
 
 class linear (module_1_1):
     def __init__(self, shape_in, shape_out):
-        self.shape_in  = shape_in
-        self.shape_out = shape_out
+        self.shape_in  = ensure_tuple(shape_in)
+        self.shape_out = ensure_tuple(shape_out)
         size_in  = product(shape_in)
         size_out = product(shape_out)
         self.w = self.param((size_out, size_in))

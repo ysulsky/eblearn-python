@@ -30,6 +30,9 @@ def ensure_dims(x, d):
     if need > 0: return x.reshape(x.shape + ((1,) * need))
     return x
 
+def ensure_tuple(x):
+    try:    return tuple(x)
+    except: return (x,)
 
 class around (object):
     ''' decorator for making "around" functions '''
