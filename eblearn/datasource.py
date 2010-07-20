@@ -24,9 +24,10 @@ class dsource_unsup (eb_dsource):
 
     def size(self): return len(self.inputs)
 
-    def normalize(self):
-        self.bias  = -self.inputs.mean(0)
-        std = self.inputs.std(0).clip(1e-6)
+    def normalize(self, scalar_bias = False, scalar_coeff = False):
+        avg = self.inputs.mean(None if scalar_bias  else 0)
+        self.bias  = -avg
+        std = self.inputs.std (None if scalar_coeff else 0).clip(1e-6)
         self.coeff = 1.0 / std
 
     def _fprop_input(self, input):

@@ -30,7 +30,7 @@ hidden    = 0
 code_size = 256
 
 ds_train = dsource_unsup(array([gen_sample() for i in xrange(200)]))
-ds_train.normalize()
+ds_train.normalize(scalar_bias = True, scalar_coeff = True)
 
 ds_valid = None
 
