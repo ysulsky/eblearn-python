@@ -19,7 +19,7 @@ class dsource_unsup (eb_dsource):
         self.inputs  = ensure_dims(inputs, 2)
         self.bias    = bias
         self.coeff   = coeff
-        self.shuffle = sp.array(xrange(len(inputs)))
+        self.shuffle = sp.arange(len(inputs))
         sp.random.shuffle(self.shuffle)
 
     def size(self): return len(self.inputs)
