@@ -70,7 +70,7 @@ class around_methods (type):
         return type.__new__(cls, name, bases, dct)
 
 
-_base_super = super
+
 class around_super(object):
     ''' Avoid duplicate "around" calls when using super() '''
     def __new__(self, cls, *args):
@@ -89,12 +89,15 @@ class around_super(object):
         return getattr(sup, name)
 
 try:
+    if not hasattr(__builtins__, '_base_super'):
+        __builtins__._base_super    = super
     __builtins__.super       = around_super
-    __builtins__._base_super = _base_super
 except:
     # pdb does this
+    if '_base_super' not in __builtins__:
+        __builtins__['_base_super'] = super
     __builtins__['super']       = around_super
-    __builtins__['_base_super'] = _base_super
+
 
 
 ENABLE_BREAKPOINTS = True
