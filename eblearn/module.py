@@ -124,3 +124,26 @@ class module_2_1 (eb_module):
         self.bbprop_input(input1, input2, output)
         self.bbprop_param(input1, input2, output)
 
+class module_3_1 (eb_module):
+    def fprop(self, input1, input2, input3, output):
+        raise NotImplementedError()
+
+    def bprop_input(self, input1, input2, input3, output):
+        raise NotImplementedError()
+    def bprop_param(self, input1, input2, input3, output):
+        raise NotImplementedError()
+
+    def bbprop_input(self, input1, input2, input3, output):
+        raise NotImplementedError()
+    def bbprop_param(self, input1, input2, input3, output):
+        raise NotImplementedError()
+
+    def bprop(self, input1, input2, input3, output):
+        self.bprop_input(input1, input2, input3, output)
+        self.bprop_param(input1, input2, input3, output)
+
+    def bbprop(self, input1, input2, input3, output):
+        self.bbprop_input(input1, input2, input3, output)
+        self.bbprop_param(input1, input2, input3, output)
+
+
