@@ -229,6 +229,7 @@ ctor_ns2 = lambda ctor: lambda s1, s2, *args, **kwargs: ctor(*args, **kwargs)
 
 test_linear_jac        = make_test_m11_jac(linear)
 test_bias_jac          = make_test_m11_jac(bias)
+test_diag_jac          = make_test_m11_jac(diagonal)
 
     
 test_tanh_jac          = make_test_m11_jac(ctor_ns1(transfer_tanh))
@@ -252,6 +253,9 @@ def test_jac():
     print '##########################################'
     print 'TEST BIAS JACOBIAN (per-feature)'
     test_bias_jac( (2,5,5), per_feature = True )
+    print '##########################################'
+    print 'TEST DIAGONAL JACOBIAN'
+    test_diag_jac( (5,2,5) )
     print '##########################################'
     print 'TEST LAYERS JACOBIAN'
     test_layers_jac( (5,), (3,), (5,), (3,) )

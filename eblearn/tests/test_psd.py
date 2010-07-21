@@ -44,13 +44,14 @@ if hidden > 0:
                       bias          (hidden),
                       transfer_tanh (),
                       linear        (hidden, code_size),
-                      bias          (code_size)          )
+                      bias          (code_size),
+                      transfer_tanh (),
+                      diagonal      (code_size)          )
 else:
     encoder = layers( linear        (shape_in, code_size),
                       bias          (code_size),
-                      transfer_tanh ()                   )
-
-# TODO: add diag-module here, for both encoders                      
+                      transfer_tanh (),
+                      diagonal      (code_size)          )
 
 decoder = layers( linear (code_size, shape_out),
                   bias   (shape_out)             )

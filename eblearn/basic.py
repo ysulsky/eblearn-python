@@ -39,13 +39,13 @@ class bias (module_1_1):
     def __init__(self, shape_in, per_feature = False):
         ''' if per_feature is false, out[]    = in[]    + b[]
             otherwise                out[k][] = in[k][] + b[k] '''
+
         self.per_feature = per_feature
-        shape_in = ensure_tuple(shape_in)
-        shape_b = shape_in
+        self.shape_in    = ensure_tuple(shape_in)
+        shape_b = self.shape_in
         if per_feature:
-            ndim = len(shape_in)
-            shape_b = (shape_in[0],) + (ndim-1)*(1,)
-        self.b = self.param(shape_b)
+            shape_b = (shape_b[0],) + (len(shape_b)-1)*(1,)
+        self.b  = self.param(shape_b)
     
     def forget(self):
         arg = self.parameter.forget
@@ -55,9 +55,7 @@ class bias (module_1_1):
     def normalize(self): pass
     
     def fprop(self, input, output):
-        assert (self.b.ndim     == input.ndim)
-        assert (self.b.shape[0] == input.shape[0])
-        assert (self.per_feature or self.b.shape == input.shape)
+        assert (self.shape_in == input.shape)
         output.resize(input.shape)
         output.x[:] = input.x + self.b.x
     
@@ -77,4 +75,36 @@ class bias (module_1_1):
             oddx = oddx.reshape((len(self.b), -1)).sum(1).reshape(self.b.shape)
         self.b.ddx += oddx
 
+class diagonal (module_1_1):
+    def __init__ (self, shape_in):
+        ''' out[k][] = in[k][] * d[k] '''
+        self.shape_in = ensure_tuple(shape_in)
+        shape_d = (self.shape_in[0],) + (len(self.shape_in)-1)*(1,)
+        self.d  = self.param(shape_d)
+
+    def forget(self):
+        self.d.x.fill(1.)
+    
+    def normalize(self): pass
+
+    def fprop(self, input, output):
+        assert (self.shape_in == input.shape)
+        output.resize(input.shape)
+        output.x[:] = input.x * self.d.x
+    
+    def bprop_input(self, input, output):
+        input.dx += output.dx * self.d.x
+    def bprop_param(self, input, output):
+        ix  = input.x.reshape  ((len(self.d), -1))
+        odx = output.dx.reshape((len(self.d), -1))
+        rdx = self.d.dx.ravel()
+        rdx += (ix * odx).sum(1)
+    
+    def bbprop_input(self, input, output):
+        input.ddx += output.ddx * sp.square(self.d.x)
+    def bbprop_param(self, input, output):
+        ix   = input.x.reshape   ((len(self.d), -1))
+        oddx = output.ddx.reshape((len(self.d), -1))
+        rddx = self.d.ddx.ravel()
+        rddx += (sp.square(ix) * oddx).sum(1)
 
