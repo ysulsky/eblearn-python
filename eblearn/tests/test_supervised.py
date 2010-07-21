@@ -50,7 +50,7 @@ machine = layers( linear(shape_in, hidden),
 cost    = distance_l2()
 
 param = machine.parameter
-param.updater = gd_update( eta = 0.02 )
+param.updater = gd_update( eta = 0.002 )
 
 trainer = eb_trainer(param, ebm_2(machine, cost), ds_train, 
                      ds_valid = ds_valid,

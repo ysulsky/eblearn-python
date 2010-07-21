@@ -114,6 +114,7 @@ class eb_trainer (object):
                 if valid_err_tol >= 0 and prev_vld_loss is not None:
                     if vld_loss - prev_vld_loss > valid_err_tol * prev_vld_loss:
                         msg('stopping due to increased validation loss')
+                        keep_training = False
                         
                 prev_vld_loss = vld_loss
 

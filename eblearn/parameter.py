@@ -51,12 +51,13 @@ class parameter (object):
     def stop_reason(self):
         return self.updater.stop_reason()
     
-    def merge(self, other):
+    def merge(self, other, keep_updated = True):
         if self is other:        return
         if self is other.parent: return
-        
-        assert(other.parent is None)
-        other.parent = self
+
+        if keep_updated:
+            assert(other.parent is None)
+            other.parent = self
         
         for state in other.states:
             self.append(state)
@@ -129,7 +130,8 @@ class gd_update (parameter_update):
                  inertia     = 0,
                  anneal_amt  = 0.1,
                  anneal_time = 1000,
-                 grad_thresh = 0.001):
+                 grad_thresh = 0.001,
+                 norm_grad   = False):
         vals = dict(locals())
         del vals['self']
         self.__dict__.update(vals)
@@ -171,10 +173,15 @@ class gd_update (parameter_update):
         else:
             p.update_deltax(inertia, 1.-inertia)
             grad = [state.deltax * state.epsilon for state in states]
-        
-        grad_norm = max(eta, sqrt(sum(sqmag(g) for g in grad)))
+
+        grad_norm = sqrt(sum(sqmag(g) for g in grad))
+
+        step_coeff = -eta
+        if self.norm_grad:
+            step_coeff /= max(grad_norm, eta)
+
         for (g, state) in zip(grad,states):
-            state.x += (-eta / grad_norm) * g
+            state.x += step_coeff * g
         
         if self.max_iters and age >= self.max_iters: self.stop_code = 1
         if grad_norm < self.grad_thresh:             self.stop_code = 2
