@@ -192,20 +192,29 @@ def test_module_2_1_jac_param (mod, sin1, sin2, sout, minval=-2., maxval=2.):
     report_err(jac_fprop, jac_bprop, "jacobian param")
     return (jac_fprop, jac_bprop)
 
+def make_test_m11_jac(ctor):
+    def test_jac(size, *args, **kwargs):
+        sin  = state(size)
+        sout = state(())
+        mod  = ctor(size, *args, **kwargs)
+        mod.fprop(sin, sout) # resize sout
+        test_module_1_1_jac(mod, sin, sout)
+        test_module_1_1_jac_param(mod, sin, sout)
+    return test_jac
 
-def test_linear_jac(fro, to):
-    mod  = linear(fro, to)
-    sin  = state(fro)
-    sout = state(to)
-    test_module_1_1_jac(mod, sin, sout)
-    test_module_1_1_jac_param(mod, sin, sout)
+def make_test_m21_jac(ctor):
+    def test_jac(size1, size2=None, *args, **kwargs):
+        if size2 is None: size2=size1
+        sin1 = state(size1)
+        sin2 = state(size2)
+        sout = state(())
+        mod  = ctor(size1, size2, *args, **kwargs)
+        mod.fprop(sin1, sin2, sout) # resize out
+        test_module_2_1_jac(mod, sin1, sin2, sout)
+        test_module_2_1_jac_param(mod, sin1, sin2, sout)
+    return test_jac
 
-def test_bias_jac(size, per_feature = False):
-    mod  = bias(size, per_feature)
-    sin  = state(size)
-    sout = state(size)
-    test_module_1_1_jac(mod, sin, sout)
-    test_module_1_1_jac_param(mod, sin, sout)
+
 
 def test_layers_jac(*shapes):
     lins = [apply(linear, args) for args in zip(shapes, shapes[1:])]
@@ -215,34 +224,23 @@ def test_layers_jac(*shapes):
     test_module_1_1_jac(mod, sin, sout)
     test_module_1_1_jac_param(mod, sin, sout)
 
-def make_test_xfer_jac(ctor):
-    def test_jac(size):
-        sin  = state(size)
-        sout = state(size)
-        mod  = ctor()
-        test_module_1_1_jac(mod, sin, sout)
-        test_module_1_1_jac_param(mod, sin, sout)
-    return test_jac
+ctor_ns1 = lambda ctor: lambda s1,     *args, **kwargs: ctor(*args, **kwargs)
+ctor_ns2 = lambda ctor: lambda s1, s2, *args, **kwargs: ctor(*args, **kwargs)
+
+test_linear_jac        = make_test_m11_jac(linear)
+test_bias_jac          = make_test_m11_jac(bias)
+
     
-test_tanh_jac          = make_test_xfer_jac(transfer_tanh)
-test_abs_jac           = make_test_xfer_jac(transfer_abs)
-test_copy_flipsign_jac = make_test_xfer_jac(transfer_copy_flipsign)
-test_greater_jac       = make_test_xfer_jac(transfer_greater)
-test_double_abs_jac    = make_test_xfer_jac(transfer_double_abs)
+test_tanh_jac          = make_test_m11_jac(ctor_ns1(transfer_tanh))
+test_abs_jac           = make_test_m11_jac(ctor_ns1(transfer_abs))
+test_copy_flipsign_jac = make_test_m11_jac(ctor_ns1(transfer_copy_flipsign))
+test_greater_jac       = make_test_m11_jac(ctor_ns1(transfer_greater))
+test_double_abs_jac    = make_test_m11_jac(ctor_ns1(transfer_double_abs))
 
-def make_test_cost_jac(ctor):
-    def test_jac(size):
-        sin1 = state(size)
-        sin2 = state(size)
-        sout = state(size)
-        mod  = ctor()
-        test_module_2_1_jac(mod, sin1, sin2, sout)
-        test_module_2_1_jac_param(mod, sin1, sin2, sout)
-    return test_jac
 
-test_distance_l2_jac = make_test_cost_jac(distance_l2)
-test_crossent_jac    = make_test_cost_jac(cross_entropy)
-test_penalty_l1_jac  = make_test_xfer_jac(penalty_l1)
+test_distance_l2_jac   = make_test_m21_jac(ctor_ns2(distance_l2))
+test_crossent_jac      = make_test_m21_jac(ctor_ns2(cross_entropy))
+test_penalty_l1_jac    = make_test_m11_jac(ctor_ns1(penalty_l1))
 
 def test_jac():
     print '##########################################'
