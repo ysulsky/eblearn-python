@@ -216,7 +216,6 @@ def set_window(id = None):
 def new_window(width=800, height=600, title = 'Python Window'):
     global tk_roots, tk_cur_root, tk_def_root, tk_max
     
-    import Tkinter as tk
     root = tk.Tk(); root.geometry('%dx%d'%(width, height)); root.title(title)
 
     id = tk_max; tk_max +=1
@@ -296,5 +295,5 @@ def draw_text(x, y, text):
     if tk_cur_root is None: new_window()
 
     root = tk_roots[tk_cur_root]
-    root.canvas.create_text(x, y, text=text, anchor=tk.SW)
+    root.canvas.create_text(x, y, text=text, anchor=tk.SW, font=('courier',8))
     

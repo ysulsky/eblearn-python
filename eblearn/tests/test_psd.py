@@ -24,6 +24,8 @@ def plot_filters(m, shape_in,
         draw_mat(k, orig_x + pos_x, orig_y + pos_y,
                  minv = minv, maxv = maxv, scale = scale)
         pos_x += w + padding
+    pos_y += h + padding + 16
+    draw_text(orig_x, orig_y + pos_y, 'Values range in %g .. %g' % (minv,maxv))
 
 
 hidden    = 0

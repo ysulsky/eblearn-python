@@ -2,6 +2,7 @@ from module import *
 
 class linear (module_1_1):
     def __init__(self, shape_in, shape_out):
+        ''' out[] = w[][] . in[] '''
         self.shape_in  = ensure_tuple(shape_in)
         self.shape_out = ensure_tuple(shape_out)
         size_in  = product(shape_in)
@@ -19,7 +20,7 @@ class linear (module_1_1):
             col *= 1.0 / sqrt(sqmag(col))
 
     def fprop(self, input, output):
-        assert (self.shape_in  == input.shape)
+        assert (self.shape_in == input.shape)
         output.resize(self.shape_out)
         output.x[:] = sp.dot(self.w.x, input.x.ravel()).reshape(output.shape)
 
@@ -61,7 +62,7 @@ class bias (module_1_1):
         output.x[:] = input.x + self.b.x
     
     def bprop_input(self, input, output):
-        input.dx  += output.dx
+        input.dx += output.dx
     def bprop_param(self, input, output):
         odx = output.dx
         if self.per_feature:
