@@ -39,6 +39,8 @@ class parameter (object):
 
     def merge(self, other):
         if other is None: return
+        if self.__dict__ is other.__dict__:
+            return # already merged
         self.states.extend(other.states)
         if not other.indep:
             other.__dict__ = self.__dict__
