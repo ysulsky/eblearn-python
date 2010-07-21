@@ -3,8 +3,13 @@ from eblearn import *
 def map_inputs(f, x):
     return array([f(i) for i in x])
 
-def func(x):
+def func_sq(x):
+    return sp.square((x - .5) * 10)
+
+def func_sin(x):
     return 10 * sp.sin(x * (2*pi))
+
+func = func_sin
 
 def plot(ds, machine):
     shape_in, shape_out = ds.shape()
@@ -24,12 +29,13 @@ def plot(ds, machine):
     outputs = outputs.take(indices)
     targets = targets.take(indices)
     pyplot.ioff()
-    pyplot.plot(coords, outputs, label = 'machine output')
-    pyplot.plot(coords, targets, label = 'desired output')
+    pyplot.plot(coords, outputs, 'b',  label = 'machine output')
+    pyplot.plot(coords, targets, 'gx', label = 'desired output')
     pyplot.legend()
     pyplot.show()
 
-hidden = (512,)
+linesearch = False
+hidden = 512
 
 train_data = sp.random.random((100,1))
 valid_data = sp.random.random((50,1))
@@ -48,9 +54,7 @@ machine = layers( linear(shape_in, hidden),
                   bias(shape_out) )
 
 cost    = distance_l2()
-
 param = machine.parameter
-param.updater = gd_update( eta = 0.002 )
 
 trainer = eb_trainer(param, ebm_2(machine, cost), ds_train, 
                      ds_valid = ds_valid,
@@ -59,6 +63,13 @@ trainer = eb_trainer(param, ebm_2(machine, cost), ds_train,
 #                    hess_interval = 0,
 #                    report_interval = 1
 )
+
+if linesearch:
+    feval = gd_linesearch_update.feval_from_trainer(trainer)
+    param.updater = gd_linesearch_update( feval, eta = 0.5 )
+else:
+    param.updater = gd_update( eta = 0.002 )
+
 
 trainer.train(10000)
 

@@ -1,5 +1,6 @@
 import scipy as sp
-from util import *
+from state import *
+from util  import *
 
 class parameter_forget (object):
     def __init__(self,
@@ -47,6 +48,15 @@ class parameter (object):
         if self.age == 0: return
         self.age = 0
         self.updater.reset()
+
+    def backup(self):
+        ''' returns an object to be used with restore
+            does not save gradients '''
+        return [state.x.copy() for state in self.states]
+
+    def restore(self, backup):
+        for state, src  in zip(self.states, backup):
+            state.x[:] = src
 
     def stop_reason(self):
         return self.updater.stop_reason()
@@ -136,18 +146,16 @@ class gd_update (parameter_update):
         del vals['self']
         self.__dict__.update(vals)
         self.reset()
-    
-    stop_reasons = ['none',
-                    'iteration limit reached',
-                    'gradient threshold reached']
-    
+
     def stop_reason(self):
-        return gd_update.stop_reasons[self.stop_code]
+        if self.stop_code is None: return 'none'
+        return self.stop_code
 
     def reset(self):
-        self.stop_code = 0
-    
-    def step(self, p):
+        self.stop_code = None
+
+    def _step_direction(self, p):
+        ''' internal - returns (gradient, |gradient|, and step) '''
         age         = p.age
         eta         = self.eta
         anneal_time = self.anneal_time
@@ -173,21 +181,108 @@ class gd_update (parameter_update):
         else:
             p.update_deltax(inertia, 1.-inertia)
             grad = [state.deltax * state.epsilon for state in states]
-
+        
         grad_norm = sqrt(sum(sqmag(g) for g in grad))
-
+        
         step_coeff = -eta
         if self.norm_grad:
             step_coeff /= max(grad_norm, eta)
+        
+        if self.max_iters and self.age >= self.max_iters:
+            self.stop_code = 'iteration limit reached'
+        if grad_norm < self.grad_thresh:
+            self.stop_code = 'gradient threshold reached'
+        
+        return (grad, grad_norm, step_coeff)
+    
 
+    def step(self, p):
+        grad, grad_norm, step_coeff = self._step_direction(p)
+        states = p.states
+        
         for (g, state) in zip(grad,states):
             state.x += step_coeff * g
         
-        if self.max_iters and age >= self.max_iters: self.stop_code = 1
-        if grad_norm < self.grad_thresh:             self.stop_code = 2
-        return self.stop_code == 0
+        return self.stop_code is None
 
 parameter_update_default_gd = parameter.update_default(gd_update)
+
+
+class gd_linesearch_update (gd_update):
+
+    def __init__(self, feval, max_line_steps=100, quiet=True, **kwargs):
+        ''' Gradient-descent parameter update strategy, performing
+            a line-search to select the step size
+
+            feval: () -> energy
+            see: gd_linesearch_update.feval_from_trainer '''
+        
+        self.feval                = feval
+        self.max_line_steps       = max_line_steps
+        self.quiet                = quiet
+        self.linesearch_stop_code = None
+        super(gd_linesearch_update, self).__init__(**kwargs)
+    
+    def reset(self):
+        self.linesearch_stop_code = None
+        super(gd_linesearch_update, self).reset()
+    
+    @staticmethod
+    def feval_from_trainer(trainer):
+        input  = trainer.input
+        target = trainer.target
+        machine= trainer.machine
+        energy = state((1,))
+        trnum           = [0]
+        trage_firsteval = [0]
+        def feval():
+            if trainer.train_num != trnum[0]:
+                trnum[0] = trainer.train_num
+                trage_firsteval[0] = 0
+
+            if trainer.age == trage_firsteval[0]:
+                # first one's free
+                trage_firsteval[0] = trainer.age + 1
+                return trainer.energy.x[0]
+
+            machine.fprop(input, target, energy)
+            return energy.x[0]
+        return feval
+    
+    def _step_direction(self, p):
+        grad, grad_norm, step_coeff = \
+              super(gd_linesearch_update, self)._step_direction(p)
+
+        feval  = self.feval
+        states = p.states
+        bup    = p.backup()
+        stop   = self.max_line_steps - 1
+        step   = 0
+
+        cur_energy = feval()
+        new_energy = sp.infty
+        
+        while new_energy > cur_energy and step != stop:
+            for (g, state) in zip(grad,states):
+                state.x += step_coeff * g
+            
+            new_energy = feval()
+
+            step_coeff /= 2.
+            p.restore(bup)
+            step += 1
+
+        if step == stop:
+            self.linesearch_stop_code = 'iteration limit reached'
+        else:
+            self.linesearch_stop_code = 'energy decreased'
+        
+        if not self.quiet:
+            print 'linesearch: stopped after %d iterations because: %s' % \
+                  (step, self.linesearch_stop_code)
+        
+        return grad, grad_norm, step_coeff
+
 
 
 class parameter_container (object):
@@ -196,6 +291,12 @@ class parameter_container (object):
 
     def reset(self):
         for p in self.params: p.reset()
+
+    def backup(self):
+        return [p.backup() for p in self.params]
+
+    def restore(self, backup):
+        for p in self.params: p.restore()
 
     def stop_reason(self):
         reasons = [p.stop_reason() for p in self.params]

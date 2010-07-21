@@ -29,11 +29,12 @@ class eb_trainer (object):
             self.ds_valid = None
         if self.ds_valid is None: 
             self.valid_interval = 0
-        
-        self.age    = 0
-        self.input  = state(())
-        self.target = state(())
-        self.energy = state((1,))
+
+        self.train_num     = 0
+        self.age           = 0
+        self.input         = state(())
+        self.target        = state(())
+        self.energy        = state((1,))
         self.energy.dx[0]  = 1.
         self.energy.ddx[0] = 1.
 
@@ -64,12 +65,13 @@ class eb_trainer (object):
         return msg
 
     def train(self, maxiter = 0):
+        self.train_num += 1
         self.age = 0
+        self.msg = self.make_msg()
         self.clear_log()
         self.ds_train.seek(0)
         self.machine.forget()
         self.train_online(maxiter)
-        self.msg = self.make_msg()
         
     def train_online(self, maxiter = 0):
         if not self.quiet:
