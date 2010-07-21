@@ -3,7 +3,7 @@ from eblearn import *
 import time
 
 class eb_trainer (object):
-    def __init__(self, machine, upd_param, ds_train,
+    def __init__(self, parameter, machine, ds_train,
                  ds_valid          = None, 
                  valid_interval    = 2000,
                  valid_iter        = -1,
@@ -17,12 +17,14 @@ class eb_trainer (object):
                  backup_name       = 'machine',
                  keep_log          = True,
                  do_normalization  = False):
-        assert (machine.parameter and machine.parameter.size() > 0)
-        assert (ds_train.size() > 0) 
-
         vals = dict(locals())
         del vals['self']
         self.__dict__.update(vals)
+
+        if not parameter: self.parameter = machine.parameter
+        
+        assert (self.parameter and self.parameter.size() > 0)
+        assert (ds_train.size() > 0) 
 
         if ds_valid is not None and ds_valid.size() <= 0:
             self.ds_valid = None
@@ -80,7 +82,7 @@ class eb_trainer (object):
         prev_vld_loss   = None
 
         if hess_interval <= 0:
-            self.machine.parameter.set_epsilon(1.)
+            self.parameter.set_epsilon(1.)
 
         for i in xrange(niter):
             age = self.age
@@ -126,14 +128,14 @@ class eb_trainer (object):
         
         self.ds_train.fprop(input, target)
         machine.fprop(input, target, energy)
-        machine.parameter.clear_dx()
+        self.parameter.clear_dx()
         machine.bprop(input, target, energy)
         
     def train_sample(self):
         machine, energy = self.machine, self.energy
         
         self._fprop_bprop()
-        machine.parameter.update(self.upd_param)
+        self.parameter.update()
         if self.do_normalization:
             machine.normalize()
         
@@ -145,9 +147,9 @@ class eb_trainer (object):
         kold = 1.0
         
         self._fprop_bprop()
-        machine.parameter.clear_ddx()
+        self.parameter.clear_ddx()
         machine.bbprop(self.input, self.target, energy)
-        machine.parameter.update_ddeltax(knew, kold)
+        self.parameter.update_ddeltax(knew, kold)
         
         return energy.x[0]
 
@@ -158,7 +160,7 @@ class eb_trainer (object):
             self.train_sample_bbprop()
             self.ds_train.next()
         self.ds_train.seek(start_pos)
-        self.machine.parameter.compute_epsilon(self.hess_mu)
+        self.parameter.compute_epsilon(self.hess_mu)
 
     def validate(self):
         assert (self.valid_interval > 0)

@@ -60,12 +60,14 @@ decoder = layers( linear (code_size, shape_out),
 encoder.parameter.indep = True
 decoder.parameter.indep = True
 
+encoder.parameter.update_args = parameter_update( eta = 0.1 )
+decoder.parameter.update_args = parameter_update( eta = 0.01 )
+
 machine = psd_codec( encoder, distance_l2(), penalty_l1(),
                      decoder, distance_l2() )
 
-# TODO: separately train encoder and decoder
-upd     = parameter_update( eta = 0.05 )
-trainer = eb_trainer(machine, upd, ds_train, 
+trainer = eb_trainer(parameter_container(encoder.parameter, decoder.parameter),
+                     machine, ds_train, 
                      ds_valid = ds_valid,
                      backup_location = '/tmp',
 #                    backup_interval = 2000,

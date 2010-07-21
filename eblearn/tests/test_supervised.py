@@ -49,9 +49,9 @@ machine = layers( linear(shape_in, hidden),
 
 cost    = distance_l2()
 
-upd = parameter_update(eta = 0.05)
+machine.parameter.update_args = parameter_update( eta = 0.05 )
 
-trainer = eb_trainer(ebm_2(machine, cost), upd, ds_train, 
+trainer = eb_trainer(None, ebm_2(machine, cost), ds_train, 
                      ds_valid = ds_valid,
                      backup_location = '/tmp',
 #                    backup_interval = 2000,
