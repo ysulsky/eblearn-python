@@ -1,12 +1,10 @@
 from module import *
 
 class layers (module_1_1):
+    
     def __init__(self, *layers):
         self.layers = layers
         self.hidden = [state(()) for lyr in layers[:-1]]
-
-        for lyr in layers:
-            self._merge_parameters(lyr)
 
     def forget(self):
         for lyr in self.layers: lyr.forget()
@@ -50,9 +48,6 @@ class ebm_2 (module_2_1):
         self.machine = machine
         self.cost    = cost
         self.machine_out = state(())
-        
-        self._merge_parameters(machine)
-        self._merge_parameters(cost)
 
     def forget(self):
         self.machine.forget()

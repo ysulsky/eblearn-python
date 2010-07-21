@@ -16,9 +16,16 @@ class eb_module (object):
         self._forget_param = None
         eb_module.init_lvl += 1
         #print '   ebmod_init_start'
-    
+        
         inner_init(self, *args, **kwargs)
-    
+
+        mycls = self.__class__
+        if getattr(mycls, '_%s__automerge_parameters' % mycls.__name__, True):
+            for arg in args:
+                if isinstance(arg, eb_module): self._merge_parameters(arg)
+            for arg in kwargs.itervalues():
+                if isinstance(arg, eb_module): self._merge_parameters(arg)
+        
         #print '   ebmod_init_end'
         eb_module.init_lvl -= 1
         if eb_module.init_lvl == 0:
@@ -29,7 +36,6 @@ class eb_module (object):
     def __init__(self): pass
 
     def has_params(self):
-        #XXX: not exact. use the "no_params" subclass to get this right
         return self._parameter.size() > 0
 
     def _forget_around(self, old_forget, *args, **kwargs):

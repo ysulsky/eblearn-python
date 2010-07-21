@@ -52,7 +52,9 @@ class parameter (object):
         return self.updater.stop_reason()
     
     def merge(self, other):
-        if self.id == other.id: return
+        if self is other:        return
+        if self is other.parent: return
+        
         assert(other.parent is None)
         other.parent = self
         
