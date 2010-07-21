@@ -57,14 +57,11 @@ decoder = layers( linear (code_size, shape_out),
                   bias   (shape_out)             )
 
 
-encoder.parameter.indep = True
-decoder.parameter.indep = True
-
-encoder.parameter.update_args = parameter_update( eta = 0.1 )
-decoder.parameter.update_args = parameter_update( eta = 0.01 )
-
 machine = psd_codec( encoder, distance_l2(), penalty_l1(),
                      decoder, distance_l2() )
+
+encoder.parameter.updater = gd_update( eta = 0.1 )
+decoder.parameter.updater = gd_update( eta = 0.01 )
 
 trainer = eb_trainer(parameter_container(encoder.parameter, decoder.parameter),
                      machine, ds_train, 

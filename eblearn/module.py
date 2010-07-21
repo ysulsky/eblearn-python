@@ -12,7 +12,8 @@ class eb_module (object):
         if eb_module.init_lvl == 0:
             #print 'dynamic extent started'
             eb_module.cur_parameter = parameter()
-        self.parameter = eb_module.cur_parameter
+        self._parameter = eb_module.cur_parameter
+        self._forget_param = None
         eb_module.init_lvl += 1
         #print '   ebmod_init_start'
     
@@ -29,11 +30,10 @@ class eb_module (object):
 
     def has_params(self):
         #XXX: not exact. use the "no_params" subclass to get this right
-        return self.parameter is not None and self.parameter.size() > 0
+        return self._parameter.size() > 0
 
     def _forget_around(self, old_forget, *args, **kwargs):
-        if self.parameter is not None:
-            self.parameter.reset()
+        self._parameter.reset()
         old_forget(self, *args, **kwargs)
 
     @around(_forget_around)
@@ -45,14 +45,25 @@ class eb_module (object):
         
     def param(self, shape):
         s = state(shape)
-        self.parameter.append(s)
+        self._parameter.append(s)
         return s
     
     def _merge_parameters(self, other):
-        if self.parameter is None: 
-            self.parameter = other.parameter
-        else:
-            self.parameter.merge(other.parameter)
+        self._parameter.merge(other._parameter)
+
+    def _get_parameter(self):
+        return self._parameter
+    
+    parameter = property(_get_parameter)
+
+    def _get_forget_param(self):
+        if self._forget_param is not None: return self._forget_param
+        return self._parameter.forget
+    def _set_forget_param(self, v):
+        self._forget_param = v
+
+    forget_param = property(_get_forget_param, _set_forget_param)
+    
 
 class no_params (object):
     def param(self, shape):  assert('No parameters allowed' == 0)

@@ -1,21 +1,6 @@
 import scipy as sp
 from util import *
 
-class parameter_update (object):
-    def __init__(self,
-                 eta         = 0.01,
-                 max_iters   = 0,
-                 decay_l1    = 0,
-                 decay_l2    = 0,
-                 decay_time  = 1000,
-                 inertia     = 0,
-                 anneal_amt  = 0.1,
-                 anneal_time = 1000,
-                 grad_thresh = 0.001):
-        vals = dict(locals())
-        del vals['self']
-        self.__dict__.update(vals)
-    
 class parameter_forget (object):
     def __init__(self,
                  lin_value    = 1.0,
@@ -24,29 +9,62 @@ class parameter_forget (object):
         del vals['self']
         self.__dict__.update(vals)
 
+
+class parameter_update (object):
+    def step(self, p):
+        raise NotImplementedError()
+    def stop_reason(self):
+        raise NotImplementedError()
+    def reset(self):
+        raise NotImplementedError()
+
 class parameter (object):
+    cur_id = 1
+    
+    class update_default (parameter_update):
+        def __init__(self, ctor):
+            self.ctor = ctor
+        def reset(self):
+            pass
+        def step(self, p):
+            print 'Using default update strategy: %s' % self.ctor.__name__
+            p.updater = self.ctor()
+            return p.updater.step(p)
+    
     def __init__(self):
-        self.age    = 0
-        self.indep  = False
-        self.states = []
-        self.forget = parameter_forget()
-        self.update_args = None
+        self.id = parameter.cur_id
+        parameter.cur_id += 1
+        
+        self.age       = 0
+        self.states    = []
+        self.state_ids = set()
+        self.forget    = parameter_forget()
+        self.parent    = None
+        self.updater   = parameter_update_default_gd
 
     def reset(self):
         # may be called several times in a row
         if self.age == 0: return
         self.age = 0
+        self.updater.reset()
 
+    def stop_reason(self):
+        return self.updater.stop_reason()
+    
     def merge(self, other):
-        if other is None: return
-        if self.__dict__ is other.__dict__:
-            return # already merged
-        self.states.extend(other.states)
-        if not other.indep:
-            other.__dict__ = self.__dict__
+        if self.id == other.id: return
+        assert(other.parent is None)
+        other.parent = self
+        
+        for state in other.states:
+            self.append(state)
     
     def append(self, state):
-        self.states.append(state)
+        if state.id not in self.state_ids:
+            self.states.append(state)
+            self.state_ids.add(state.id)
+            if self.parent is not None:
+                self.parent.append(state)
     
     def size(self):
         return sum(x.size for x in self.states)
@@ -79,44 +97,9 @@ class parameter (object):
             state.ddeltax = kold * state.ddeltax + knew * state.ddx
     
     def update(self):
-        '''arg is of type parameter_update'''
-
-        arg = self.update_args
-        
-        if arg is None:
-            self.update_args = arg = parameter_update()
-        
-        age         = self.age
-        eta         = arg.eta
-        anneal_time = arg.anneal_time
-        decay_l1    = arg.decay_l1
-        decay_l2    = arg.decay_l2
-        inertia     = arg.inertia
-        states      = self.states
-
-        if anneal_time > 0 and (age % anneal_time) == 0:
-            eta /= 1. + (arg.anneal_amt * age / anneal_time)
-        
-        if age >= arg.decay_time:
-            if decay_l2 > 0:
-                for state in states: 
-                    state.dx += state.x * decay_l2
-            if decay_l1 > 0:
-                for state in states: 
-                    state.dx += sp.sign(state.x) * decay_l1
-        
-        grad = None
-        if inertia == 0:
-            grad = [state.dx * state.epsilon for state in states]
-        else:
-            self.update_deltax(inertia, 1.-inertia)
-            grad = [state.deltax * state.epsilon for state in states]
-        
-        grad_norm = max(eta, sqrt(sum(sqmag(g) for g in grad)))
-        for (g, state) in zip(grad,states):
-            state.x += (-eta / grad_norm) * g
-
+        ret = self.updater.step(self)
         self.age += 1
+        return ret
 
     def iter_state_prop(prop):
         def iter(self):
@@ -133,12 +116,81 @@ class parameter (object):
     epsilon = property(iter_state_prop('epsilon'))
 
 
+class gd_update (parameter_update):
+    ''' Gradient-descent parameter update strategy '''
+    def __init__(self,
+                 eta         = 0.01,
+                 max_iters   = 0,
+                 decay_l1    = 0,
+                 decay_l2    = 0,
+                 decay_time  = 1000,
+                 inertia     = 0,
+                 anneal_amt  = 0.1,
+                 anneal_time = 1000,
+                 grad_thresh = 0.001):
+        vals = dict(locals())
+        del vals['self']
+        self.__dict__.update(vals)
+        self.reset()
+    
+    stop_reasons = ['none',
+                    'iteration limit reached',
+                    'gradient threshold reached']
+    
+    def stop_reason(self):
+        return gd_update.stop_reasons[self.stop_code]
+
+    def reset(self):
+        self.stop_code = 0
+    
+    def step(self, p):
+        age         = p.age
+        eta         = self.eta
+        anneal_time = self.anneal_time
+        decay_l1    = self.decay_l1
+        decay_l2    = self.decay_l2
+        inertia     = self.inertia
+        states      = p.states
+
+        if anneal_time > 0 and (age % anneal_time) == 0:
+            eta /= 1. + (self.anneal_amt * age / anneal_time)
+        
+        if age >= self.decay_time:
+            if decay_l2 > 0:
+                for state in states: 
+                    state.dx += state.x * decay_l2
+            if decay_l1 > 0:
+                for state in states: 
+                    state.dx += sp.sign(state.x) * decay_l1
+        
+        grad = None
+        if inertia == 0:
+            grad = [state.dx * state.epsilon for state in states]
+        else:
+            p.update_deltax(inertia, 1.-inertia)
+            grad = [state.deltax * state.epsilon for state in states]
+        
+        grad_norm = max(eta, sqrt(sum(sqmag(g) for g in grad)))
+        for (g, state) in zip(grad,states):
+            state.x += (-eta / grad_norm) * g
+        
+        if self.max_iters and age >= self.max_iters: self.stop_code = 1
+        if grad_norm < self.grad_thresh:             self.stop_code = 2
+        return self.stop_code == 0
+
+parameter_update_default_gd = parameter.update_default(gd_update)
+
+
 class parameter_container (object):
     def __init__(self, *params):
         self.params = params
 
     def reset(self):
         for p in self.params: p.reset()
+
+    def stop_reason(self):
+        reasons = [p.stop_reason() for p in self.params]
+        return '(%s)' % (', '.join(reasons))
 
     def size(self):
         return sum(p.size() for p in self.params)
@@ -164,4 +216,7 @@ class parameter_container (object):
         for p in self.params: p.compute_epsilon(mu)
 
     def update(self):
-        for p in self.params: p.update()
+        ret = False
+        for p in self.params: ret = p.update() or ret
+        return ret
+        

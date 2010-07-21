@@ -3,7 +3,12 @@ from util import *
 
 class state (object):
 
+    cur_id = 1
+
     def __init__ (self, shape):
+        self.id   = state.cur_id
+        state.cur_id += 1
+        
         self.x    = zeros(shape)
         self._dx  = None
         self._ddx = None

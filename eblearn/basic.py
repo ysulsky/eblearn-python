@@ -10,7 +10,7 @@ class linear (module_1_1):
         self.w = self.param((size_out, size_in))
 
     def forget(self):
-        arg = self.parameter.forget
+        arg = self.forget_param
         fanin = self.w.shape[1]
         z = arg.lin_value / (fanin ** (1.0 / arg.lin_exponent))
         self.w.x = sp.random.random(self.w.shape) * (2*z) - z
@@ -48,7 +48,7 @@ class bias (module_1_1):
         self.b  = self.param(shape_b)
     
     def forget(self):
-        arg = self.parameter.forget
+        arg = self.forget_param
         z = arg.lin_value
         self.b.x = sp.random.random(self.b.shape) * (2*z) - z
     
