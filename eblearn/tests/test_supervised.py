@@ -50,7 +50,7 @@ machine = layers( linear(shape_in, hidden),
 cost    = distance_l2()
 
 param = machine.parameter
-param.updater = gd_update( eta = 0.02, max_iters = 100 )
+param.updater = gd_update( eta = 0.02 )
 
 trainer = eb_trainer(param, ebm_2(machine, cost), ds_train, 
                      ds_valid = ds_valid,
@@ -60,6 +60,6 @@ trainer = eb_trainer(param, ebm_2(machine, cost), ds_train,
 #                    report_interval = 1
 )
 
-trainer.train(50000)
+trainer.train(10000)
 
 plot(ds_valid, machine)
