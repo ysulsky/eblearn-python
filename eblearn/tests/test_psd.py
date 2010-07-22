@@ -60,6 +60,15 @@ decoder = layers( linear (code_size, shape_out),
 machine = psd_codec( encoder, distance_l2(), penalty_l1(),
                      decoder, distance_l2() )
 
+machine.code_parameter.updater = gd_linesearch_update( machine.code_feval,
+                                                       eta = 0.1,
+                                                       norm_grad = True,
+                                                       max_line_steps = 10,
+                                                       max_iters   = 100,
+                                                       grad_thresh = 0.001,
+                                                       anneal_time = 10,
+                                                       anneal_amt  = 0.1 ,
+                                                       quiet = True )
 encoder.parameter.updater = gd_update( eta = 0.1 )
 decoder.parameter.updater = gd_update( eta = 0.01 )
 

@@ -188,7 +188,7 @@ class gd_update (parameter_update):
         if self.norm_grad:
             step_coeff /= max(grad_norm, eta)
         
-        if self.max_iters and self.age >= self.max_iters:
+        if self.max_iters and p.age >= self.max_iters:
             self.stop_code = 'iteration limit reached'
         if grad_norm < self.grad_thresh:
             self.stop_code = 'gradient threshold reached'
@@ -210,7 +210,7 @@ parameter_update_default_gd = parameter.update_default(gd_update)
 
 class gd_linesearch_update (gd_update):
 
-    def __init__(self, feval, max_line_steps=100, quiet=True, **kwargs):
+    def __init__(self, feval, max_line_steps=10, quiet=True, **kwargs):
         ''' Gradient-descent parameter update strategy, performing
             a line-search to select the step size
 
@@ -221,6 +221,8 @@ class gd_linesearch_update (gd_update):
         self.max_line_steps       = max_line_steps
         self.quiet                = quiet
         self.linesearch_stop_code = None
+
+        if 'eta' not in kwargs: kwargs['eta'] = 0.5
         super(gd_linesearch_update, self).__init__(**kwargs)
     
     def reset(self):
@@ -229,10 +231,7 @@ class gd_linesearch_update (gd_update):
     
     @staticmethod
     def feval_from_trainer(trainer):
-        input  = trainer.input
-        target = trainer.target
-        machine= trainer.machine
-        energy = state((1,))
+        energy          = state((1,))
         trnum           = [0]
         trage_firsteval = [0]
         def feval():
@@ -245,7 +244,7 @@ class gd_linesearch_update (gd_update):
                 trage_firsteval[0] = trainer.age + 1
                 return trainer.energy.x[0]
 
-            machine.fprop(input, target, energy)
+            trainer.machine.fprop(trainer.input, trainer.target, energy)
             return energy.x[0]
         return feval
     

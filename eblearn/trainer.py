@@ -17,7 +17,7 @@ class eb_trainer (object):
                  backup_name       = 'machine',
                  keep_log          = True,
                  do_normalization  = False,
-                 quiet             = False
+                 quiet             = False,
                  auto_forget       = True):
         vals = dict(locals())
         del vals['self']
@@ -71,6 +71,7 @@ class eb_trainer (object):
         self.msg = self.make_msg()
         self.clear_log()
         self.ds_train.seek(0)
+        self.parameter.reset()
         if self.auto_forget:
             self.machine.forget()
         self.train_online(maxiter)
