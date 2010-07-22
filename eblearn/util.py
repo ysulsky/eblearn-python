@@ -213,6 +213,24 @@ def set_window(id = None):
         assert (id in tk_roots)
         tk_cur_root = id
 
+def ensure_window(width=None, height=None, title=None):
+    global tk_roots, tk_cur_root
+    r = tk_cur_root
+    if r is None:
+        kwargs = {}
+        if width:  kwargs['width']=width
+        if height: kwargs['height']=height
+        if title:  kwargs['title']=title
+        new_window(**kwargs)
+    else:
+        r = tk_roots[r]
+        if width or height:
+            if not height: height = r.geometry().split('+')[0].split('x')[1]
+            if not width:   width = r.geometry().split('+')[0].split('x')[0]
+            r.geometry('%sx%s' % (width, height))
+        if title:
+            r.title(title)
+
 def new_window(width=800, height=600, title = 'Python Window'):
     global tk_roots, tk_cur_root, tk_def_root, tk_max
     

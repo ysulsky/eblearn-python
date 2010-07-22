@@ -8,11 +8,11 @@ def gen_sample():
     return x
 
 def plot_filters(m, shape_in,
-                 transpose=False, orig_x=0, orig_y=5, max_x=400, scale = 1.0):
+                 transpose=False, orig_x=5, orig_y=5, max_x=390, scale = 1.0):
     assert (len(shape_in) == 2)
+    ensure_window(title = 'PSD Filters'); cls()
     h, w = shape_in; h *= scale; w *= scale
-    padding = 5
-    pos_x, pos_y = 0, 0
+    padding, pos_x, pos_y = 5, 0, 0
     filters =m.parameter.states[0].x
     if transpose: filters = filters.T
     minv = filters.min()
@@ -27,6 +27,35 @@ def plot_filters(m, shape_in,
     pos_y += h + padding + 16
     draw_text(orig_x, orig_y + pos_y, 'Values range in %g .. %g' % (minv,maxv))
 
+def plot_reconstructions(ds, machine, n = 1000,
+                         orig_x=5, orig_y=5, max_x=795, scale = 1.0):
+    shape_in, shape_out = ds.shape()
+    assert (len(shape_in) == len(shape_out) == 2)
+    ensure_window(title = 'PSD Reconstructions'); cls()
+    spacing, padding = 2, 5
+    pic = empty((max(shape_in[0], shape_out[0]),
+                 shape_in[1] + spacing + shape_out[1]))
+    h, w = pic.shape; h *= scale; w *= scale
+    pos_x, pos_y = 0, 0
+    ds.seek(0)
+    inp, tgt = state(()), state(())
+    for i in xrange(min(n, ds.size())):
+        ds.fprop(inp, tgt)
+        machine.encoder.fprop(inp, machine.encoder_out)
+        machine.decoder.fprop(machine.encoder_out, machine.decoder_out)
+        ds.next()
+        inpx = inp.x
+        recx = machine.decoder_out.x
+        white = max( inpx.max(), recx.max() )
+        pic.fill(white)
+        pic[:shape_in[0],:shape_in[1]] = inpx
+        pic[:shape_out[0],shape_in[1] + spacing:] = recx
+        if pos_x + w > max_x:
+            pos_x  = 0; pos_y += h + padding
+        draw_mat(pic, orig_x + pos_x, orig_y + pos_y,
+                 maxv = white, scale = scale)
+        pos_x += w + padding
+        
 
 hidden    = 0
 code_size = 256
@@ -82,5 +111,11 @@ trainer = eb_trainer(parameter_container(encoder.parameter, decoder.parameter),
 )
 
 trainer.train(5000)
+
+new_window()
 plot_filters(machine.encoder, shape_in)
-plot_filters(machine.decoder, shape_out, transpose = True, orig_x=400)
+plot_filters(machine.decoder, shape_out, transpose = True, orig_x=405)
+
+new_window()
+plot_reconstructions(ds_train, machine, 1000)
+
