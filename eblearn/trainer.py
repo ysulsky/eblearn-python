@@ -182,6 +182,7 @@ class eb_trainer (object):
             self.ds_train.next()
         self.ds_train.seek(start_pos)
         self.parameter.compute_epsilon(self.hess_mu)
+        self.msg('done.')
 
     def validate(self):
         assert (self.valid_interval > 0)
