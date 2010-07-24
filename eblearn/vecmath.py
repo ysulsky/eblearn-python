@@ -23,10 +23,11 @@ def m2dotm1(m1, m2, res = None, accumulate=False):
     else:            res[:] = np.dot(m1, m2)
     return res
 
-def _m2xdotx(x, m1, m2, res, accumulate):
-    assert (m1.ndim == 2*x and m2.ndim == x)
-    if res is None: res = np.zeros(m1.shape[:x], m1.dtype)
-    assert (res.shape == m1.shape[:x] and m2.shape == m1.shape[x:])
+def m2kdotmk(m1, m2, res=None, accumulate=False):
+    k = m2.ndim
+    assert (m1.ndim == 2*k)
+    if res is None: res = np.zeros(m1.shape[:k], m1.dtype)
+    assert (res.shape == m1.shape[:k] and m2.shape == m1.shape[k:])
     if accumulate:
         for i in np.ndindex(res.shape):
             res[i] += ldot(m1[i], m2)
@@ -35,10 +36,24 @@ def _m2xdotx(x, m1, m2, res, accumulate):
             res[i]  = ldot(m1[i], m2)
     return res
 
-m4dotm2 = lambda m1, m2, res=None, acc=False: _m2xdotx(2, m1, m2, res, acc)
-m6dotm3 = lambda m1, m2, res=None, acc=False: _m2xdotx(3, m1, m2, res, acc)
+m4dotm2 = m6dotm3 = m2kdotmk
 
-##### no gofast versions for these yet
+
+def mkextmk(m1, m2, res=None, accumulate=False):
+    k = m1.ndim
+    assert (k == m2.ndim)
+    if res is None: res = np.zeros(m1.shape + m2.shape, m1.dtype)
+    assert (res.shape[:k] == m1.shape and res.shape[k:] == m2.shape)
+    if accumulate:
+        for i in np.ndindex(res.shape):
+            res[i] += m1[i[:k]] * m2[i[k:]]
+    else:
+        for i in np.ndindex(res.shape):
+            res[i]  = m1[i[:k]] * m2[i[k:]]
+    return res
+m2extm2 = m3extm3 = mkextmk
+
+##### no gofast versions for these yet --
 
 def thresh_less(m1, m2, thresh, out=None, accumulate=False):
     ''' out_i = m1_i if m2_i >= thresh, else 0 '''

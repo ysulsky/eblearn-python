@@ -73,7 +73,7 @@ class eb_module (object):
     
 
 class no_params (object):
-    def param(self, shape):  assert('No parameters allowed' == 0)
+    def param(self, shape):  assert 0, 'No parameters allowed'
     def bprop_param(*args):  pass
     def bbprop_param(*args): pass
     def forget(self):        pass

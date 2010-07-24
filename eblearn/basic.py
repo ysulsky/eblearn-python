@@ -1,4 +1,5 @@
 from module import *
+from correlate import correlate
 
 class linear (module_1_1):
     def __init__(self, shape_in, shape_out):
@@ -22,15 +23,16 @@ class linear (module_1_1):
     def fprop(self, input, output):
         assert (self.shape_in == input.shape)
         output.resize(self.shape_out)
-        output.x[:] = sp.dot(self.w.x, input.x.ravel()).reshape(output.shape)
+        m2dotm1(self.w.x, input.x.ravel(), output.x.ravel())
 
     def bprop_input(self, input, output):
-        input.dx.ravel()[:] += sp.dot(self.w.x.T, output.dx.ravel())
+        m2dotm1(self.w.x.T, output.dx.ravel(), input.dx.ravel(), True)
     def bprop_param(self, input, output):
         self.w.dx += sp.outer(output.dx.ravel(), input.x.ravel())
 
     def bbprop_input(self, input, output):
-        input.ddx.ravel()[:] += sp.dot(sp.square(self.w.x.T),output.ddx.ravel())
+        iddx, oddx = input.ddx.ravel(), output.ddx.ravel()
+        m2dotm1(sp.square(self.w.x.T), oddx, iddx, True)
     def bbprop_param(self, input, output):
         self.w.ddx += sp.outer(output.ddx.ravel(), sp.square(input.x.ravel()))
 
@@ -107,4 +109,75 @@ class diagonal (module_1_1):
         oddx = output.ddx.reshape((len(self.d), -1))
         rddx = self.d.ddx.ravel()
         rddx += (sp.square(ix) * oddx).sum(1)
+
+class convolution (module_1_1):
+    @staticmethod
+    def full_table(feat_in, feat_out):
+        return [(a,b)
+                for a in xrange(feat_in)
+                for b in xrange(feat_out)]
+    
+    @staticmethod
+    def rand_table(feat_in, feat_out, fanin):
+        tab        = sp.empty((fanin * feat_out,2), dtype=int)
+        out_col    = unfold(tab[:,1], 0, fanin,   fanin)
+        out_col[:] = sp.arange(feat_out).reshape(feat_out,1)
+        in_col     = unfold(tab[:,0], 0, feat_in, feat_in)
+        for chunk in in_col:
+            chunk[:] = sp.random.permutation(feat_in)
+        if len(tab) > len(in_col):
+            remainder = tab[in_col.size:,0]
+            remainder[:] = sp.random.permutation(feat_in)[:len(remainder)]
+        
+        tab = map(tuple, tab)
+        tab.sort()
+        return tab
+    
+    def __init__(self, kernel_shape, conn_table):
+        ''' out[j][] += in[i][] <*> kernel[k][]
+            where conn_table[k] = (i,j) '''
+        
+        self.conn_table = sp.asarray(conn_table)
+        self.kernels    = self.param((len(conn_table),) + kernel_shape)
+        self.feat_out   = 1 + self.conn_table[:,1].max()
+        self.fanin      = sp.zeros(self.feat_out, dtype=int)
+        for j in self.conn_table[:,1]: self.fanin[j] += 1
+
+    def forget(self):
+        arg = self.forget_param
+        p = 1. / arg.lin_exponent
+        for j, kx in zip( self.conn_table[:,1], self.kernels.x ):
+            z = arg.lin_value / ((self.fanin[j] * kx.size) ** p)
+            kx[:] = sp.random.random(kx.shape) * (2*z) - z
+
+    def normalize(self):
+        for kx in self.kernels.x: kx /= sqrt(sqmag(kx))
+
+    def fprop(self, input, output):
+        out_shape = sp.subtract(input.shape[1:], self.kernels.shape[1:]) + 1
+        output.resize((self.feat_out,) + tuple(out_shape))
+        clear(output.x)
+        for (i,j), kx in zip(self.conn_table, self.kernels.x):
+            correlate(input.x[i], kx, output.x[j], True)
+            
+    def bprop_input(self, input, output):
+        uindx = input.dx
+        kshape = enumerate(self.kernels.shape); kshape.next()
+        for d, kd in kshape: uindx = unfold(uindx, d, kd, 1)
+        for (i,j), kx in zip(self.conn_table, self.kernels.x):
+            mkextmk(output.dx[j], kx, uindx[i], True)
+    def bprop_param(self, input, output):
+        for (i,j), kdx in zip(self.conn_table, self.kernels.dx):
+            correlate(input.x[i], output.dx[j], kdx, True)
+
+    def bbprop_input(self, input, output):
+        uinddx = input.ddx
+        kshape = enumerate(self.kernels.shape); kshape.next()
+        for d, kd in kshape: uinddx = unfold(uinddx, d, kd, 1)
+        for (i,j), kx_sq in zip(self.conn_table, sp.square(self.kernels.x)):
+            mkextmk(output.ddx[j], kx_sq, uinddx[i], True)
+    def bbprop_param(self, input, output):
+        inx_sq = sp.square(input.x)
+        for (i,j), kddx in zip(self.conn_table, self.kernels.ddx):
+            correlate(inx_sq[i], output.ddx[j], kddx, True)
 

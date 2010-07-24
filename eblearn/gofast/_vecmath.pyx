@@ -5,7 +5,7 @@ cimport cython
 from _util cimport *
 from _util import *
 
-import_array()    
+import_array()
 
 @cython.boundscheck(False)
 def clear(np.ndarray m not None):
@@ -190,6 +190,7 @@ def ldot(np.ndarray a not None, np.ndarray b not None):
     if ndim == 2: return m2ldot(a, b)
     if ndim == 3: return m3ldot(a, b)
     return np.sum(a * b)
+
 
 @cython.boundscheck(False)
 def m2dotm1(np.ndarray[rtype_t, ndim=2] m1 not None,
@@ -387,7 +388,254 @@ def m6dotm3(np.ndarray[rtype_t, ndim=6] m1 not None,
             m1i  +=  m1_s0
             resi += res_s0
         
-
-            
     return res
 
+
+@cython.boundscheck(False)
+def m2kdotmk(np.ndarray m1 not None, np.ndarray m2 not None,
+             np.ndarray res = None, bool accumulate = False):
+    ''' m2kdotmk(m1, m2[, res[, accumulate]]):
+             res_{i} = sum_{j} (m1_{i,j} * m2_{j})
+        where {i} ranges over all indices of res
+        and   {j} ranges over all indices of m2
+    '''
+    cdef int k = m2.ndim
+    assert (m1.ndim == k*2), "shapes don't match"
+    if k == 1: return m2dotm1(m1, m2, res, accumulate)
+    if k == 2: return m4dotm2(m1, m2, res, accumulate)
+    if k == 3: return m6dotm3(m1, m2, res, accumulate)
+
+    if res is None: res = np.zeros(np.shape(m1)[:k], rtype)
+    res_shape = np.shape(res)
+    assert (res_shape == np.shape(m1)[:k] and np.shape(m2) == np.shape(m1)[k:])
+    if accumulate:
+        for i in np.ndindex(res_shape):
+            res[i] += ldot(m1[i], m2)
+    else:
+        for i in np.ndindex(res_shape):
+            res[i]  = ldot(m1[i], m2)
+    return res
+
+
+@cython.boundscheck(False)
+def m1extm1(np.ndarray[rtype_t, ndim=1] m1 not None,
+            np.ndarray[rtype_t, ndim=1] m2 not None,
+            np.ndarray[rtype_t, ndim=2] res = None,
+            bool accumulate = False):
+    ''' m1extm1(m1, m2[, res[, accumulate]]):
+             res_ij = m1_i * m2_j
+    '''
+    cdef char *m1_p0, *m2_p0, *res_p0, *res_p1
+    cdef int   m1_s0,  m2_s0,  res_s0,  res_s1
+    cdef int  i,  j
+    cdef int ni, nj
+
+    ni, nj = m1.shape[0], m2.shape[0]
+    if res is None: res = np.empty((ni, nj), dtype=rtype)
+    assert (res.shape[0] == ni and res.shape[1] == nj), "shapes don't match"
+
+    m1_s0 = m1.strides[0]
+    m2_s0 = m2.strides[0]
+    res_s0, res_s1 = res.strides[0], res.strides[1]
+
+    m1_p0, res_p0 = m1.data, res.data
+
+    if accumulate:
+        for i in range(ni):
+            m2_p0, res_p1 = m2.data, res_p0
+            for j in range(nj):
+                (<rtype_t*>res_p1)[0] += \
+                    (<rtype_t*>m1_p0)[0] * (<rtype_t*>m2_p0)[0]
+                m2_p0  += m2_s0
+                res_p1 += res_s1
+            m1_p0  += m1_s0
+            res_p0 += res_s0
+    else:
+        for i in range(ni):
+            m2_p0, res_p1 = m2.data, res_p0
+            for j in range(nj):
+                (<rtype_t*>res_p1)[0]  = \
+                    (<rtype_t*>m1_p0)[0] * (<rtype_t*>m2_p0)[0]
+                m2_p0  += m2_s0
+                res_p1 += res_s1
+            m1_p0  += m1_s0
+            res_p0 += res_s0
+    
+    return res
+
+@cython.boundscheck(False)
+def m2extm2(np.ndarray[rtype_t, ndim=2] m1 not None,
+            np.ndarray[rtype_t, ndim=2] m2 not None,
+            np.ndarray[rtype_t, ndim=4] res = None,
+            bool accumulate = False):
+    ''' m2extm2(m1, m2[, res[, accumulate]]):
+             res_ijkl = m1_ij * m2_kl
+    '''
+    cdef char *m1_p0, *m1_p1, *m2_p0, *m2_p1
+    cdef int   m1_s0,  m1_s1,  m2_s0,  m2_s1
+    cdef char *res_p0, *res_p1, *res_p2, *res_p3
+    cdef int   res_s0,  res_s1,  res_s2,  res_s3
+    cdef int  i,  j, k, l
+    cdef int ni, nj, nk, nl
+
+    ni, nj, nk, nl = m1.shape[0], m1.shape[1], m2.shape[0], m2.shape[1]
+    if res is None: res = np.empty((ni, nj, nk, nl), dtype=rtype)
+    assert (res.shape[0] == ni and res.shape[1] == nj and
+            res.shape[2] == nk and res.shape[3] == nl), "shapes don't match"
+
+    m1_s0, m1_s1 = m1.strides[0], m1.strides[1]
+    m2_s0, m2_s1 = m2.strides[0], m2.strides[1]
+    res_s0, res_s1, res_s2, res_s3 = \
+        res.strides[0], res.strides[1], res.strides[2], res.strides[3]
+
+    m1_p0, res_p0 = m1.data, res.data
+
+    if accumulate:
+        for i in range(ni):
+            m1_p1, res_p1 = m1_p0, res_p0
+            for j in range(nj):
+                m2_p0, res_p2 = m2.data, res_p1
+                for k in range(nk):
+                    m2_p1, res_p3 = m2_p0, res_p2
+                    for l in range(nl):
+                        (<rtype_t*>res_p3)[0] += \
+                            (<rtype_t*>m1_p1)[0] * (<rtype_t*>m2_p1)[0]
+                        m2_p1  += m2_s1
+                        res_p3 += res_s3
+                    m2_p0  += m2_s0
+                    res_p2 += res_s2
+                m1_p1  += m1_s1
+                res_p1 += res_s1
+            m1_p0  += m1_s0
+            res_p0 += res_s0
+    else:
+       for i in range(ni):
+            m1_p1, res_p1 = m1_p0, res_p0
+            for j in range(nj):
+                m2_p0, res_p2 = m2.data, res_p1
+                for k in range(nk):
+                    m2_p1, res_p3 = m2_p0, res_p2
+                    for l in range(nl):
+                        (<rtype_t*>res_p3)[0]  = \
+                            (<rtype_t*>m1_p1)[0] * (<rtype_t*>m2_p1)[0]
+                        m2_p1  += m2_s1
+                        res_p3 += res_s3
+                    m2_p0  += m2_s0
+                    res_p2 += res_s2
+                m1_p1  += m1_s1
+                res_p1 += res_s1
+            m1_p0  += m1_s0
+            res_p0 += res_s0
+    
+    return res
+
+@cython.boundscheck(False)
+def m3extm3(np.ndarray[rtype_t, ndim=3] m1 not None,
+            np.ndarray[rtype_t, ndim=3] m2 not None,
+            np.ndarray[rtype_t, ndim=6] res = None,
+            bool accumulate = False):
+    ''' m3extm3(m1, m2[, res[, accumulate]]):
+             res_ijklmn = m1_ijk * m2_lmn
+    '''
+    cdef char *m1_p0, *m1_p1, *m1_p2, *m2_p0, *m2_p1, *m2_p2
+    cdef int   m1_s0,  m1_s1,  m1_s2,  m2_s0,  m2_s1,  m2_s2
+    cdef char *res_p0, *res_p1, *res_p2, *res_p3, *res_p4, *res_p5
+    cdef int   res_s0,  res_s1,  res_s2,  res_s3,  res_s4,  res_s5
+    cdef int  i,  j, k, l, m, n
+    cdef int ni, nj, nk, nl, nm, nn
+    
+    ni, nj, nk, nl, nm, nn = m1.shape[0], m1.shape[1], m1.shape[2], \
+                             m2.shape[0], m2.shape[1], m2.shape[2]
+    if res is None: res = np.empty((ni, nj, nk, nl, nm, nn), dtype=rtype)
+    assert (res.shape[0] == ni and res.shape[1] == nj and
+            res.shape[2] == nk and res.shape[3] == nl and
+            res.shape[4] == nm and res.shape[5] == nn), "shapes don't match"
+
+    m1_s0, m1_s1, m1_s2 = m1.strides[0], m1.strides[1], m1.strides[2]
+    m2_s0, m2_s1, m2_s2 = m2.strides[0], m2.strides[1], m2.strides[2]
+    res_s0, res_s1, res_s2, res_s3, res_s4, res_s5 = \
+        res.strides[0], res.strides[1], res.strides[2], \
+        res.strides[3], res.strides[4], res.strides[5]
+
+    m1_p0, res_p0 = m1.data, res.data
+
+    if accumulate:
+        for i in range(ni):
+            m1_p1, res_p1 = m1_p0, res_p0
+            for j in range(nj):
+                m1_p2, res_p2 = m1_p1, res_p1
+                for k in range(nk):
+                    m2_p0, res_p3 = m2.data, res_p2
+                    for l in range(nl):
+                        m2_p1, res_p4 = m2_p0, res_p3
+                        for m in range(nm):
+                            m2_p2, res_p5 = m2_p1, res_p4
+                            for n in range(nn):
+                                (<rtype_t*>res_p5)[0] += \
+                                    (<rtype_t*>m1_p2)[0] * (<rtype_t*>m2_p2)[0]
+                                m2_p2  += m2_s2
+                                res_p5 += res_s5
+                            m2_p1  += m2_s1
+                            res_p4 += res_s4
+                        m2_p0  += m2_s0
+                        res_p3 += res_s3
+                    m1_p2  += m1_s2
+                    res_p2 += res_s2
+                m1_p1  += m1_s1
+                res_p1 += res_s1
+            m1_p0  += m1_s0
+            res_p0 += res_s0
+    else:
+        for i in range(ni):
+            m1_p1, res_p1 = m1_p0, res_p0
+            for j in range(nj):
+                m1_p2, res_p2 = m1_p1, res_p1
+                for k in range(nk):
+                    m2_p0, res_p3 = m2.data, res_p2
+                    for l in range(nl):
+                        m2_p1, res_p4 = m2_p0, res_p3
+                        for m in range(nm):
+                            m2_p2, res_p5 = m2_p1, res_p4
+                            for n in range(nn):
+                                (<rtype_t*>res_p5)[0]  = \
+                                    (<rtype_t*>m1_p2)[0] * (<rtype_t*>m2_p2)[0]
+                                m2_p2  += m2_s2
+                                res_p5 += res_s5
+                            m2_p1  += m2_s1
+                            res_p4 += res_s4
+                        m2_p0  += m2_s0
+                        res_p3 += res_s3
+                    m1_p2  += m1_s2
+                    res_p2 += res_s2
+                m1_p1  += m1_s1
+                res_p1 += res_s1
+            m1_p0  += m1_s0
+            res_p0 += res_s0
+    
+    return res
+
+
+@cython.boundscheck(False)
+def mkextmk(m1, m2, res=None, accumulate=False):
+    ''' mkextmk(m1, m2[, res[, accumulate]]):
+             res_{i,j} = m1_{i} * m2_{j}
+        where {i} ranges over all indices of m1
+        and   {j} ranges over all indices of m2
+    '''
+    k = m1.ndim
+    assert (k == m2.ndim)
+    if k == 1: return m1extm1(m1, m2, res, accumulate)
+    if k == 2: return m2extm2(m1, m2, res, accumulate)
+    if k == 3: return m3extm3(m1, m2, res, accumulate)
+    
+    if res is None: res = np.zeros(m1.shape + m2.shape, m1.dtype)
+    res_shape = np.shape(res)
+    assert (res_shape[:k] == np.shape(m1) and res_shape[k:] == np.shape(m2))
+    if accumulate:
+        for i in np.ndindex(res_shape):
+            res[i] += m1[i[:k]] * m2[i[k:]]
+    else:
+        for i in np.ndindex(res_shape):
+            res[i]  = m1[i[:k]] * m2[i[k:]]
+    
+    return res

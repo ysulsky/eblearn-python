@@ -30,3 +30,10 @@ def select(x, dim, idx):
 
 def narrow(x, dim, size, offset = 0):
     return x.swapaxes(0,dim)[offset:offset+size].swapaxes(0,dim)
+
+def reverse(x):
+    strides, shape = x.strides, x.shape
+    for i in xrange(x.ndim):
+        x = narrow(x,i,1,shape[i]-1)
+    return as_strided(x, shape, [-s for s in strides])
+    

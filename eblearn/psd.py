@@ -2,7 +2,7 @@ from module     import *
 from arch       import *
 from datasource import *
 from trainer    import *
-        
+
 class psd_codec (module_2_1):
 
     class dummy_dsource (eb_dsource):
