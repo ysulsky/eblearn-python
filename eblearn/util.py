@@ -3,6 +3,7 @@ import scipy as sp
 from math import pi, sqrt
 from vecmath import *
 from idx import *
+from lush_mat import *
 
 sp.seterr('raise')
 
