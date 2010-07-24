@@ -90,7 +90,7 @@ machine = psd_codec( encoder, distance_l2(), penalty_l1(),
                      decoder, distance_l2() )
 
 machine.code_parameter.updater = gd_linesearch_update( machine.code_feval,
-                                                       eta = 2.0,
+                                                       eta = 1.0,
                                                        #norm_grad = True,
                                                        max_line_steps = 10,
                                                        max_iters   = 100,
@@ -107,11 +107,11 @@ trainer = eb_trainer(parameter_container(encoder.parameter, decoder.parameter),
                      ds_valid = ds_valid,
                      backup_location = '/tmp',
 #                    backup_interval = 2000,
-                     hess_interval = 0,
-                     report_interval = 1,
+                     hess_interval = 10000,
+                     report_interval = 50,
 )
 
-trainer.train(20)
+trainer.train(2000)
 
 new_window()
 plot_filters(machine.encoder, shape_in)
