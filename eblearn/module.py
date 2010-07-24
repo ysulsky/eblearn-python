@@ -1,7 +1,8 @@
 from util import *
 from state import *
 from parameter import *
-from module import *
+
+from around import * # around_methods metaclass
 
 class eb_module (object):
     __metaclass__ = around_methods

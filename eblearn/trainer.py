@@ -1,6 +1,6 @@
 from eblearn import *
 
-import time
+import pickle, time
 
 class eb_trainer (object):
     def __init__(self, parameter, machine, ds_train,

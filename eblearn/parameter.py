@@ -83,16 +83,16 @@ class parameter (object):
         return sum(x.size for x in self.states)
 
     def clear_dx(self):
-        for state in self.states: state.dx.fill(0.)
+        for state in self.states: clear(state.dx)
 
     def clear_ddx(self):
-        for state in self.states: state.ddx.fill(0.)
+        for state in self.states: clear(state.ddx)
 
     def clear_deltax(self):
-        for state in self.states: state.deltax.fill(0.)
+        for state in self.states: clear(state.deltax)
 
     def clear_ddeltax(self):
-        for state in self.states: state.ddeltax.fill(0.)
+        for state in self.states: clear(state.ddeltax)
     
     def set_epsilon(self, v):
         for state in self.states: state.epsilon.fill(v)

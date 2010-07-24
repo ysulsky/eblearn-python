@@ -90,7 +90,7 @@ class diagonal (module_1_1):
     def fprop(self, input, output):
         assert (self.shape_in == input.shape)
         output.resize(input.shape)
-        output.x[:] = input.x * self.d.x
+        sp.multiply(input.x, self.d.x, output.x)
     
     def bprop_input(self, input, output):
         input.dx += output.dx * self.d.x

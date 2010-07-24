@@ -46,11 +46,11 @@ class transfer_greater (no_params, module_1_1):
         self.bwd_thresh = bwd_thresh
     def fprop(self, input, output):
         output.resize(input.shape)
-        thresh_less(input.x, self.fwd_thresh, output.x)
+        thresh_less(input.x, input.x, self.fwd_thresh, output.x)
     def bprop_input (self, input, output):
-        input.dx += output.dx * (input.x >= self.bwd_thresh)
+        thresh_less(output.dx, input.x, self.bwd_thresh, input.dx, True)
     def bbprop_input(self, input, output):
-        input.ddx += output.ddx * (input.x >= self.bwd_thresh)
+        thresh_less(output.ddx, input.x, self.bwd_thresh, input.ddx, True)
 
 class transfer_double_abs (layers):
     def __init__(self, thresh = 0.0001):

@@ -12,8 +12,8 @@ def jacobian_bprop_m_1_1 (mod, sin, sout, jac):
     sout_dx = sout.dx.ravel()
     sin_dx  = sin.dx.ravel()
     for i in xrange(sout.size):
-        sin_dx.fill(0.)
-        sout_dx.fill(0.)
+        clear(sin_dx)
+        clear(sout_dx)
         sout_dx[i] = 1.
         mod.bprop(sin, sout)
         jac[:,i] = sin_dx
@@ -21,7 +21,7 @@ def jacobian_bprop_m_1_1 (mod, sin, sout, jac):
 def jacobian_bprop_m_1_1_param (mod, sin, sout, jac):
     sout_dx = sout.dx.ravel()
     for i in xrange(sout.size):
-        sout_dx.fill(0.)
+        clear(sout_dx)
         sout_dx[i] = 1.
         mod.parameter.clear_dx()
         mod.bprop(sin, sout)
@@ -98,9 +98,9 @@ def jacobian_bprop_m_2_1 (mod, sin1, sin2, sout, jac1, jac2):
     sin1_dx  = sin1.dx.ravel()
     sin2_dx  = sin2.dx.ravel()
     for i in xrange(sout.size):
-        sin1_dx.fill(0.)
-        sin2_dx.fill(0.)
-        sout_dx.fill(0.)
+        clear(sin1_dx)
+        clear(sin2_dx)
+        clear(sout_dx)
         sout_dx[i] = 1.
         mod.bprop(sin1, sin2, sout)
         jac1[:,i] = sin1_dx
@@ -109,7 +109,7 @@ def jacobian_bprop_m_2_1 (mod, sin1, sin2, sout, jac1, jac2):
 def jacobian_bprop_m_2_1_param (mod, sin1, sin2, sout, jac):
     sout_dx = sout.dx.ravel()
     for i in xrange(sout.size):
-        sout_dx.fill(0.)
+        clear(sout_dx)
         sout_dx[i] = 1.
         mod.parameter.clear_dx()
         mod.bprop(sin1, sin2, sout)

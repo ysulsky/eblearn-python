@@ -21,10 +21,10 @@ class state (object):
         self._epsilon  = None
 
     def clear_dx(self):
-        if self._dx is not None: self._dx.fill(0)
+        if self._dx is not None: clear(self._dx)
 
     def clear_ddx(self):
-        if self._ddx is not None: self._ddx.fill(0)
+        if self._ddx is not None: clear(self._ddx)
 
     def resize(self, shape):
         self.x.resize(shape)
