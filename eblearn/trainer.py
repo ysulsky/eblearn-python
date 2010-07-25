@@ -23,6 +23,9 @@ class eb_trainer (object):
         del vals['self']
         self.__dict__.update(vals)
 
+        if not backup_location:
+            self.backup_interval = 0
+
         assert (parameter and parameter.size() > 0)
         assert (ds_train.size() > 0) 
 

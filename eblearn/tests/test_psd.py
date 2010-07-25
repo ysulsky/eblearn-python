@@ -70,20 +70,20 @@ shape_in, shape_out = ds_train.shape()
 encoder = None
 if hidden > 0:
     encoder = layers( linear        (shape_in, hidden),
-                      bias          (hidden),
+                      bias_module   (hidden),
                       transfer_tanh (),
                       linear        (hidden, code_size),
-                      bias          (code_size),
+                      bias_module   (code_size),
                       transfer_tanh (),
                       diagonal      (code_size)          )
 else:
     encoder = layers( linear        (shape_in, code_size),
-                      bias          (code_size),
+                      bias_module   (code_size),
                       transfer_tanh (),
                       diagonal      (code_size)          )
 
-decoder = layers( linear (code_size, shape_out),
-                  bias   (shape_out)             )
+decoder = layers( linear      (code_size, shape_out),
+                  bias_module (shape_out)             )
 
 
 machine = psd_codec( encoder, distance_l2(), penalty_l1(),

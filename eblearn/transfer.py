@@ -17,9 +17,13 @@ class transfer_abs (no_params, module_1_1):
         output.resize(input.shape)
         sp.absolute(input.x, output.x)
     def bprop_input (self, input, output):
-        sx = input.x / self.thresh
-        sp.trunc(sx, sx)
-        sp.sign(sx, sx)
+        sx = None
+        if self.thresh != 0:
+            sx = input.x / self.thresh
+            sp.trunc(sx, sx)
+            sp.sign(sx, sx)
+        else:
+            sx = sp.sign(input.x)
         input.dx += sx * output.dx
     def bbprop_input(self, input, output):
         input.ddx += output.ddx

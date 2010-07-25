@@ -47,9 +47,13 @@ class penalty_l1 (no_params, module_1_1):
         energy.resize((1,))
         energy.x[0] = sp.absolute(input.x).sum() / input.size
     def bprop_input (self, input, energy):
-        sx = input.x / self.thresh
-        sp.trunc(sx, sx)
-        sp.sign(sx, sx)
+        sx = None
+        if self.thresh != 0:
+            sx = input.x / self.thresh
+            sp.trunc(sx, sx)
+            sp.sign(sx, sx)
+        else:
+            sx = sp.sign(input.x)
         input.dx += sx * (energy.dx[0] / input.size)
     def bbprop_input(self, input, energy):
         input.ddx += energy.ddx[0]

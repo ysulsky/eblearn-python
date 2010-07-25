@@ -228,7 +228,7 @@ ctor_ns1 = lambda ctor: lambda s1,     *args, **kwargs: ctor(*args, **kwargs)
 ctor_ns2 = lambda ctor: lambda s1, s2, *args, **kwargs: ctor(*args, **kwargs)
 
 test_linear_jac        = make_test_m11_jac(linear)
-test_bias_jac          = make_test_m11_jac(bias)
+test_bias_jac          = make_test_m11_jac(bias_module)
 test_diag_jac          = make_test_m11_jac(diagonal)
 test_mult_jac          = make_test_m21_jac(ctor_ns2(multiplication))
 test_convolution_jac   = make_test_m11_jac(ctor_ns1(convolution))

@@ -37,7 +37,7 @@ class linear (module_1_1):
         self.w.ddx += sp.outer(output.ddx.ravel(), sp.square(input.x.ravel()))
 
 
-class bias (module_1_1):
+class bias_module (module_1_1):
     def __init__(self, shape_in, per_feature = False):
         ''' if per_feature is false, out[]    = in[]    + b[]
             otherwise                out[k][] = in[k][] + b[k] '''
