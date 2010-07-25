@@ -189,7 +189,7 @@ class back_convolution (convolution):
         super(back_convolution, self).__init__(kernel_shape, conn_table)
 
         e = enumerate
-        self.tbl_jik = sp.asarray([(b,a,k) for (k,(a,b)) in e(conn_table)], int)
+        self.tbl_jik = sp.asarray([(b,a,k) for (k,(a,b)) in e(conn_table)], 'i')
         
     def fprop(self, input, output):
         out_shape = sp.subtract(input.shape[1:], 1) + self.kernels.shape[1:]
