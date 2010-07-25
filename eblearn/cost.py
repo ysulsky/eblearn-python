@@ -1,4 +1,5 @@
 from module import *
+from basic import multiplication
 
 class distance_l2 (no_params, module_2_1):
     def fprop(self, input1, input2, energy):
@@ -52,3 +53,41 @@ class penalty_l1 (no_params, module_1_1):
         input.dx += sx * (energy.dx[0] / input.size)
     def bbprop_input(self, input, energy):
         input.ddx += energy.ddx[0]
+
+class bconv_rec_cost (no_params, module_2_1):
+    @staticmethod
+    def coeff_from_conv(rec_shape, kernel_shape):
+        rec_shape    = ensure_tuple(rec_shape)
+        kernel_shape = ensure_tuple(kernel_shape)
+        assert(len(rec_shape) == len(kernel_shape))
+        coeff = zeros(rec_shape)
+        ucoeff = coeff
+        for d, kd in enumerate(kernel_shape):
+            ucoeff = unfold(ucoeff, d, kd, 1)
+        ucoeff += 1. / sp.prod(kernel_shape)
+        return coeff
+    
+    def __init__(self, coeff):
+        self.mw = multiplication()
+        self.l2 = distance_l2()
+        self.cstate = state(coeff.shape)
+        self.cstate.x[:] = coeff
+        self.ostate = state(coeff.shape)
+
+    def fprop(self, input1, input2, output):
+        self.mw.fprop(self.cstate, input1, self.ostate)
+        self.l2.fprop(self.ostate, input2, output)
+
+    def bprop_input(self, input1, input2, output):
+        clear(self.cstate.dx)
+        clear(self.ostate.dx)
+        self.l2.bprop_input(self.ostate, input2, output)
+        self.mw.bprop_input(self.cstate, input1, self.ostate)
+
+    def bbprop_input(self, input1, input2, output):
+        clear(self.cstate.ddx)
+        clear(self.ostate.ddx)
+        self.l2.bbprop_input(self.ostate, input2, output)
+        self.mw.bbprop_input(self.cstate, input1, self.ostate)
+
+    

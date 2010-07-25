@@ -230,6 +230,7 @@ ctor_ns2 = lambda ctor: lambda s1, s2, *args, **kwargs: ctor(*args, **kwargs)
 test_linear_jac        = make_test_m11_jac(linear)
 test_bias_jac          = make_test_m11_jac(bias)
 test_diag_jac          = make_test_m11_jac(diagonal)
+test_mult_jac          = make_test_m21_jac(ctor_ns2(multiplication))
 test_convolution_jac   = make_test_m11_jac(ctor_ns1(convolution))
 test_back_convolution_jac = make_test_m11_jac(ctor_ns1(back_convolution))
     
@@ -241,6 +242,7 @@ test_double_abs_jac    = make_test_m11_jac(ctor_ns1(transfer_double_abs))
 
 
 test_distance_l2_jac   = make_test_m21_jac(ctor_ns2(distance_l2))
+test_bconv_rec_cost_jac= make_test_m21_jac(ctor_ns2(bconv_rec_cost))
 test_crossent_jac      = make_test_m21_jac(ctor_ns2(cross_entropy))
 test_penalty_l1_jac    = make_test_m11_jac(ctor_ns1(penalty_l1))
 
@@ -257,6 +259,9 @@ def test_jac():
     print '##########################################'
     print 'TEST DIAGONAL JACOBIAN'
     test_diag_jac( (5,2,5) )
+    print '##########################################'
+    print 'TEST MULTIPLICATION JACOBIAN'
+    test_mult_jac( (5,2,5) )
     print '##########################################'
     print 'TEST LAYERS JACOBIAN'
     test_layers_jac( (5,), (3,), (5,), (3,) )
@@ -278,6 +283,11 @@ def test_jac():
     print '##########################################'
     print 'TEST DISTANCE-L2 JACOBIAN'
     test_distance_l2_jac( (23,4,6) )
+    print '##########################################'
+    print 'TEST BCONV REC COST JACOBIAN'
+    test_bconv_rec_cost_jac( (23,4,6),
+                             coeff=bconv_rec_cost.coeff_from_conv((23,4,6),
+                                                                  (3,2,2) ))
     print '##########################################'
     print 'TEST PENALTY-L1 JACOBIAN'
     test_penalty_l1_jac( (23,4,6) )

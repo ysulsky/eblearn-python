@@ -201,3 +201,17 @@ class back_convolution (convolution):
         inx_sq = sp.square(input.x)
         for (i,j), kddx in zip(self.conn_table, self.kernels.ddx):
             correlate(output.ddx[j], inx_sq[i], kddx, True)
+
+class multiplication (no_params, module_2_1):
+    def fprop(self, input1, input2, output):
+        assert(input1.shape == input2.shape)
+        output.resize(input1.shape)
+        sp.multiply(input1.x, input2.x, output.x)
+    def bprop_input(self, input1, input2, output):
+        input1.dx += output.dx * input2.x
+        input2.dx += output.dx * input1.x
+    def bbprop_input(self, input1, input2, output):
+        input1.ddx += output.ddx * sp.square(input2.x)
+        input2.ddx += output.ddx * sp.square(input1.x)
+        
+        
