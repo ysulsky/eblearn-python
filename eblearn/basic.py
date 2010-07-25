@@ -136,13 +136,21 @@ class convolution (module_1_1):
     def __init__(self, kernel_shape, conn_table):
         ''' out[j][] += in[i][] <*> kernel[k][]
             where conn_table[k] = (i,j) '''
-        
-        self.conn_table = sp.asarray(conn_table)
+        self.conn_table = sp.asarray(conn_table, int)
         self.kernels    = self.param((len(conn_table),) + kernel_shape)
         self.feat_out   = 1 + self.conn_table[:,1].max()
         self.fanin      = sp.zeros(self.feat_out, dtype=int)
         for j in self.conn_table[:,1]: self.fanin[j] += 1
+        
+        ndim = len(kernel_shape)
+        self.fcorr   = correlate_table_for_dim(ndim)
+        self.bcorr   = back_correlate_table_for_dim(ndim)
 
+        e = enumerate
+        self.tbl_ikj = sp.asarray([(a,k,b) for (k,(a,b)) in e(conn_table)], int)
+        self.tbl_jki = sp.asarray([(b,k,a) for (k,(a,b)) in e(conn_table)], int)
+        self.tbl_ijk = sp.asarray([(a,b,k) for (k,(a,b)) in e(conn_table)], int)
+    
     def forget(self):
         arg = self.forget_param
         p = 1. / arg.lin_exponent
@@ -157,50 +165,50 @@ class convolution (module_1_1):
         out_shape = sp.subtract(input.shape[1:], self.kernels.shape[1:]) + 1
         output.resize((self.feat_out,) + tuple(out_shape))
         clear(output.x)
-        for (i,j), kx in zip(self.conn_table, self.kernels.x):
-            correlate(input.x[i], kx, output.x[j], True)
+        self.fcorr(self.tbl_ikj, input.x, self.kernels.x, output.x)
             
     def bprop_input(self, input, output):
-        for (i,j), kx in zip(self.conn_table, self.kernels.x):
-            back_correlate(output.dx[j], kx, input.dx[i], True)
+        self.bcorr(self.tbl_jki, output.dx, self.kernels.x, input.dx)
     def bprop_param(self, input, output):
-        for (i,j), kdx in zip(self.conn_table, self.kernels.dx):
-            correlate(input.x[i], output.dx[j], kdx, True)
-
+        self.fcorr(self.tbl_ijk, input.x, output.dx, self.kernels.dx)
+    
     def bbprop_input(self, input, output):
-        for (i,j), kx_sq in zip(self.conn_table, sp.square(self.kernels.x)):
-            back_correlate(output.ddx[j], kx_sq, input.ddx[i], True)
+        sq = sp.square
+        self.bcorr(self.tbl_jki, output.ddx, sq(self.kernels.x), input.ddx)
     def bbprop_param(self, input, output):
-        inx_sq = sp.square(input.x)
-        for (i,j), kddx in zip(self.conn_table, self.kernels.ddx):
-            correlate(inx_sq[i], output.ddx[j], kddx, True)
+        sq = sp.square
+        self.fcorr(self.tbl_ijk, sq(input.x), output.ddx, self.kernels.ddx)
+
 
 class back_convolution (convolution):
     @staticmethod
     def decoder_table(encoder_table):
         return [(b,a) for (a,b) in encoder_table]
-    
+
+    def __init__(self, kernel_shape, conn_table):
+        super(back_convolution, self).__init__(kernel_shape, conn_table)
+
+        e = enumerate
+        self.tbl_jik = sp.asarray([(b,a,k) for (k,(a,b)) in e(conn_table)], int)
+        
     def fprop(self, input, output):
         out_shape = sp.subtract(input.shape[1:], 1) + self.kernels.shape[1:]
         output.resize((self.feat_out,) + tuple(out_shape))
         clear(output.x)
-        for (i,j), kx in zip(self.conn_table, self.kernels.x):
-            back_correlate(input.x[i], kx, output.x[j], True)
+        self.bcorr(self.tbl_ikj, input.x, self.kernels.x, output.x)
     
     def bprop_input(self, input, output):
-        for (i,j), kx in zip(self.conn_table, self.kernels.x):
-            correlate(output.dx[j], kx, input.dx[i], True)
+        self.fcorr(self.tbl_jki, output.dx, self.kernels.x, input.dx)
     def bprop_param(self, input, output):
-        for (i,j), kdx in zip(self.conn_table, self.kernels.dx):
-            correlate(output.dx[j], input.x[i], kdx, True)
+        self.fcorr(self.tbl_jik, output.dx, input.x, self.kernels.dx)
 
     def bbprop_input(self, input, output):
-        for (i,j), kx_sq in zip(self.conn_table, sp.square(self.kernels.x)):
-            correlate(output.ddx[j], kx_sq, input.ddx[i], True)
+        sq = sp.square
+        self.fcorr(self.tbl_jki, output.ddx, sq(self.kernels.x), input.ddx)
     def bbprop_param(self, input, output):
-        inx_sq = sp.square(input.x)
-        for (i,j), kddx in zip(self.conn_table, self.kernels.ddx):
-            correlate(output.ddx[j], inx_sq[i], kddx, True)
+        sq = sp.square
+        self.fcorr(self.tbl_jik, output.ddx, sq(input.x), self.kernels.ddx)
+
 
 class multiplication (no_params, module_2_1):
     def fprop(self, input1, input2, output):

@@ -20,7 +20,7 @@ pool_cost       = 0        # 0 for no pooling
 ######################################################################
 # TRAINING
 
-train_iters     = 50       # over patches
+train_iters     = 50000    # over patches
 compute_hessian = 5000     # hessian update interval (disable with 0)
 
 train_encoder = dict (
@@ -56,8 +56,8 @@ minimize_code = dict (
 ######################################################################
 # DATA
 
-bias            = None     # datasource bias  (None -> compute from data)
-coeff           = None     # datasource coeff (None -> compute from data)
+bias            = -110     # datasource bias  (None -> compute from data)
+coeff           = 0.0167   # datasource coeff (None -> compute from data)
 
 ##### not implemented yet:
 # remove-local-mean

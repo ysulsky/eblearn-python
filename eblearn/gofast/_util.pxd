@@ -15,6 +15,7 @@ cdef extern from "math.h":
 cdef extern from "string.h":
     cdef void*   memset(void*, int, size_t)
 
+
 # also change me in _util.pyx
 ctypedef np.float64_t rtype_t
 
