@@ -1,5 +1,5 @@
 from module import *
-from correlate import *
+from correlate import correlate_table_for_dim, back_correlate_table_for_dim
 
 class linear (module_1_1):
     def __init__(self, shape_in, shape_out):
