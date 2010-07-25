@@ -1,0 +1,49 @@
+#!/usr/bin/env python
+
+import sys, os, shutil, socket, time
+
+params_mod = 'params'
+if len(sys.argv) > 1:
+  params_mod = sys.argv[1]
+
+params = __import__(params_mod)
+
+run_dir = os.path.realpath(os.path.dirname(sys.argv[0]))
+os.chdir(run_dir)
+
+machine = socket.gethostname().split('.')[0]
+timestr = time.strftime('%Y%m%d_%H%M%S')
+
+if not os.path.exists(params.outputs):
+  os.makedirs(params.outputs)
+
+savedir = '%s/exper%d_%s_%s' % (params.outputs, params.exper, machine, timestr)
+os.makedirs(savedir)
+
+slnk = 'exper%d' % (params.exper,)
+if os.path.exists(slnk): os.unlink(slnk)
+os.symlink(savedir, slnk)
+
+shutil.copyfile(params_mod +'.py', savedir + '/params.py')
+
+for imp_mod in sys.modules.values():
+  if not imp_mod or '__file__' not in dir(imp_mod):
+    continue
+  if imp_mod.__name__ == params_mod: continue
+  imp_file = imp_mod.__file__
+  if imp_file.endswith('.pyc'):
+    imp_file = imp_file[:-1]
+  imp_dir = os.path.realpath(os.path.dirname(imp_file))
+  if imp_dir.startswith(run_dir):
+    imp_savedir = savedir + imp_dir[len(run_dir):]
+    if not os.path.exists(imp_savedir):
+      os.makedirs(imp_savedir)
+    shutil.copyfile(imp_file, imp_savedir + '/' + os.path.basename(imp_file))
+
+sys.path = [savedir] + sys.path
+m_vars = dict(savedir = savedir)
+exec open(params.script + '.py') in m_vars
+
+
+
+
