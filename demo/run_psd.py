@@ -89,7 +89,7 @@ trainer.train(train_iters)
 
 if savedir is not None:
     import pickle
-    pickle.dump(machine, savedir + '/machine.obj')
+    pickle.dump(machine, open(savedir + '/machine.obj', 'w'))
 
 import plots
 new_window()
