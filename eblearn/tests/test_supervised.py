@@ -65,7 +65,7 @@ trainer = eb_trainer(param, ebm_2(machine, cost), ds_train,
 )
 
 if linesearch:
-    feval = gd_linesearch_update.feval_from_trainer(trainer)
+    feval = feval_from_trainer(trainer)
     param.updater = gd_linesearch_update( feval, eta = 0.5 )
 else:
     param.updater = gd_update( eta = 0.002 )

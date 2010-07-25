@@ -128,6 +128,9 @@ class parameter (object):
     ddeltax = property(iter_state_prop('ddeltax'))
     epsilon = property(iter_state_prop('epsilon'))
 
+# for pickling
+update_default = parameter.update_default
+
 
 class gd_update (parameter_update):
     ''' Gradient-descent parameter update strategy '''
@@ -213,8 +216,28 @@ class gd_update (parameter_update):
 parameter_update_default_gd = parameter.update_default(gd_update)
 
 
-class gd_linesearch_update (gd_update):
+class feval_from_trainer(object):
+    def __init__(self, trainer):
+        self.trainer         = trainer
+        self.trnum           = 0
+        self.trage_firsteval = 0
+        self.energy          = state((1,))
+    def __call__(self):
+        trainer = self.trainer
+            
+        if trainer.train_num != self.trnum:
+            self.trnum = trainer.train_num
+            self.trage_firsteval = 0
 
+        if trainer.age == self.trage_firsteval:
+            # first one's free
+            self.trage_firsteval = trainer.age + 1
+            return trainer.energy.x[0]
+
+        trainer.machine.fprop(trainer.input, trainer.target, self.energy)
+        return self.energy.x[0]
+
+class gd_linesearch_update (gd_update):
     def __init__(self, feval, max_line_steps=10, quiet=True, **kwargs):
         ''' Gradient-descent parameter update strategy, performing
             a line-search to select the step size
@@ -233,26 +256,7 @@ class gd_linesearch_update (gd_update):
     def reset(self):
         self.linesearch_stop_code = None
         super(gd_linesearch_update, self).reset()
-    
-    @staticmethod
-    def feval_from_trainer(trainer):
-        energy          = state((1,))
-        trnum           = [0]
-        trage_firsteval = [0]
-        def feval():
-            if trainer.train_num != trnum[0]:
-                trnum[0] = trainer.train_num
-                trage_firsteval[0] = 0
 
-            if trainer.age == trage_firsteval[0]:
-                # first one's free
-                trage_firsteval[0] = trainer.age + 1
-                return trainer.energy.x[0]
-
-            trainer.machine.fprop(trainer.input, trainer.target, energy)
-            return energy.x[0]
-        return feval
-    
     def _step_direction(self, p):
         grad, grad_norm, step_coeff = \
               super(gd_linesearch_update, self)._step_direction(p)

@@ -2,6 +2,7 @@ from module     import *
 from arch       import *
 from datasource import *
 from trainer    import *
+from parameter  import *
 
 class psd_codec (module_2_1):
 
@@ -139,8 +140,7 @@ class psd_codec (module_2_1):
                            auto_forget      = False)
             self.code_trainer.input  = self.code
 
-            self.code_feval = \
-                gd_linesearch_update.feval_from_trainer(self.code_trainer)
+            self.code_feval = feval_from_trainer(self.code_trainer)
             self.code_parameter.updater = gd_linesearch_update(self.code_feval)
     
     def forget(self):
@@ -218,4 +218,8 @@ class psd_codec (module_2_1):
         self.decoder.bbprop_param(code, decoder_out)
         self.encoder.bbprop_param(input, encoder_out)
 
-    
+# for pickling
+dummy_dsource = psd_codec.dummy_dsource
+ebm_decoder   = psd_codec.ebm_decoder
+psd_costs     = psd_codec.psd_costs
+

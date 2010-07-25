@@ -3,6 +3,26 @@ from eblearn import *
 import pickle, time
 
 class eb_trainer (object):
+    
+    class reporter (object):
+        def __init__(self, trainer):
+            self.trainer = trainer
+            self.prev_age      = -1
+            self.prefix_width  = 15
+        def __call__(self, msg):
+            if self.trainer.quiet: return
+            def prefix_age(age):
+                s_age = str(age)
+                dots  = '.' * (self.prefix_width - 6 - len(s_age))
+                return 'Age %s%s: ' % (s_age, dots)
+            def prefix_noage():
+                return '.' * (self.prefix_width - 1) + ' '
+            prefix = prefix_noage()
+            if self.trainer.age != self.prev_age:
+                prefix = prefix_age(self.trainer.age)
+                self.prev_age = self.trainer.age
+            print prefix + msg
+    
     def __init__(self, parameter, machine, ds_train,
                  ds_valid          = None, 
                  valid_interval    = 2000,
@@ -42,36 +62,17 @@ class eb_trainer (object):
         self.energy.dx[0]  = 1.
         self.energy.ddx[0] = 1.
 
-        self.msg = self.make_msg()
+        self.msg = eb_trainer.reporter(self)
         self.clear_log()
 
     def clear_log(self):
         self.train_loss = []
         self.valid_loss = []
-
-    def make_msg(self):
-        if self.quiet:
-            return lambda s: None
-        prev_age = [-1]
-        prefix_width = 15
-        def prefix_age(age):
-            s_age = str(age)
-            dots  = '.' * (prefix_width - 6 - len(s_age))
-            return 'Age %s%s: ' % (s_age, dots)
-        def prefix_noage():
-            return '.' * (prefix_width - 1) + ' '
-        def msg(s):
-            prefix = prefix_noage()
-            if self.age != prev_age[0]:
-                prefix = prefix_age(self.age)
-                prev_age[0] = self.age
-            print prefix + s
-        return msg
-
+    
     def train(self, maxiter = 0):
         self.train_num += 1
         self.age = 0
-        self.msg = self.make_msg()
+        self.msg = eb_trainer.reporter(self)
         self.clear_log()
         self.ds_train.seek(0)
         self.parameter.reset()
@@ -207,3 +208,5 @@ class eb_trainer (object):
 
         return tot_err / n
 
+# for pickling
+reporter = eb_trainer.reporter
