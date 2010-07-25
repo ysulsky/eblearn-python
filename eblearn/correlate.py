@@ -1,6 +1,6 @@
 import scipy.signal
 from idx     import *
-from vecmath import fast as fast_vecmath, m4dotm2, m6dotm3, mkextmk
+from vecmath import mkextmk
 import numpy as np
 
 sig_correlate = scipy.signal.correlate
@@ -36,11 +36,11 @@ def back_correlate_table(table, inputs, kernels, outputs):
 back_correlate_for_dim       = lambda n: back_correlate
 back_correlate_table_for_dim = lambda n: back_correlate_table
 
-fast = False
 try:
     from gofast.correlate import *
     fast = True
 except ImportError:
+    fast = False
     pass
 
 __all__ = ['correlate',            'correlate_for_dim',

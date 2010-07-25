@@ -147,9 +147,9 @@ class convolution (module_1_1):
         self.bcorr   = back_correlate_table_for_dim(ndim)
 
         e = enumerate
-        self.tbl_ikj = sp.asarray([(a,k,b) for (k,(a,b)) in e(conn_table)], int)
-        self.tbl_jki = sp.asarray([(b,k,a) for (k,(a,b)) in e(conn_table)], int)
-        self.tbl_ijk = sp.asarray([(a,b,k) for (k,(a,b)) in e(conn_table)], int)
+        self.tbl_ikj = sp.asarray([(a,k,b) for (k,(a,b)) in e(conn_table)], 'i')
+        self.tbl_jki = sp.asarray([(b,k,a) for (k,(a,b)) in e(conn_table)], 'i')
+        self.tbl_ijk = sp.asarray([(a,b,k) for (k,(a,b)) in e(conn_table)], 'i')
     
     def forget(self):
         arg = self.forget_param
