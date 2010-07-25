@@ -72,4 +72,4 @@ train_file      = "tr-berkeley-N50K-M9x9.mat"
 ######################################################################
 script  = 'run_psd'
 outputs = './outputs'
-savedir = outputs + '/manual'
+
