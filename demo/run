@@ -6,6 +6,9 @@ params_mod = 'params'
 if len(sys.argv) > 1:
   params_mod = sys.argv[1]
 
+if params_mod.endswith('.py'):
+  params_mod = params_mod[:-3]
+
 params = __import__(params_mod)
 
 run_dir = os.path.realpath(os.path.dirname(sys.argv[0]))
@@ -25,24 +28,32 @@ if os.path.exists(slnk): os.unlink(slnk)
 os.symlink(savedir, slnk)
 
 shutil.copyfile(params_mod +'.py', savedir + '/params.py')
+shutil.copyfile(params.script,
+                '%s/%s' % (savedir, os.path.basename(params.script)))
 
-for imp_mod in sys.modules.values():
-  if not imp_mod or '__file__' not in dir(imp_mod):
-    continue
-  if imp_mod.__name__ == params_mod: continue
-  imp_file = imp_mod.__file__
-  if imp_file.endswith('.pyc'):
-    imp_file = imp_file[:-1]
-  imp_dir = os.path.realpath(os.path.dirname(imp_file))
-  if imp_dir.startswith(run_dir):
-    imp_savedir = savedir + imp_dir[len(run_dir):]
-    if not os.path.exists(imp_savedir):
-      os.makedirs(imp_savedir)
-    shutil.copyfile(imp_file, imp_savedir + '/' + os.path.basename(imp_file))
+def copy_code():
+  for imp_mod in sys.modules.values():
+    if not imp_mod or '__file__' not in dir(imp_mod):
+      continue
+    if imp_mod.__name__ == params_mod: continue
+    imp_file = imp_mod.__file__
+    if imp_file.endswith('.pyc'):
+      imp_file = imp_file[:-1]
+    imp_dir = os.path.realpath(os.path.dirname(imp_file))
+    if imp_dir.startswith(run_dir):
+      imp_savedir = savedir + imp_dir[len(run_dir):]
+      if not os.path.exists(imp_savedir):
+        os.makedirs(imp_savedir)
+      shutil.copyfile(imp_file, imp_savedir + '/' + os.path.basename(imp_file))
 
 sys.path = [savedir] + sys.path
 m_vars = dict(savedir = savedir)
-exec open(params.script + '.py') in m_vars
+
+try:
+  exec open(params.script) in m_vars
+finally:
+  copy_code()
+
 
 
 

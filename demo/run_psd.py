@@ -91,12 +91,13 @@ if savedir is not None:
     import pickle
     pickle.dump(machine, open(savedir + '/machine.obj', 'w'))
 
-import plots
-new_window()
-scale = 1.5
-plots.plot_filters(machine.encoder, conv_kernel, scale=scale)
-plots.plot_filters(machine.decoder, conv_kernel,
-                   transpose = True, orig_x=405, scale=scale)
+def plot():
+    import plots
+    new_window()
+    scale = 3
+    plots.plot_filters(machine.encoder, conv_kernel, scale=scale)
+    plots.plot_filters(machine.decoder, conv_kernel,
+                       transpose = True, orig_x=405, scale=scale)
 
-new_window()
-plots.plot_reconstructions(train_ds, machine, n=100, scale=scale)
+    new_window()
+    plots.plot_reconstructions(train_ds, machine, n=100, scale=scale)

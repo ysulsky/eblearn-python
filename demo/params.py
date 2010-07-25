@@ -70,6 +70,6 @@ train_file      = "tr-berkeley-N50K-M9x9.mat"
 
 
 ######################################################################
-script  = 'run_psd'
+script  = 'run_psd.py'
 outputs = './outputs'
 
