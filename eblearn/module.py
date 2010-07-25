@@ -83,7 +83,7 @@ class no_params (object):
 class module_1_1 (eb_module):
     def fprop(self, input, output):
         raise NotImplementedError()
-
+    
     def bprop_input(self, input, output):
         raise NotImplementedError()
     def bprop_param(self, input, output):

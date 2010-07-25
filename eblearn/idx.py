@@ -36,4 +36,4 @@ def reverse(x):
     for i in xrange(x.ndim):
         x = narrow(x,i,1,shape[i]-1)
     return as_strided(x, shape, [-s for s in strides])
-    
+

@@ -231,6 +231,7 @@ test_linear_jac        = make_test_m11_jac(linear)
 test_bias_jac          = make_test_m11_jac(bias)
 test_diag_jac          = make_test_m11_jac(diagonal)
 test_convolution_jac   = make_test_m11_jac(ctor_ns1(convolution))
+test_back_convolution_jac = make_test_m11_jac(ctor_ns1(back_convolution))
     
 test_tanh_jac          = make_test_m11_jac(ctor_ns1(transfer_tanh))
 test_abs_jac           = make_test_m11_jac(ctor_ns1(transfer_abs))
@@ -286,6 +287,10 @@ def test_jac():
     print '##########################################'
     print 'TEST CONVOLUTION JACOBIAN'
     test_convolution_jac( (2,40,20), (5,7), convolution.full_table(2,1) )
+    print '##########################################'
+    print 'TEST BACK CONVOLUTION JACOBIAN'
+    test_back_convolution_jac( (2,40,20), (5,7),
+                               convolution.full_table(2,1) )
 
 if __name__ == '__main__':
     test_jac()

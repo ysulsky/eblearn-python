@@ -141,7 +141,8 @@ class gd_update (parameter_update):
                  anneal_amt  = 0.1,
                  anneal_time = 1000,
                  grad_thresh = 0.001,
-                 norm_grad   = False):
+                 norm_grad   = False,
+                 thresh_x    = None):
         vals = dict(locals())
         del vals['self']
         self.__dict__.update(vals)
@@ -202,6 +203,10 @@ class gd_update (parameter_update):
         
         for (g, state) in zip(grad,states):
             state.x += step_coeff * g
+
+        if self.thresh_x is not None:
+            for state in states:
+                thresh_less(state.x, state.x, self.thresh_x, state.x)
         
         return self.stop_code is None
 
