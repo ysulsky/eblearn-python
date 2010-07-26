@@ -100,19 +100,19 @@ class bconv_rec_cost (no_params, module_2_1):
         self.ostate = state(coeff.shape)
 
     def fprop(self, input1, input2, output):
-        self.mw.fprop(self.cstate, input1, self.ostate)
-        self.l2.fprop(self.ostate, input2, output)
+        self.mw.fprop(self.cstate, input2, self.ostate)
+        self.l2.fprop(input1, self.ostate, output)
 
     def bprop_input(self, input1, input2, output):
         clear(self.cstate.dx)
         clear(self.ostate.dx)
-        self.l2.bprop_input(self.ostate, input2, output)
-        self.mw.bprop_input(self.cstate, input1, self.ostate)
+        self.l2.bprop_input(input1, self.ostate, output)
+        self.mw.bprop_input(self.cstate, input2, self.ostate)
 
     def bbprop_input(self, input1, input2, output):
         clear(self.cstate.ddx)
         clear(self.ostate.ddx)
-        self.l2.bbprop_input(self.ostate, input2, output)
-        self.mw.bbprop_input(self.cstate, input1, self.ostate)
+        self.l2.bbprop_input(input1, self.ostate, output)
+        self.mw.bbprop_input(self.cstate, input2, self.ostate)
 
     
