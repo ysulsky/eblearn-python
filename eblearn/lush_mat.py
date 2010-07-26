@@ -15,13 +15,13 @@ ASCII_MATRIX   = 0x2e4d4154
 swap = lambda x: np.int32(x).byteswap().item()
 
 magic_values = {
-    BINARY_MATRIX       : np.float32
-,   PACKED_MATRIX       : np.byte
-,   DOUBLE_MATRIX       : np.float64
-,   INTEGER_MATRIX      : np.int32
-,   BYTE_MATRIX         : np.uint8
-,   SHORT_MATRIX        : np.int16
-,   SHORT8_MATRIX       : np.int8
+    BINARY_MATRIX       : np.dtype(np.float32)
+,   PACKED_MATRIX       : np.dtype(np.byte)
+,   DOUBLE_MATRIX       : np.dtype(np.float64)
+,   INTEGER_MATRIX      : np.dtype(np.int32)
+,   BYTE_MATRIX         : np.dtype(np.uint8)
+,   SHORT_MATRIX        : np.dtype(np.int16)
+,   SHORT8_MATRIX       : np.dtype(np.int8)
 ,   ASCII_MATRIX        : None
 }
 
@@ -70,8 +70,8 @@ def load_matrix(f):
 def save_matrix(m, f):
     if type(f) == str: f = open(f, 'w')
     if not m.flags['C_CONTIGUOUS']: m = m.copy()
-    magic = dict([(v,k) for (k,v) in magic_values.iteritems()
-                  if k not in (PACKED_MATRIX,)])[m.dtype.type]
+    magic = dict([(v.name,k) for (k,v) in magic_values.iteritems()
+                  if k not in (ASCII_MATRIX, PACKED_MATRIX,)])[m.dtype.name]
     shape = list(m.shape)
     if 0 < len(shape) < 3: shape.extend([1]*(3-len(shape)))
     np.array([magic, m.ndim]+shape, dtype = 'u4').tofile(f)
