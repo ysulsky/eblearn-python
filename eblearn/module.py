@@ -17,21 +17,24 @@ class eb_module (object):
         self._forget_param = None
         eb_module.init_lvl += 1
         #print '   ebmod_init_start'
-        
-        inner_init(self, *args, **kwargs)
 
-        mycls = self.__class__
-        if getattr(mycls, '_%s__automerge_parameters' % mycls.__name__, True):
-            for arg in args:
-                if isinstance(arg, eb_module): self._merge_parameters(arg)
-            for arg in kwargs.itervalues():
-                if isinstance(arg, eb_module): self._merge_parameters(arg)
-        
-        #print '   ebmod_init_end'
-        eb_module.init_lvl -= 1
-        if eb_module.init_lvl == 0:
-            #print 'dynamic extent ended'
-            eb_module.cur_parameter = None
+        try:
+            inner_init(self, *args, **kwargs)
+
+            mycls = self.__class__
+            if getattr(mycls, '_%s__automerge_parameters' % mycls.__name__,
+                       True):
+                for arg in args:
+                    if isinstance(arg, eb_module): self._merge_parameters(arg)
+                for arg in kwargs.itervalues():
+                    if isinstance(arg, eb_module): self._merge_parameters(arg)
+        finally:
+            #print '   ebmod_init_end'
+            eb_module.init_lvl -= 1
+            if eb_module.init_lvl == 0:
+                #print 'dynamic extent ended'
+                eb_module.cur_parameter = None
+    
 
     @around(_init_around)
     def __init__(self): pass

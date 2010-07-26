@@ -11,6 +11,7 @@ cdef extern from "numpy/arrayobject.h":
 cdef extern from "math.h":
     cdef double  exp(double)
     cdef double  log(double)
+    cdef double  tanh(double)
 
 cdef extern from "string.h":
     cdef void*   memset(void*, int, size_t)

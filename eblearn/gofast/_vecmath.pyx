@@ -58,9 +58,32 @@ def sqdist(np.ndarray a not None, np.ndarray b not None):
     
     return acc
 
+cdef c_dtanh(rtype_t *x, long n, rtype_t *r):
+    cdef long i
+    cdef rtype_t v
+    for i in range(n):
+        v = x[i]
+        if v < -12 or v > 12:
+            r[i] = 0
+        else:
+            v = exp(-2. * v)
+            r[i] = 4*v / ((v+1)*(v+1))
+
+cdef c_ddtanh(rtype_t *x, long n, rtype_t *r):
+    cdef long i
+    cdef rtype_t u, v
+    for i in range(n):
+        v = x[i]
+        if v < -12 or v > 12:
+            r[i] = 0
+        else:
+            u = -2 * tanh(v)        # u = -2tanh(x)
+            v = exp(-2. * v)
+            v = 4*v / ((v+1)*(v+1)) # v = sech^2(x)
+            r[i] = u * v
 
 def dtanh(np.ndarray x not None, np.ndarray out = None):
-    ''' dtanh(x) = 4*exp(-2x) / (1+exp(-2x))^2 '''
+    ''' dtanh(x) = sech^2(x) '''
     cdef rtype_t *inp, *outp, xi
     cdef long i, size
     cdef np.ndarray e
@@ -75,16 +98,31 @@ def dtanh(np.ndarray x not None, np.ndarray out = None):
     else:
         e = out
 
-    inp  = <rtype_t*> x.data
-    outp = <rtype_t*> e.data
-    size = PyArray_SIZE(x)
-    for i in range(size):
-        xi = inp[i]
-        if xi < -8 or xi > 8:
-            outp[i] = 0
-        else:
-            xi = exp(-2. * xi)
-            outp[i] = 4*xi / ((xi+1.)*(xi+1.))
+    c_dtanh(<rtype_t*> x.data, PyArray_SIZE(x), <rtype_t*> e.data)
+    
+    if out is None or out is e:
+        return e
+
+    out[:] = e
+    return out
+
+def ddtanh(np.ndarray x not None, np.ndarray out = None):
+    ''' ddtanh(x) = -2 tanh(x) sech^2(x) '''
+    cdef rtype_t *inp, *outp, xi
+    cdef long i, size
+    cdef np.ndarray e
+
+    if not PyArray_ISCONTIGUOUS(x):
+        x = x.copy()
+
+    assert (out is None or PyArray_SAMESHAPE(x, out)), "shapes don't match"
+    
+    if out is None or not PyArray_ISCONTIGUOUS(out):
+        e = np.empty(np.shape(x), x.dtype)
+    else:
+        e = out
+
+    c_ddtanh(<rtype_t*> x.data, PyArray_SIZE(x), <rtype_t*> e.data)
     
     if out is None or out is e:
         return e

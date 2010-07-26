@@ -135,6 +135,7 @@ class psd_codec (module_2_1):
                            psd_codec.dummy_dsource(),
                            hess_interval    = 0,
                            report_interval  = 0,
+                           keep_log         = False,
                            do_normalization = False,
                            quiet            = True,
                            auto_forget      = False)

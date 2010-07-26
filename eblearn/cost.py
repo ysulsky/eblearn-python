@@ -2,20 +2,28 @@ from module import *
 from basic import multiplication
 
 class distance_l2 (no_params, module_2_1):
+    def __init__(self, average = True):
+        self.average = average
+    
     def fprop(self, input1, input2, energy):
         energy.resize((1,))
         assert (input1.shape == input2.shape)
-        energy.x[0] = sqdist(input1.x, input2.x) / (2. * input1.size)
+        coeff = 0.5
+        if self.average: coeff /= input1.size
+        energy.x[0] = sqdist(input1.x, input2.x) * coeff
 
     def bprop_input(self, input1, input2, energy):
-        r = (input1.x - input2.x) * (energy.dx[0] / input1.size)
+        edx = energy.dx[0]
+        if self.average: edx /= input1.size
+        r = (input1.x - input2.x) * edx
         input1.dx += r
         input2.dx -= r
     
     def bbprop_input(self, input1, input2, energy):
-        r = energy.dx[0] / input1.size
-        input1.ddx += r
-        input2.ddx += r
+        eddx = energy.ddx[0]
+        if self.average: eddx /= input1.size
+        input1.ddx += eddx
+        input2.ddx += eddx
 
 class cross_entropy (no_params, module_2_1):
     def fprop(self, input1, input2, energy):
@@ -29,23 +37,32 @@ class cross_entropy (no_params, module_2_1):
     def bprop_input(self, input1, input2, energy):
         expin1 = sp.exp(input1.x)
         softmaxin1 = expin1 * (1.0 / expin1.sum())
-        input1.dx += energy.dx[0] * ((input2.x.sum() * softmaxin1) - input2.x)
-        input2.dx -= energy.dx[0] * sp.log(softmaxin1) 
+        d1 = ((input2.x.sum() * softmaxin1) - input2.x)
+        d2 = sp.log(softmaxin1) 
+        input1.dx += energy.dx[0] * d1
+        input2.dx -= energy.dx[0] * d2
         
     def bbprop_input(self, input1, input2, energy):
         expin1 = sp.exp(input1.x)
-        softmaxin1 = expin1 * (1.0 / expin1.sum())
-        dd1 = sp.square(input2.x.sum() * softmaxin1 - input2.x)
-        dd2 = sp.square(sp.log(softmaxin1))
-        input1.ddx += energy.ddx[0] * dd1
-        input2.ddx += energy.ddx[0] * dd2
+        expin1_sum_inv = 1.0 / expin1.sum()
+        softmaxin1 = expin1 * expin1_sum_inv
+        sum2 = input2.x.sum()
+        
+        d1 = (sum2 * softmaxin1) - input2.x
+        d2 = sp.log(softmaxin1) 
+        input1.ddx += energy.ddx[0] * sp.square(d1)
+        input1.ddx += (energy.dx[0] * sum2) * softmaxin1 * (1 - softmaxin1)
+        input2.ddx += energy.ddx[0] * sp.square(d2)
+
 
 class penalty_l1 (no_params, module_1_1):
-    def __init__(self, thresh = 0.0001):
+    def __init__(self, thresh = 0.0001, average = True):
         self.thresh = thresh
+        self.average = average
     def fprop(self, input, energy):
         energy.resize((1,))
-        energy.x[0] = sp.absolute(input.x).sum() / input.size
+        energy.x[0] = sp.absolute(input.x).sum()
+        if self.average: energy.x[0] /= input.size
     def bprop_input (self, input, energy):
         sx = None
         if self.thresh != 0:
@@ -54,9 +71,13 @@ class penalty_l1 (no_params, module_1_1):
             sp.sign(sx, sx)
         else:
             sx = sp.sign(input.x)
-        input.dx += sx * (energy.dx[0] / input.size)
+        edx = energy.dx[0]
+        if self.average: edx /= input.size
+        input.dx += sx * edx
     def bbprop_input(self, input, energy):
-        input.ddx += energy.ddx[0]
+        eddx = energy.ddx[0]
+        if self.average: eddx /= input.size
+        input.ddx += eddx
 
 class bconv_rec_cost (no_params, module_2_1):
     @staticmethod
@@ -71,9 +92,9 @@ class bconv_rec_cost (no_params, module_2_1):
         ucoeff += 1. / sp.prod(kernel_shape)
         return coeff
     
-    def __init__(self, coeff):
+    def __init__(self, coeff, average = True):
         self.mw = multiplication()
-        self.l2 = distance_l2()
+        self.l2 = distance_l2(average)
         self.cstate = state(coeff.shape)
         self.cstate.x[:] = coeff
         self.ostate = state(coeff.shape)

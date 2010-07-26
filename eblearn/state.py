@@ -35,6 +35,7 @@ class state (object):
         if self._ddeltax  is not None: self._ddeltax.resize(shape)
         if self._epsilon  is not None: self._epsilon.resize(shape)
 
+
     def __len__(self):
         return len(self.x)
 

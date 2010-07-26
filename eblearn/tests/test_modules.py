@@ -6,34 +6,51 @@ def report_err (a, b, name, tol = 1e-5):
     max_err = abs(a - b).max()
     tot_err = sqrt(sqdist(a, b))
     report_str_err(max_err, 'Max   %s distance' % name)
-    report_str_err(tot_err, 'Total %s distance' % name)
+    #report_str_err(tot_err, 'Total %s distance' % name)
 
-def jacobian_bprop_m_1_1 (mod, sin, sout, jac):
-    sout_dx = sout.dx.ravel()
-    sin_dx  = sin.dx.ravel()
+def clear_state(s):
+    s.clear_dx()
+    s.clear_ddx()
+
+def clear_param(p):
+    p.clear_dx()
+    p.clear_ddx()
+
+def mod_bprop(snd, mod, *args):
+    mod.bprop(*args)
+    if snd: mod.bbprop(*args)
+
+def jacobian_bwd_m_1_1 (mod, sin, sout, jac, snd=False):
     for i in xrange(sout.size):
-        clear(sin_dx)
-        clear(sout_dx)
-        sout_dx[i] = 1.
-        mod.bprop(sin, sout)
-        jac[:,i] = sin_dx
+        clear_state(sin)
+        clear_state(sout)
+        sout.dx.flat[i] = 1.
+        mod_bprop(snd, mod, sin, sout)
+        jac[:,i] = (sin.ddx if snd else sin.dx).ravel()
+    return jac
 
-def jacobian_bprop_m_1_1_param (mod, sin, sout, jac):
-    sout_dx = sout.dx.ravel()
+def jacobian_bwd_m_1_1_param (mod, sin, sout, jac, snd=False):
+    param    = mod.parameter
+    param_dx = lambda: sp.fromiter((param.ddx if snd else param.dx), rtype)
     for i in xrange(sout.size):
-        clear(sout_dx)
-        sout_dx[i] = 1.
-        mod.parameter.clear_dx()
-        mod.bprop(sin, sout)
-        jac[:,i] = sp.fromiter(mod.parameter.dx, rtype)
+        clear_state(sout)
+        sout.dx.flat[i] = 1.
+        clear_param(param)
+        mod_bprop(snd, mod, sin, sout)
+        jac[:,i] = param_dx()
+    return jac
 
-def jacobian_fprop_m_1_1 (mod, sin, sout, jac):
-    small = 1e-6
+def jacobian_fwd_m_1_1 (mod, sin, sout, jac, snd=False):
+    small = 1e-4 if snd else 1e-6
     sina  = state(sin.shape);     souta = state(sout.shape)
     sinb  = state(sin.shape);     soutb = state(sout.shape)
     sin_x = sin.x.ravel();
-    sina_x = sina.x.ravel();      sinb_x = sinb.x.ravel()
-    sina_x[:] = sin_x;            sinb_x[:] = sin_x
+    sina_x = sina.x.ravel(); sinb_x = sinb.x.ravel();
+    sina_x[:] = sin_x;       sinb_x[:] = sin_x;
+    
+    if snd:
+        mod.fprop(sin, sout)
+    
     for i in xrange(sin.size):
         sina_x[i] -= small
         mod.fprop(sina, souta)
@@ -42,14 +59,20 @@ def jacobian_fprop_m_1_1 (mod, sin, sout, jac):
         sinb_x[i] += small
         mod.fprop(sinb, soutb)
         sinb_x[i]  = sin_x[i]
-        
-        jac[i,:] = ((soutb.x - souta.x) / (2 * small)).ravel()
 
-def jacobian_fprop_m_1_1_param (mod, sin, sout, jac):
-    small = 1e-6
+        if snd:
+            jac[i,:] = ((soutb.x - 2*sout.x + souta.x) / (small**2)).ravel()
+        else:
+            jac[i,:] = ((soutb.x - souta.x) / (2 * small)).ravel()
+    return jac
+
+def jacobian_fwd_m_1_1_param (mod, sin, sout, jac, snd=False):
+    small = 1e-4 if snd else 1e-6
     souta = state(sout.shape)
     soutb = state(sout.shape)
     i = -1
+    if snd:
+        mod.fprop(sin, sout)
     for pstate in mod.parameter.states:
         for j in xrange(pstate.size):
             i += 1
@@ -62,7 +85,12 @@ def jacobian_fprop_m_1_1_param (mod, sin, sout, jac):
             mod.fprop(sin, soutb)
 
             pstate_x[j] -= small
-            jac[i,:] = ((soutb.x - souta.x) / (2 * small)).ravel()
+            if snd:
+                jac[i,:] = ((soutb.x - 2*sout.x + souta.x) / (small**2)).ravel()
+            else:
+                jac[i,:] = ((soutb.x - souta.x) / (2 * small)).ravel()
+    return jac
+
 
 def test_module_1_1_jac (mod, sin, sout, minval=-2., maxval=2.):
     sin.x = sp.random.random(sin.shape) * (maxval - minval) - minval
@@ -71,11 +99,16 @@ def test_module_1_1_jac (mod, sin, sout, minval=-2., maxval=2.):
     insize  = sin.size
     outsize = sout.size
     jac_fprop = zeros((insize, outsize))
-    jacobian_fprop_m_1_1(mod, sin, sout, jac_fprop)
     jac_bprop = zeros((insize, outsize))
-    jacobian_bprop_m_1_1(mod, sin, sout, jac_bprop)
+    jacobian_fwd_m_1_1(mod, sin, sout, jac_fprop)
+    jacobian_bwd_m_1_1(mod, sin, sout, jac_bprop)
     report_err(jac_fprop, jac_bprop, "jacobian input")
-    return (jac_fprop, jac_bprop)
+    hes_fprop = zeros((insize, outsize))
+    hes_bprop = zeros((insize, outsize))
+    jacobian_fwd_m_1_1(mod, sin, sout, hes_fprop, True)
+    jacobian_bwd_m_1_1(mod, sin, sout, hes_bprop, True)
+    report_err(hes_fprop, hes_bprop, "diag hessian input", .01)
+    return (jac_fprop, jac_bprop, hes_fprop, hes_bprop)
 
 def test_module_1_1_jac_param (mod, sin, sout, minval=-2., maxval=2.):
     if not mod.has_params(): return
@@ -86,38 +119,44 @@ def test_module_1_1_jac_param (mod, sin, sout, minval=-2., maxval=2.):
     insize  = mod.parameter.size()
     outsize = sout.size
     jac_fprop = zeros((insize, outsize))
-    jacobian_fprop_m_1_1_param(mod, sin, sout, jac_fprop)
     jac_bprop = zeros((insize, outsize))
-    jacobian_bprop_m_1_1_param(mod, sin, sout, jac_bprop)
+    jacobian_fwd_m_1_1_param(mod, sin, sout, jac_fprop)
+    jacobian_bwd_m_1_1_param(mod, sin, sout, jac_bprop)
     report_err(jac_fprop, jac_bprop, "jacobian param")
-    return (jac_fprop, jac_bprop)
+    hes_fprop = zeros((insize, outsize))
+    hes_bprop = zeros((insize, outsize))
+    jacobian_fwd_m_1_1_param(mod, sin, sout, hes_fprop, True)
+    jacobian_bwd_m_1_1_param(mod, sin, sout, hes_bprop, True)
+    report_err(hes_fprop, hes_bprop, "diag hessian param", .01)
+    return (jac_fprop, jac_bprop, hes_fprop, hes_bprop)
 
 
-def jacobian_bprop_m_2_1 (mod, sin1, sin2, sout, jac1, jac2):
-    sout_dx = sout.dx.ravel()
-    sin1_dx  = sin1.dx.ravel()
-    sin2_dx  = sin2.dx.ravel()
+def jacobian_bwd_m_2_1 (mod, sin1, sin2, sout, jac1, jac2, snd=False):
     for i in xrange(sout.size):
-        clear(sin1_dx)
-        clear(sin2_dx)
-        clear(sout_dx)
-        sout_dx[i] = 1.
-        mod.bprop(sin1, sin2, sout)
-        jac1[:,i] = sin1_dx
-        jac2[:,i] = sin2_dx
+        clear_state(sin1)
+        clear_state(sin2)
+        clear_state(sout)
+        sout.dx.flat[i] = 1.
+        mod_bprop(snd, mod, sin1, sin2, sout)
+        jac1[:,i] = (sin1.ddx if snd else sin1.dx).ravel()
+        jac2[:,i] = (sin2.ddx if snd else sin2.dx).ravel()        
+    return jac1, jac2
 
-def jacobian_bprop_m_2_1_param (mod, sin1, sin2, sout, jac):
-    sout_dx = sout.dx.ravel()
+def jacobian_bwd_m_2_1_param (mod, sin1, sin2, sout, jac, snd=False):
+    param    = mod.parameter
+    param_dx = lambda: sp.fromiter((param.ddx if snd else param.dx), rtype)
     for i in xrange(sout.size):
-        clear(sout_dx)
-        sout_dx[i] = 1.
-        mod.parameter.clear_dx()
-        mod.bprop(sin1, sin2, sout)
-        jac[:,i] = sp.fromiter(mod.parameter.dx, rtype)
+        clear_state(sout)
+        sout.dx.flat[i] = 1.
+        clear_param(param)
+        mod_bprop(snd, mod, sin1, sin2, sout)
+        jac[:,i] = param_dx()
+    return jac
 
-def jacobian_fprop_m_2_1 (mod, sin1, sin2, sout, jac1, jac2):
-    small = 1e-6
+def jacobian_fwd_m_2_1 (mod, sin1, sin2, sout, jac1, jac2, snd=False):
+    small = 1e-4 if snd else 1e-6
     sins = [sin1, sin2]; jacs = [jac1, jac2]
+    if snd: mod.fprop(sin1, sin2, sout)
     for which in [0, 1]:
         jac = jacs[which]
         sina  = state(sins[which].shape);     souta = state(sout.shape)
@@ -135,15 +174,21 @@ def jacobian_fprop_m_2_1 (mod, sin1, sin2, sout, jac1, jac2):
             if which == 0: mod.fprop(sinb, sin2, soutb)
             else:          mod.fprop(sin1, sinb, soutb)
             sinb_x[i]  = sin_x[i]
-        
-            jac[i,:] = ((soutb.x - souta.x) / (2 * small)).ravel()
+
+            if snd:
+                jac[i,:] = ((soutb.x - 2*sout.x + souta.x) / (small**2)).ravel()
+            else:
+                jac[i,:] = ((soutb.x - souta.x) / (2 * small)).ravel()
+    return jac1, jac2
 
 
-def jacobian_fprop_m_2_1_param (mod, sin1, sin2, sout, jac):
-    small = 1e-6
+def jacobian_fwd_m_2_1_param (mod, sin1, sin2, sout, jac, snd=False):
+    small = 1e-4 if snd else 1e-6
     souta = state(sout.shape)
     soutb = state(sout.shape)
     i = -1
+    if snd:
+        mod.fprop(sin1, sin2, sout)
     for pstate in mod.parameter.states:
         for j in xrange(pstate.size):
             i += 1
@@ -156,7 +201,11 @@ def jacobian_fprop_m_2_1_param (mod, sin1, sin2, sout, jac):
             mod.fprop(sin1, sin2, soutb)
 
             pstate_x[j] -= small
-            jac[i,:] = ((soutb.x - souta.x) / (2 * small)).ravel()
+            if snd:
+                jac[i,:] = ((soutb.x - 2*sout.x + souta.x) / (small**2)).ravel()
+            else:
+                jac[i,:] = ((soutb.x - souta.x) / (2 * small)).ravel()
+    return jac
 
 def test_module_2_1_jac (mod, sin1, sin2, sout, minval=-2., maxval=2.):
     sin1.x = sp.random.random(sin1.shape) * (maxval - minval) - minval
@@ -168,13 +217,22 @@ def test_module_2_1_jac (mod, sin1, sin2, sout, minval=-2., maxval=2.):
     outsize = sout.size
     jac1_fprop = zeros((insize1, outsize))
     jac2_fprop = zeros((insize2, outsize))
-    jacobian_fprop_m_2_1(mod, sin1, sin2, sout, jac1_fprop, jac2_fprop)
+    jacobian_fwd_m_2_1(mod, sin1, sin2, sout, jac1_fprop, jac2_fprop)
     jac1_bprop = zeros((insize1, outsize))
     jac2_bprop = zeros((insize2, outsize))
-    jacobian_bprop_m_2_1(mod, sin1, sin2, sout, jac1_bprop, jac2_bprop)
+    jacobian_bwd_m_2_1(mod, sin1, sin2, sout, jac1_bprop, jac2_bprop)
     report_err(jac1_fprop, jac1_bprop, "jacobian input 1")
     report_err(jac2_fprop, jac2_bprop, "jacobian input 2")
-    return (jac1_fprop, jac2_fprop, jac1_bprop, jac2_bprop)
+    hes1_fprop = zeros((insize1, outsize))
+    hes2_fprop = zeros((insize2, outsize))
+    jacobian_fwd_m_2_1(mod, sin1, sin2, sout, hes1_fprop, hes2_fprop, True)
+    hes1_bprop = zeros((insize1, outsize))
+    hes2_bprop = zeros((insize2, outsize))
+    jacobian_bwd_m_2_1(mod, sin1, sin2, sout, hes1_bprop, hes2_bprop, True)
+    report_err(hes1_fprop, hes1_bprop, "diag hessian input 1", .01)
+    report_err(hes2_fprop, hes2_bprop, "diag hessian input 2", .01)
+    return (jac1_fprop, jac2_fprop, jac1_bprop, jac2_bprop,
+            hes1_fprop, hes2_fprop, hes1_bprop, hes2_bprop)
 
 def test_module_2_1_jac_param (mod, sin1, sin2, sout, minval=-2., maxval=2.):
     if not mod.has_params(): return
@@ -186,11 +244,16 @@ def test_module_2_1_jac_param (mod, sin1, sin2, sout, minval=-2., maxval=2.):
     insize  = mod.parameter.size()
     outsize = sout.size
     jac_fprop = zeros((insize, outsize))
-    jacobian_fprop_m_2_1_param(mod, sin1, sin2, sout, jac_fprop)
+    jacobian_fwd_m_2_1_param(mod, sin1, sin2, sout, jac_fprop)
     jac_bprop = zeros((insize, outsize))
-    jacobian_bprop_m_2_1_param(mod, sin1, sin2, sout, jac_bprop)
+    jacobian_bwd_m_2_1_param(mod, sin1, sin2, sout, jac_bprop)
     report_err(jac_fprop, jac_bprop, "jacobian param")
-    return (jac_fprop, jac_bprop)
+    hes_fprop = zeros((insize, outsize))
+    hesobian_fwd_m_2_1_param(mod, sin1, sin2, sout, hes_fprop, True)
+    hes_bprop = zeros((insize, outsize))
+    hesobian_bwd_m_2_1_param(mod, sin1, sin2, sout, hes_bprop, True)
+    report_err(hes_fprop, hes_bprop, "diag hessian param", .01)
+    return (jac_fprop, jac_bprop, hes_fprop, hes_bprop)
 
 def make_test_m11_jac(ctor):
     def test_jac(size, *args, **kwargs):
@@ -304,3 +367,4 @@ def test_jac():
 
 if __name__ == '__main__':
     test_jac()
+

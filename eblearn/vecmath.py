@@ -5,9 +5,12 @@ sqmag  = lambda x: np.square(x).sum()
 sqdist = lambda a, b: sqmag(a - b)
 
 def dtanh(x):
-    e = x.clip(-8, 8)
+    e = x.clip(-12, 12)
     np.exp(-2.*e, e)
     return 4*e / np.square(e + 1)
+
+def ddtanh(x):
+    return -2.*np.tanh(x)*dtanh(x)
 
 
 def ldot(m1, m2):

@@ -9,6 +9,7 @@ class transfer_tanh (no_params, module_1_1):
         input.dx  += output.dx  * dtanh(input.x)
     def bbprop_input(self, input, output):
         input.ddx += output.ddx * dtanh(input.x) ** 2
+        input.ddx += output.dx * ddtanh(input.x)
 
 class transfer_abs (no_params, module_1_1):
     def __init__(self, thresh = 0.0001):
