@@ -48,16 +48,16 @@ decoder = eb.back_convolution(conv_kernel, back_conv_conn_table)
 # COSTS
 
 # encoder cost
-enc_cost = eb.distance_l2()
+enc_cost = eb.distance_l2(average=False)
 
 # reconstruction cost
 bconv_rec_coeff = eb.bconv_rec_cost.coeff_from_conv(shape_out, (1,)+conv_kernel)
-rec_cost = eb.bconv_rec_cost(bconv_rec_coeff)
+rec_cost = eb.bconv_rec_cost(bconv_rec_coeff, average=False)
 
 # sparsity penalty
 sparsity = None
 if pool_cost == 0:
-    sparsity = eb.penalty_l1(0.)
+    sparsity = eb.penalty_l1(0., average=False)
 else:
     raise NotImplementedError("this code pooling isn't implemented yet")
 
