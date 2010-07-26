@@ -12,9 +12,12 @@ def dtanh(x):
 def ddtanh(x):
     return -2.*np.tanh(x)*dtanh(x)
 
-
 def ldot(m1, m2):
     return np.sum(m1 * m2)
+
+def m2dotrows(m1, m2):
+    assert (m1.ndim == m2.ndim == 2)
+    return (m1 * m2).sum(1)
 
 m1ldot = np.dot
 m2ldot = m3ldot = ldot

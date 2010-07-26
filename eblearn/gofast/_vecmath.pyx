@@ -654,7 +654,8 @@ def m3extm3(np.ndarray[rtype_t, ndim=3] m1 not None,
 
 
 @cython.boundscheck(False)
-def mkextmk(m1, m2, res=None, accumulate=False):
+def mkextmk(np.ndarray m1 not None, np.ndarray m2 not None,
+            np.ndarray res=None, bool accumulate=False):
     ''' mkextmk(m1, m2[, res[, accumulate]]):
              res_{i,j} = m1_{i} * m2_{j}
         where {i} ranges over all indices of m1
@@ -666,7 +667,7 @@ def mkextmk(m1, m2, res=None, accumulate=False):
     if k == 2: return m2extm2(m1, m2, res, accumulate)
     if k == 3: return m3extm3(m1, m2, res, accumulate)
     
-    if res is None: res = np.zeros(m1.shape + m2.shape, m1.dtype)
+    if res is None: res = np.zeros(np.shape(m1) + np.shape(m2), m1.dtype)
     res_shape = np.shape(res)
     assert (res_shape[:k] == np.shape(m1) and res_shape[k:] == np.shape(m2))
     if accumulate:
@@ -675,5 +676,38 @@ def mkextmk(m1, m2, res=None, accumulate=False):
     else:
         for i in np.ndindex(res_shape):
             res[i]  = m1[i[:k]] * m2[i[k:]]
+    
+    return res
+
+@cython.boundscheck(False)
+def m2dotrows(np.ndarray[rtype_t, ndim=2] m1 not None,
+              np.ndarray[rtype_t, ndim=2] m2 not None,
+              np.ndarray[rtype_t, ndim=1] res=None,
+              bool accumulate=False):
+    ''' m2dotrows(m1, m2[, res[, accumulate]]):
+             res[i] = m1[i,:] . m2[i,:]
+    '''
+    cdef int i, m, n
+    cdef int m1s0, m1s1, m2s0, m2s1
+    cdef char *pm1, *pm2
+    assert (m1.shape[0] == m2.shape[0] and
+            m1.shape[1] == m2.shape[1]), "shapes don't match"
+    m, n = m1.shape[0], m1.shape[1]
+    if res is None: res = np.zeros(m, dtype=m1.dtype)
+    assert (res.shape[0] == m), "shapes don't match"
+
+    pm1, pm2 = m1.data, m2.data
+    m1s0, m1s1 = m1.strides[0], m1.strides[1]
+    m2s0, m2s1 = m2.strides[0], m2.strides[1]
+    if accumulate:
+        for i in range(m):
+            res[i] += c_m1ldot(pm1, pm2, n, m1s1, m2s1)
+            pm1 += m1s0
+            pm2 += m2s0
+    else:
+        for i in range(m):
+            res[i]  = c_m1ldot(pm1, pm2, n, m1s1, m2s1)
+            pm1 += m1s0
+            pm2 += m2s0
     
     return res

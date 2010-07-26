@@ -81,7 +81,7 @@ def test():
         cmp_slow_fast('sqdist',  (3,4,5), (3,4,5))
         cmp_slow_fast('dtanh',   (30,20,20))
         cmp_slow_fast('ddtanh',  (30,20,20))
-        cmp_slow_fast('m2dotm1', (30,400), (400,), (30,), speedtest=100)
+        cmp_slow_fast('m2dotm1', (30,400), (400,), (30,))
         cmp_slow_fast('m4dotm2', (3,4,5,6), (5,6), (3,4))
         cmp_slow_fast('m6dotm3', (3,4,5,6,7,8), (6,7,8), (3,4,5))
         cmp_slow_fast('m2kdotmk', (3,4,5,1,1,2, 6,7,8,1,2,1), (6,7,8,1,2,1),
@@ -93,7 +93,8 @@ def test():
         cmp_slow_fast('m2extm2', (3,4), (5,6), (3,4,5,6))
         cmp_slow_fast('m3extm3', (3,4,5), (6,7,8), (3,4,5,6,7,8))
         cmp_slow_fast('mkextmk', (3,1,2,1,1,2), (6,3,2,1,2,1),
-                                 (3,1,2,1,1,2,   6,3,2,1,2,1))        
+                                 (3,1,2,1,1,2,   6,3,2,1,2,1))
+        cmp_slow_fast('m2dotrows', (200,300), (200,300), speedtest=1000)
     
     finally:
         fast_vecmath.__all__ = fast_fns

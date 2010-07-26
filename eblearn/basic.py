@@ -99,16 +99,14 @@ class diagonal (module_1_1):
     def bprop_param(self, input, output):
         ix  = input.x.reshape  ((len(self.d), -1))
         odx = output.dx.reshape((len(self.d), -1))
-        rdx = self.d.dx.ravel()
-        rdx += (ix * odx).sum(1)
+        m2dotrows(ix, odx, self.d.dx.ravel(), True)
     
     def bbprop_input(self, input, output):
         input.ddx += output.ddx * sp.square(self.d.x)
     def bbprop_param(self, input, output):
         ix   = input.x.reshape   ((len(self.d), -1))
         oddx = output.ddx.reshape((len(self.d), -1))
-        rddx = self.d.ddx.ravel()
-        rddx += (sp.square(ix) * oddx).sum(1)
+        m2dotrows(sp.square(ix), oddx, self.d.ddx.ravel(), True)
 
 class convolution (module_1_1):
     @staticmethod
