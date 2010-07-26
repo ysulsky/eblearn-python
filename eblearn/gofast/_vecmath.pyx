@@ -231,13 +231,8 @@ def ldot(np.ndarray a not None, np.ndarray b not None):
 
 
 @cython.boundscheck(False)
-def m2dotm1(np.ndarray[rtype_t, ndim=2] m1 not None,
-            np.ndarray[rtype_t, ndim=1] m2 not None,
-            np.ndarray[rtype_t, ndim=1] res = None,
-            bool accumulate = False):
-    ''' m2dotm1(m1, m2[, res[, accumulate]]):
-             res_i = m1_ij * m2_j
-    '''
+cdef np.ndarray c_m2dotm1(np.ndarray m1, np.ndarray m2,
+                          np.ndarray res, bint accumulate):
     cdef int  i
     cdef int ni, nj
 
@@ -248,10 +243,11 @@ def m2dotm1(np.ndarray[rtype_t, ndim=2] m1 not None,
     cdef int m1_s0, m1_s1
     cdef int m2_s0
     
+    assert (m1.ndim == 2 and m2.ndim == 1), "wrong dimensions"
     ni, nj = m1.shape[0], m1.shape[1]
-    
     if res is None: res = np.empty((ni,), dtype=rtype)
-    assert (res.shape[0] == ni and m2.shape[0] == nj), "shapes don't match"
+    assert (res.ndim == 1 and
+            res.shape[0] == ni and m2.shape[0] == nj), "shapes don't match"
     
     res_s0 = res.strides[0]
     m1_s0  = m1.strides[0]
@@ -276,15 +272,18 @@ def m2dotm1(np.ndarray[rtype_t, ndim=2] m1 not None,
     
     return res
 
+def m2dotm1(np.ndarray m1 not None,
+            np.ndarray m2 not None,
+            np.ndarray res = None,
+            bool accumulate = False):
+    ''' m2dotm1(m1, m2[, res[, accumulate]]):
+             res_i = m1_ij * m2_j
+    '''
+    return c_m2dotm1(m1, m2, res, accumulate)
 
 @cython.boundscheck(False)
-def m4dotm2(np.ndarray[rtype_t, ndim=4] m1 not None,
-            np.ndarray[rtype_t, ndim=2] m2 not None,
-            np.ndarray[rtype_t, ndim=2] res = None,
-            bool accumulate = False):
-    ''' m4dotm2(m1, m2[, res[, accumulate]]):
-             res_ij = sum_kl (m1_ijkl * m2_kl)
-    '''
+cdef np.ndarray c_m4dotm2(np.ndarray m1, np.ndarray m2,
+                          np.ndarray res, bint accumulate):
     cdef int  i,  j
     cdef int ni, nj, nk, nl
 
@@ -295,10 +294,11 @@ def m4dotm2(np.ndarray[rtype_t, ndim=4] m1 not None,
     cdef int m1_s0, m1_s1, m1_s2, m1_s3
     cdef int m2_s0, m2_s1
 
+    assert (m1.ndim == 4 and m2.ndim == 2), "wrong dimensions"
     ni, nj, nk, nl = m1.shape[0], m1.shape[1], m1.shape[2], m1.shape[3]
-
     if res is None: res = np.empty((ni, nj), dtype=rtype)
-    assert (res.shape[0] == ni and res.shape[1] == nj and
+    assert (res.ndim == 2 and
+            res.shape[0] == ni and res.shape[1] == nj and
             m2.shape[0]  == nk and m2.shape[1]  == nl), "shapes don't match"
 
     res_s0 = res.strides[0]
@@ -344,15 +344,16 @@ def m4dotm2(np.ndarray[rtype_t, ndim=4] m1 not None,
     
     return res
 
+def m4dotm2(np.ndarray m1 not None, np.ndarray m2 not None,
+            np.ndarray res = None, bool accumulate = False):
+    ''' m4dotm2(m1, m2[, res[, accumulate]]):
+             res_ij = sum_kl (m1_ijkl * m2_kl)
+    '''
+    return c_m4dotm2(m1, m2, res, accumulate)
 
 @cython.boundscheck(False)
-def m6dotm3(np.ndarray[rtype_t, ndim=6] m1 not None,
-            np.ndarray[rtype_t, ndim=3] m2 not None,
-            np.ndarray[rtype_t, ndim=3] res = None,
-            bool accumulate = False):
-    ''' m6dotm3(m1, m2[, res[, accumulate]]):
-             res_ijk = sum_lmn (m1_ijklmn * m2_lmn)
-    '''
+cdef np.ndarray c_m6dotm3(np.ndarray m1, np.ndarray m2,
+                          np.ndarray res, bint accumulate):
     cdef int  i,  j,  k
     cdef int ni, nj, nk, nl, nm, nn
     
@@ -363,11 +364,12 @@ def m6dotm3(np.ndarray[rtype_t, ndim=6] m1 not None,
     cdef int m1_s0, m1_s1, m1_s2, m1_s3, m1_s4, m1_s5
     cdef int m2_s0, m2_s1, m2_s2
 
+    assert (m1.ndim == 6 and m2.ndim == 3), "wrong dimensions"
     ni, nj, nk, nl, nm, nn = m1.shape[0], m1.shape[1], m1.shape[2], \
                              m1.shape[3], m1.shape[4], m1.shape[5]
-    
     if res is None: res = np.empty((ni, nj, nk), dtype=rtype)
-    assert (res.shape[0] == ni and res.shape[1] == nj and res.shape[2] == nk and
+    assert (res.ndim == 3 and
+            res.shape[0] == ni and res.shape[1] == nj and res.shape[2] == nk and
             m2.shape[0]  == nl and m2.shape[1]  == nm and m2.shape[2] == nn),\
             "shapes don't match"
     
@@ -429,6 +431,13 @@ def m6dotm3(np.ndarray[rtype_t, ndim=6] m1 not None,
     return res
 
 
+def m6dotm3(np.ndarray m1 not None, np.ndarray m2 not None,
+            np.ndarray res = None, bool accumulate = False):
+    ''' m6dotm3(m1, m2[, res[, accumulate]]):
+             res_ijk = sum_lmn (m1_ijklmn * m2_lmn)
+    '''
+    return c_m6dotm3(m1, m2, res, accumulate)
+
 @cython.boundscheck(False)
 def m2kdotmk(np.ndarray m1 not None, np.ndarray m2 not None,
              np.ndarray res = None, bool accumulate = False):
@@ -456,21 +465,18 @@ def m2kdotmk(np.ndarray m1 not None, np.ndarray m2 not None,
 
 
 @cython.boundscheck(False)
-def m1extm1(np.ndarray[rtype_t, ndim=1] m1 not None,
-            np.ndarray[rtype_t, ndim=1] m2 not None,
-            np.ndarray[rtype_t, ndim=2] res = None,
-            bool accumulate = False):
-    ''' m1extm1(m1, m2[, res[, accumulate]]):
-             res_ij = m1_i * m2_j
-    '''
+cdef np.ndarray c_m1extm1(np.ndarray m1, np.ndarray m2,
+                          np.ndarray res, bint accumulate):
     cdef char *m1_p0, *m2_p0, *res_p0, *res_p1
     cdef int   m1_s0,  m2_s0,  res_s0,  res_s1
     cdef int  i,  j
     cdef int ni, nj
 
+    assert (m1.ndim == 1 and m2.ndim == 1), "wrong dimensions"
     ni, nj = m1.shape[0], m2.shape[0]
     if res is None: res = np.empty((ni, nj), dtype=rtype)
-    assert (res.shape[0] == ni and res.shape[1] == nj), "shapes don't match"
+    assert (res.ndim == 2 and
+            res.shape[0] == ni and res.shape[1] == nj), "shapes don't match"
 
     m1_s0 = m1.strides[0]
     m2_s0 = m2.strides[0]
@@ -498,17 +504,19 @@ def m1extm1(np.ndarray[rtype_t, ndim=1] m1 not None,
                 res_p1 += res_s1
             m1_p0  += m1_s0
             res_p0 += res_s0
-    
     return res
+    
+
+def m1extm1(np.ndarray m1 not None, np.ndarray m2 not None,
+            np.ndarray res = None, bool accumulate = False):
+    ''' m1extm1(m1, m2[, res[, accumulate]]):
+             res_ij = m1_i * m2_j
+    '''
+    return c_m1extm1(m1, m2, res, accumulate)
 
 @cython.boundscheck(False)
-def m2extm2(np.ndarray[rtype_t, ndim=2] m1 not None,
-            np.ndarray[rtype_t, ndim=2] m2 not None,
-            np.ndarray[rtype_t, ndim=4] res = None,
-            bool accumulate = False):
-    ''' m2extm2(m1, m2[, res[, accumulate]]):
-             res_ijkl = m1_ij * m2_kl
-    '''
+cdef np.ndarray c_m2extm2(np.ndarray m1, np.ndarray m2,
+                          np.ndarray res, bint accumulate):
     cdef char *m1_p0, *m1_p1, *m2_p0, *m2_p1
     cdef int   m1_s0,  m1_s1,  m2_s0,  m2_s1
     cdef char *res_p0, *res_p1, *res_p2, *res_p3
@@ -516,18 +524,20 @@ def m2extm2(np.ndarray[rtype_t, ndim=2] m1 not None,
     cdef int  i,  j, k, l
     cdef int ni, nj, nk, nl
 
+    assert (m1.ndim == 2 and m2.ndim == 2), "wrong dimensions"
     ni, nj, nk, nl = m1.shape[0], m1.shape[1], m2.shape[0], m2.shape[1]
-    if res is None: res = np.empty((ni, nj, nk, nl), dtype=rtype)
-    assert (res.shape[0] == ni and res.shape[1] == nj and
+    if res is None: res = np.empty((ni, nj, nk, nl, nm, nn), dtype=rtype)
+    assert (res.ndim == 4 and
+            res.shape[0] == ni and res.shape[1] == nj and
             res.shape[2] == nk and res.shape[3] == nl), "shapes don't match"
-
+    
     m1_s0, m1_s1 = m1.strides[0], m1.strides[1]
     m2_s0, m2_s1 = m2.strides[0], m2.strides[1]
     res_s0, res_s1, res_s2, res_s3 = \
         res.strides[0], res.strides[1], res.strides[2], res.strides[3]
-
+    
     m1_p0, res_p0 = m1.data, res.data
-
+    
     if accumulate:
         for i in range(ni):
             m1_p1, res_p1 = m1_p0, res_p0
@@ -564,28 +574,33 @@ def m2extm2(np.ndarray[rtype_t, ndim=2] m1 not None,
                 res_p1 += res_s1
             m1_p0  += m1_s0
             res_p0 += res_s0
-    
     return res
 
-@cython.boundscheck(False)
-def m3extm3(np.ndarray[rtype_t, ndim=3] m1 not None,
-            np.ndarray[rtype_t, ndim=3] m2 not None,
-            np.ndarray[rtype_t, ndim=6] res = None,
-            bool accumulate = False):
-    ''' m3extm3(m1, m2[, res[, accumulate]]):
-             res_ijklmn = m1_ijk * m2_lmn
+
+def m2extm2(np.ndarray m1 not None, np.ndarray m2 not None,
+            np.ndarray res = None, bool accumulate = False):
+    ''' m2extm2(m1, m2[, res[, accumulate]]):
+             res_ijkl = m1_ij * m2_kl
     '''
+    return c_m2extm2(m1, m2, res, accumulate)
+
+
+@cython.boundscheck(False)
+cdef np.ndarray c_m3extm3(np.ndarray m1, np.ndarray m2,
+                          np.ndarray res, bint accumulate):
     cdef char *m1_p0, *m1_p1, *m1_p2, *m2_p0, *m2_p1, *m2_p2
     cdef int   m1_s0,  m1_s1,  m1_s2,  m2_s0,  m2_s1,  m2_s2
     cdef char *res_p0, *res_p1, *res_p2, *res_p3, *res_p4, *res_p5
     cdef int   res_s0,  res_s1,  res_s2,  res_s3,  res_s4,  res_s5
     cdef int  i,  j, k, l, m, n
     cdef int ni, nj, nk, nl, nm, nn
-    
+
+    assert (m1.ndim == 3 and m2.ndim == 3), "wrong dimensions"
     ni, nj, nk, nl, nm, nn = m1.shape[0], m1.shape[1], m1.shape[2], \
                              m2.shape[0], m2.shape[1], m2.shape[2]
     if res is None: res = np.empty((ni, nj, nk, nl, nm, nn), dtype=rtype)
-    assert (res.shape[0] == ni and res.shape[1] == nj and
+    assert (res.ndim == 6 and
+            res.shape[0] == ni and res.shape[1] == nj and
             res.shape[2] == nk and res.shape[3] == nl and
             res.shape[4] == nm and res.shape[5] == nn), "shapes don't match"
 
@@ -649,9 +664,15 @@ def m3extm3(np.ndarray[rtype_t, ndim=3] m1 not None,
                 res_p1 += res_s1
             m1_p0  += m1_s0
             res_p0 += res_s0
-    
     return res
 
+
+def m3extm3(np.ndarray m1 not None, np.ndarray m2 not None,
+            np.ndarray res = None, bool accumulate = False):
+    ''' m3extm3(m1, m2[, res[, accumulate]]):
+             res_ijklmn = m1_ijk * m2_lmn
+    '''
+    return c_m3extm3(m1, m2, res, accumulate)
 
 @cython.boundscheck(False)
 def mkextmk(np.ndarray m1 not None, np.ndarray m2 not None,

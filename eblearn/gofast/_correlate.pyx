@@ -5,6 +5,7 @@ cimport cython
 from _util cimport *
 from _util import *
 
+from _vecmath cimport *
 from _vecmath import *
 
 import scipy.signal
@@ -27,7 +28,7 @@ def m1_correlate(np.ndarray[rtype_t, ndim=1] input  not None,
                  bool accumulate=False):
     cdef int kw = kernel.shape[0]
     cdef np.ndarray[rtype_t, ndim=2] uinput = unfold(input, 0, kw, 1)
-    return m2dotm1(uinput, kernel, output, accumulate)
+    return c_m2dotm1(uinput, kernel, output, accumulate)
 
 def m2_correlate(np.ndarray[rtype_t, ndim=2] input  not None,
                  np.ndarray[rtype_t, ndim=2] kernel not None,
@@ -37,7 +38,7 @@ def m2_correlate(np.ndarray[rtype_t, ndim=2] input  not None,
     cdef np.ndarray[rtype_t, ndim=4] uinput
     kh, kw = kernel.shape[0], kernel.shape[1]
     uinput = unfold(unfold(input, 0, kh, 1), 1, kw, 1)
-    return m4dotm2(uinput, kernel, output, accumulate)
+    return c_m4dotm2(uinput, kernel, output, accumulate)
 
 def m3_correlate(np.ndarray[rtype_t, ndim=3] input  not None,
                  np.ndarray[rtype_t, ndim=3] kernel not None,
@@ -45,9 +46,9 @@ def m3_correlate(np.ndarray[rtype_t, ndim=3] input  not None,
                  bool accumulate=False):
     cdef int kd, kh, kw
     cdef np.ndarray[rtype_t, ndim=6] uinput
-    uinput = unfold(unfold(unfold(input, 0, kd, 1), 1, kh, 1), 2, kw, 1)
     kd, kh, kw = kernel.shape[0], kernel.shape[1], kernel.shape[2]
-    return m6dotm3(uinput, kernel, output, accumulate)
+    uinput = unfold(unfold(unfold(input, 0, kd, 1), 1, kh, 1), 2, kw, 1)
+    return c_m6dotm3(uinput, kernel, output, accumulate)
 
 def correlate_for_dim(int n):
     if n == 1: return m1_correlate
@@ -87,7 +88,7 @@ def m1_correlate_table(np.ndarray[int,     ndim=2] table   not None,
         i = table[t,0]
         k = table[t,1]
         j = table[t,2]
-        m2dotm1(uinputs[i], kernels[k], outputs[j], True)
+        c_m2dotm1(uinputs[i], kernels[k], outputs[j], True)
 
 
 def m2_correlate_table(np.ndarray[int,     ndim=2] table   not None,
@@ -104,7 +105,7 @@ def m2_correlate_table(np.ndarray[int,     ndim=2] table   not None,
         i = table[t,0]
         k = table[t,1]
         j = table[t,2]
-        m4dotm2(uinputs[i], kernels[k], outputs[j], True)
+        c_m4dotm2(uinputs[i], kernels[k], outputs[j], True)
 
 
 def m3_correlate_table(np.ndarray[int,     ndim=2] table   not None,
@@ -121,7 +122,7 @@ def m3_correlate_table(np.ndarray[int,     ndim=2] table   not None,
         i = table[t,0]
         k = table[t,1]
         j = table[t,2]
-        m6dotm3(uinputs[i], kernels[k], outputs[j], True)
+        c_m6dotm3(uinputs[i], kernels[k], outputs[j], True)
 
 
 def correlate_table_for_dim(int n):
@@ -180,7 +181,7 @@ def m1_back_correlate_table(np.ndarray[int, ndim=2] table       not None,
         i = table[t,0]
         k = table[t,1]
         j = table[t,2]
-        m1extm1(inputs[i], kernels[k], uoutputs[j], True)
+        c_m1extm1(inputs[i], kernels[k], uoutputs[j], True)
 
 def m2_back_correlate_table(np.ndarray[int, ndim=2] table       not None,
                             np.ndarray[rtype_t, ndim=3] inputs  not None,
@@ -196,7 +197,7 @@ def m2_back_correlate_table(np.ndarray[int, ndim=2] table       not None,
         i = table[t,0]
         k = table[t,1]
         j = table[t,2]
-        m2extm2(inputs[i], kernels[k], uoutputs[j], True)
+        c_m2extm2(inputs[i], kernels[k], uoutputs[j], True)
 
 def m3_back_correlate_table(np.ndarray[int, ndim=2] table       not None,
                             np.ndarray[rtype_t, ndim=4] inputs  not None,
@@ -212,7 +213,7 @@ def m3_back_correlate_table(np.ndarray[int, ndim=2] table       not None,
         i = table[t,0]
         k = table[t,1]
         j = table[t,2]
-        m3extm3(inputs[i], kernels[k], uoutputs[j], True)
+        c_m3extm3(inputs[i], kernels[k], uoutputs[j], True)
 
 def back_correlate_table_for_dim(int n):
     if n == 1: return m1_back_correlate_table

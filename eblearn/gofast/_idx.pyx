@@ -1,3 +1,4 @@
+# mode -*-python-*-
 cimport cython
 
 from _util cimport *

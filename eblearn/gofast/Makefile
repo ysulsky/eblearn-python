@@ -13,7 +13,7 @@ _util.c: _util.pyx _util.pxd
 
 _vecmath.so: _vecmath.c
 	$(CC) $(CFLAGS) $(INCLUDES) -o _vecmath.so _vecmath.c
-_vecmath.c: _vecmath.pyx _util.pxd
+_vecmath.c: _vecmath.pyx _util.pxd  _vecmath.pxd
 	cython _vecmath.pyx
 
 _idx.so: _idx.c
@@ -21,9 +21,9 @@ _idx.so: _idx.c
 _idx.c: _idx.pyx _util.pxd
 	cython _idx.pyx
 
-_correlate.so: _correlate.c
+_correlate.so: _correlate.c 
 	$(CC) $(CFLAGS) $(INCLUDES) -o _correlate.so _correlate.c
-_correlate.c: _correlate.pyx _util.pxd
+_correlate.c: _correlate.pyx _util.pxd _vecmath.pxd
 	cython _correlate.pyx
 
 
