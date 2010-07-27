@@ -38,7 +38,8 @@ class eb_trainer (object):
                  keep_log          = True,
                  do_normalization  = False,
                  quiet             = False,
-                 auto_forget       = True):
+                 auto_forget       = True,
+                 verbose           = False):
         vals = dict(locals())
         del vals['self']
         self.__dict__.update(vals)
@@ -68,6 +69,9 @@ class eb_trainer (object):
     def clear_log(self):
         self.train_loss = []
         self.valid_loss = []
+        self.train_gradnorm = None
+        if self.verbose:
+            self.train_gradnorm = []
     
     def train(self, maxiter = 0):
         self.train_num += 1
@@ -107,6 +111,10 @@ class eb_trainer (object):
                 self.compute_diag_hessian()
                 
             keep_training = self.train_sample()
+
+            if self.train_gradnorm is not None:
+                gradnorm = sqrt(sqmag(sp.fromiter(self.parameter.dx, rtype)))
+                self.train_gradnorm.append(gradnorm)
             
             if self.keep_log:
                 self.train_loss.append(self.energy.x[0])
@@ -114,7 +122,9 @@ class eb_trainer (object):
                         age > 0 and (age % report_interval) == 0:
                     avloss = sp.mean(self.train_loss[-report_interval:])
                     msg('av. loss = %g' % avloss)
-
+                    avgnrm = sp.mean(self.train_gradnorm[-report_interval:])
+                    msg('av. grad = %g' % avgnrm)
+            
             if valid_interval > 0 and age > 0 and (age % valid_interval) == 0:
                 vld_loss = self.validate()
                 if self.keep_log: self.valid_loss.append((age, vld_loss))
@@ -186,7 +196,11 @@ class eb_trainer (object):
             self.ds_train.next()
         self.ds_train.seek(start_pos)
         self.parameter.compute_epsilon(self.hess_mu)
-        self.msg('done.')
+        if self.verbose:
+            epsnorm = sp.fromiter(self.parameter.epsilon, rtype).mean()
+            self.msg('av. epsilon = %g' % epsnorm)
+        else:
+            self.msg('done.')
 
     def validate(self):
         assert (self.valid_interval > 0)

@@ -20,10 +20,15 @@ class distance_l2 (no_params, module_2_1):
         input2.dx -= r
     
     def bbprop_input(self, input1, input2, energy):
-        eddx = energy.ddx[0]
-        if self.average: eddx /= input1.size
-        input1.ddx += eddx
-        input2.ddx += eddx
+        edx, eddx = energy.dx[0], energy.ddx[0]
+        d = input1.x - input2.x
+        if self.average:
+            d   /= input1.size
+            edx /= input1.size
+        d_sq = sp.square(d)
+        input1.ddx += d_sq * eddx + edx
+        input2.ddx += d_sq * eddx + edx
+
 
 class cross_entropy (no_params, module_2_1):
     def fprop(self, input1, input2, energy):
@@ -64,20 +69,43 @@ class penalty_l1 (no_params, module_1_1):
         energy.x[0] = sp.absolute(input.x).sum()
         if self.average: energy.x[0] /= input.size
     def bprop_input (self, input, energy):
-        sx = None
-        if self.thresh != 0:
-            sx = input.x / self.thresh
-            sp.trunc(sx, sx)
-            sp.sign(sx, sx)
+        d = None
+        if self.thresh:
+            d = sp.sign(thresh_less(input.x, sp.absolute(input.x), self.thresh))
         else:
-            sx = sp.sign(input.x)
-        edx = energy.dx[0]
-        if self.average: edx /= input.size
-        input.dx += sx * edx
+            d = sp.sign(input.x)
+        d *= (energy.dx[0] / input.size if self.average else energy.dx[0])
+        input.dx += d
     def bbprop_input(self, input, energy):
         eddx = energy.ddx[0]
-        if self.average: eddx /= input.size
-        input.ddx += eddx
+        if self.average:
+            eddx /= input.size ** 2
+        if self.thresh:
+            input.ddx += eddx * (sp.absolute(input.x) >= self.thresh)
+        else:
+            input.ddx += eddx
+
+
+class penalty_l2 (no_params, module_1_1):
+    def __init__(self, average = True):
+        self.average = average
+    def fprop(self, input, energy):
+        energy.resize((1,))
+        energy.x[0] = 0.5 * sqmag(input.x)
+        if self.average: energy.x[0] /= input.size
+    def bprop_input (self, input, energy):
+        edx = energy.dx[0]
+        if self.average: edx /= input.size
+        input.dx += input.x * edx
+    def bbprop_input(self, input, energy):
+        edx, eddx = energy.dx[0], energy.ddx[0]
+        d = input.x
+        if self.average:
+            d   /= input.size
+            edx /= input.size
+        d_sq = sp.square(d)
+        input.ddx += d_sq * eddx + edx
+
 
 class bconv_rec_cost (no_params, module_2_1):
     @staticmethod

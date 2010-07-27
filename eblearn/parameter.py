@@ -1,6 +1,7 @@
 import scipy as sp
 from state import *
 from util  import *
+import weakref
 
 class parameter_forget (object):
     def __init__(self,
@@ -40,9 +41,9 @@ class parameter (object):
         self.states    = []
         self.state_ids = set()
         self.forget    = parameter_forget()
-        self.parent    = None
+        self.parents   = set()
         self.updater   = parameter_update_default_gd
-
+    
     def reset(self):
         # may be called several times in a row
         if self.age == 0: return
@@ -60,14 +61,16 @@ class parameter (object):
 
     def stop_reason(self):
         return self.updater.stop_reason()
+
+    def _clear_parent(self, p):
+        self.parents.remove(p)
     
     def merge(self, other, keep_updated = True):
-        if self is other:        return
-        if self is other.parent: return
-
+        if self is other:                     return
+        if self.__weakref__ in other.parents: return
+        
         if keep_updated:
-            assert(other.parent is None)
-            other.parent = self
+            other.parents.add(weakref.ref(self, other._clear_parent))
         
         for state in other.states:
             self.append(state)
@@ -76,8 +79,10 @@ class parameter (object):
         if state.id not in self.state_ids:
             self.states.append(state)
             self.state_ids.add(state.id)
-            if self.parent is not None:
-                self.parent.append(state)
+            for p in self.parents:
+                p = p()
+                if p is None: continue
+                p.append(state)
     
     def size(self):
         return sum(x.size for x in self.states)

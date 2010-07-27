@@ -1,6 +1,46 @@
 from module import *
 from arch import *
 
+class transfer_identity (no_params, module_1_1):
+    def fprop(self, input, output):
+        output.resize(input.shape)
+        output.x[:] = input.x
+    def bprop_input (self, input, output):
+        input.dx  += output.dx
+    def bbprop_input(self, input, output):
+        input.ddx += output.ddx
+
+class transfer_square (no_params, module_1_1):
+    def fprop(self, input, output):
+        output.resize(input.shape)
+        sp.square(input.x, output.x)
+    def bprop_input (self, input, output):
+        input.dx  += output.dx * 2 * input.x
+    def bbprop_input(self, input, output):
+        input.ddx += output.ddx * 4 * sp.square(input.x)
+        input.ddx += output.dx * 2
+
+class transfer_cube (no_params, module_1_1):
+    def fprop(self, input, output):
+        output.resize(input.shape)
+        output.x[:] = input.x ** 3
+    def bprop_input(self, input, output):
+        input.dx += output.dx * 3 * sp.square(input.x)
+    def bbprop_input(self, input, output):
+        input.ddx += output.ddx * 9 * (input.x **4)
+        input.ddx += output.dx * 6 * input.x
+
+class transfer_exp (no_params, module_1_1):
+    def fprop(self, input, output):
+        output.resize(input.shape)
+        sp.exp(input.x, output.x)
+    def bprop_input(self, input, output):
+        input.dx += output.dx * sp.exp(input.x)
+    def bbprop_input(self, input, output):
+        expin = sp.exp(input.x)
+        input.ddx += output.ddx * (expin ** 2)
+        input.ddx += output.dx * expin
+
 class transfer_tanh (no_params, module_1_1):
     def fprop(self, input, output):
         output.resize(input.shape)
@@ -61,4 +101,3 @@ class transfer_double_abs (layers):
     def __init__(self, thresh = 0.0001):
         super(transfer_double_abs, self).__init__(transfer_copy_flipsign(),
                                                   transfer_greater(0., thresh))
-

@@ -45,7 +45,6 @@ def enable_breaks(b = True):
 def debug_break():
     if not ENABLE_BREAKPOINTS: return
     try:
-        if '__IPYTHON__' not in globals(): raise ImportError()
         import IPython.Debugger; 
         t = IPython.Debugger.Tracer()
         t.debugger.set_trace(sys._getframe().f_back)

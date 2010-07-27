@@ -29,7 +29,7 @@ class linear (module_1_1):
         m2dotm1(self.w.x.T, output.dx.ravel(), input.dx.ravel(), True)
     def bprop_param(self, input, output):
         self.w.dx += sp.outer(output.dx.ravel(), input.x.ravel())
-
+    
     def bbprop_input(self, input, output):
         iddx, oddx = input.ddx.ravel(), output.ddx.ravel()
         m2dotm1(sp.square(self.w.x.T), oddx, iddx, True)

@@ -1,4 +1,5 @@
 from eblearn import *
+from eblearn.tests import test_modules as tm
 
 def map_inputs(f, x):
     return array([f(i) for i in x])
@@ -51,24 +52,45 @@ machine = layers( linear(shape_in, hidden),
                   bias_module(hidden),
                   transfer_tanh(),
                   linear(hidden, shape_out),
-                  bias_module(shape_out) )
+                  bias_module(shape_out)
+                  )
+
 
 cost    = distance_l2()
+
+print 'Testing the module + cost'
+ebm = ebm_2(machine, cost)
+ebm.forget()
+tm.test_module_2_1_jac      (ebm, state(shape_in), state(shape_out), state(1))
+tm.test_module_2_1_jac_param(ebm, state(shape_in), state(shape_out), state(1))
+
+debug_break()
+
+
 param = machine.parameter
 
-trainer = eb_trainer(param, ebm_2(machine, cost), ds_train, 
+hessian_interval = 2000 # 0 disables
+
+trainer = eb_trainer(param, ebm, ds_train, 
                      ds_valid = ds_valid,
                      backup_location = '/tmp',
 #                    backup_interval = 2000,
-#                    hess_interval = 0,
+                     hess_interval = hessian_interval,
+                     verbose = True,
 #                    report_interval = 1
 )
 
+
+
+norm_grad = True if hessian_interval else False
+
 if linesearch:
     feval = feval_from_trainer(trainer)
-    param.updater = gd_linesearch_update( feval, eta = 0.5 )
+    param.updater = gd_linesearch_update( feval, eta = 0.5,
+                                          norm_grad = norm_grad )
 else:
-    param.updater = gd_update( eta = 0.002 )
+    param.updater = gd_update( eta = 0.002,
+                               norm_grad = norm_grad )
 
 
 trainer.train(10000)
