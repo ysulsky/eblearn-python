@@ -149,7 +149,8 @@ class eb_trainer (object):
                 fname = '%s/%s_%d.obj' % (self.backup_location, 
                                           self.backup_name,
                                           age // backup_interval)
-                pickle.dump(self.machine, open(fname, 'wb'))
+                pickle.dump(self.machine, open(fname, 'wb'),
+                            protocol = pickle.HIGHEST_PROTOCOL)
 
             if not keep_training:
                 msg('stopping because condition was reached: %s' % \

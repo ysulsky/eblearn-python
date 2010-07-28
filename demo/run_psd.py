@@ -91,7 +91,8 @@ trainer.train(train_iters)
 
 if savedir is not None:
     import pickle
-    pickle.dump(machine, open(savedir + '/machine.obj', 'w'))
+    pickle.dump(machine, open(savedir + '/machine.obj', 'wb'),
+                protocol = pickle.HIGHEST_PROTOCOL)
 
 def plot():
     import plots
