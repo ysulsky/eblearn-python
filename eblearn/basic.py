@@ -17,9 +17,8 @@ class linear (module_1_1):
         self.w.x = sp.random.random(self.w.shape) * (2*z) - z
 
     def normalize(self):
-        for col in self.w.x.T:
-            col *= 1.0 / sqrt(sqmag(col))
-
+        normrows(self.w.x.T)
+    
     def fprop(self, input, output):
         assert (self.shape_in == input.shape)
         output.resize(self.shape_out)
@@ -157,8 +156,8 @@ class convolution (module_1_1):
             kx[:] = sp.random.random(kx.shape) * (2*z) - z
 
     def normalize(self):
-        for kx in self.kernels.x: kx /= sqrt(sqmag(kx))
-
+        normrows(self.kernels.x)
+    
     def fprop(self, input, output):
         out_shape = sp.subtract(input.shape[1:], self.kernels.shape[1:]) + 1
         output.resize((self.feat_out,) + tuple(out_shape))

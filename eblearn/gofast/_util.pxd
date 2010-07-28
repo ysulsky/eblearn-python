@@ -10,6 +10,7 @@ cdef extern from "numpy/arrayobject.h":
 
 cdef extern from "math.h":
     cdef double  exp(double)
+    cdef double  sqrt(double)
     cdef double  log(double)
     cdef double  tanh(double)
 

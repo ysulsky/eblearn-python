@@ -732,3 +732,24 @@ def m2dotrows(np.ndarray[rtype_t, ndim=2] m1 not None,
             pm2 += m2s0
     
     return res
+
+def normrows(np.ndarray m not None):
+    cdef int col, row, stride, rowsize
+    cdef char *p
+    cdef rtype_t x, v
+    if not PyArray_ISCONTIGUOUS(m):
+        for r in m: r /= sqrt(sqmag(r))
+    else:
+        rowsize = PyArray_SIZE(m) / m.shape[0]
+        stride  = m.strides[0]
+        p = m.data
+        for row in range(m.shape[0]):
+            v = 0.
+            for col in range(rowsize):
+                x = (<rtype_t*>p)[col]
+                v += x * x
+            v = sqrt(v)
+            for col in range(rowsize):
+                (<rtype_t*>p)[col] /= v
+            p += stride
+

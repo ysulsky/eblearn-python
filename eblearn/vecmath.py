@@ -1,3 +1,4 @@
+from math import sqrt
 import numpy as np
 
 clear  = lambda x: x.fill(0)
@@ -14,13 +15,22 @@ def ddtanh(x):
 
 def ldot(m1, m2):
     return np.sum(m1 * m2)
+    
+m1ldot = np.dot
+m2ldot = m3ldot = ldot
 
 def m2dotrows(m1, m2):
     assert (m1.ndim == m2.ndim == 2)
     return (m1 * m2).sum(1)
 
-m1ldot = np.dot
-m2ldot = m3ldot = ldot
+def normrows(m):
+    for r in m:
+        r /= sqrt(sqmag(r))
+
+def copy_normrows(m): # for testing
+    x=m.copy()
+    normrows(x)
+    return x
 
 def m2dotm1(m1, m2, res = None, accumulate=False):
     assert (m1.ndim == 2 and m2.ndim == 1)
