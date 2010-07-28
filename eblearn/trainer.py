@@ -212,10 +212,8 @@ class eb_trainer (object):
             eps = sp.fromiter(self.parameter.epsilon, rtype)
             self.msg('avg. epsilon = %g' % eps.mean())
         else:
-            self.msg('done')
-        if not self.verbose:
             self.msg('done.')
-
+    
     def validate(self):
         assert (self.valid_interval > 0)
         
