@@ -104,6 +104,7 @@ decoder.parameter.updater = gd_update( eta = 0.01 )
 
 trainer = eb_trainer(parameter_container(encoder.parameter, decoder.parameter),
                      machine, ds_train, 
+                     do_normalization = True,
                      ds_valid = ds_valid,
                      backup_location = '/tmp',
 #                    backup_interval = 2000,

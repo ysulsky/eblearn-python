@@ -81,6 +81,7 @@ decoder.parameter.updater = eb.gd_update( **train_decoder )
 
 all_params = eb.parameter_container( encoder.parameter, decoder.parameter )
 trainer = eb.eb_trainer(all_params, machine, train_ds,
+                        do_normalization = True,
                         backup_location = savedir,
                         backup_interval = 20000,
                         hess_interval   = compute_hessian)
