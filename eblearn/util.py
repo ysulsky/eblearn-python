@@ -42,8 +42,9 @@ def enable_breaks(b = True):
     global ENABLE_BREAKPOINTS
     ENABLE_BREAKPOINTS = b
 
-def debug_break():
+def debug_break(msg = None):
     if not ENABLE_BREAKPOINTS: return
+    print msg
     try:
         import IPython.Debugger; 
         t = IPython.Debugger.Tracer()

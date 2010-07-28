@@ -39,13 +39,16 @@ class eb_trainer (object):
                  do_normalization  = False,
                  quiet             = False,
                  auto_forget       = True,
-                 verbose           = False):
+                 verbose           = False,
+                 debugging         = False,):
         vals = dict(locals())
         del vals['self']
         self.__dict__.update(vals)
 
         if not backup_location:
             self.backup_interval = 0
+
+        if quiet: self.verbose = False
 
         assert (parameter and parameter.size() > 0)
         assert (ds_train.size() > 0) 
@@ -67,11 +70,14 @@ class eb_trainer (object):
         self.clear_log()
 
     def clear_log(self):
-        self.train_loss = []
-        self.valid_loss = []
+        self.train_loss     = None
+        self.valid_loss     = None
         self.train_gradnorm = None
-        if self.verbose:
-            self.train_gradnorm = []
+        if self.keep_log:
+            self.train_loss = []
+            self.valid_loss = []
+            if self.verbose:
+                self.train_gradnorm = []
     
     def train(self, maxiter = 0):
         self.train_num += 1
@@ -111,23 +117,26 @@ class eb_trainer (object):
                 self.compute_diag_hessian()
                 
             keep_training = self.train_sample()
-
+            
+            if self.train_loss is not None:
+                self.train_loss.append(self.energy.x[0])
+            
             if self.train_gradnorm is not None:
                 gradnorm = sqrt(sqmag(sp.fromiter(self.parameter.dx, rtype)))
                 self.train_gradnorm.append(gradnorm)
-            
-            if self.keep_log:
-                self.train_loss.append(self.energy.x[0])
-                if      report_interval > 0 and \
-                        age > 0 and (age % report_interval) == 0:
-                    avloss = sp.mean(self.train_loss[-report_interval:])
-                    msg('av. loss = %g' % avloss)
+
+            if report_interval > 0 and age > 0 and (age % report_interval) == 0:
+                if self.train_gradnorm is not None:
                     avgnrm = sp.mean(self.train_gradnorm[-report_interval:])
-                    msg('av. grad = %g' % avgnrm)
+                    msg('avg. grad norm  = %g' % (avgnrm,))
+                if self.train_loss is not None:
+                    avloss = sp.mean(self.train_loss[-report_interval:])
+                    msg('avg. train loss = %g' % (avloss,))
             
             if valid_interval > 0 and age > 0 and (age % valid_interval) == 0:
                 vld_loss = self.validate()
-                if self.keep_log: self.valid_loss.append((age, vld_loss))
+                if self.valid_loss is not None:
+                    self.valid_loss.append((age, vld_loss))
                 msg('validation loss = %g' % vld_loss)
 
                 if valid_err_tol >= 0 and prev_vld_loss is not None:
@@ -146,7 +155,10 @@ class eb_trainer (object):
             if not keep_training:
                 msg('stopping because condition was reached: %s' % \
                     self.parameter.stop_reason())
-
+                if self.verbose:
+                    if self.train_gradnorm:
+                        msg('last gradient norm = %g' % self.train_gradnorm[-1])
+            
             if age == stop_age:
                 msg('stopping after %d iterations' % maxiter)
                 keep_training = False
@@ -196,10 +208,16 @@ class eb_trainer (object):
             self.ds_train.next()
         self.ds_train.seek(start_pos)
         self.parameter.compute_epsilon(self.hess_mu)
+        eps = None
+        if self.debugging or self.verbose:
+            eps = sp.fromiter(self.parameter.epsilon, rtype)
         if self.verbose:
-            epsnorm = sp.fromiter(self.parameter.epsilon, rtype).mean()
-            self.msg('av. epsilon = %g' % epsnorm)
+            self.msg('avg. epsilon = %g' % eps.mean())
         else:
+            self.msg('done')
+            if self.debugging:
+                if (eps < 0).any(): debug_break('*** epsilon < 0')
+        if not self.verbose:
             self.msg('done.')
 
     def validate(self):

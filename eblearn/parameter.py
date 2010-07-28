@@ -148,7 +148,7 @@ class gd_update (parameter_update):
                  inertia     = 0,
                  anneal_amt  = 0.1,
                  anneal_time = 1000,
-                 grad_thresh = 0.001,
+                 grad_thresh = 0.0001,
                  norm_grad   = False,
                  thresh_x    = None):
         vals = dict(locals())

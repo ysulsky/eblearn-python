@@ -24,7 +24,7 @@ class linear (module_1_1):
         assert (self.shape_in == input.shape)
         output.resize(self.shape_out)
         m2dotm1(self.w.x, input.x.ravel(), output.x.ravel())
-
+    
     def bprop_input(self, input, output):
         m2dotm1(self.w.x.T, output.dx.ravel(), input.dx.ravel(), True)
     def bprop_param(self, input, output):

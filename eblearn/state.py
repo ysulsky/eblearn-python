@@ -38,7 +38,17 @@ class state (object):
 
     def __len__(self):
         return len(self.x)
-
+    
+    def __getitem__(self, i):
+        ret = state(())
+        ret.x = self.x[i]
+        if self._dx       is not None: ret._dx       = self._dx[i]
+        if self._ddx      is not None: ret._ddx      = self._ddx[i]
+        if self._gradient is not None: ret._gradient = self._gradient[i]
+        if self._deltax   is not None: ret._deltax   = self._deltax[i]
+        if self._ddeltax  is not None: ret._ddeltax  = self._ddeltax[i]
+        if self._epsilon  is not None: ret._epsilon  = self._epsilon[i]
+    
     ndim  = property(lambda self: self.x.ndim)
     shape = property(lambda self: self.x.shape)
     size  = property(lambda self: self.x.size)

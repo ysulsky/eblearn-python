@@ -25,9 +25,9 @@ class distance_l2 (no_params, module_2_1):
         if self.average:
             d   /= input1.size
             edx /= input1.size
-        d_sq = sp.square(d)
-        input1.ddx += d_sq * eddx + edx
-        input2.ddx += d_sq * eddx + edx
+        ddx = sp.square(d) * eddx + edx
+        input1.ddx += ddx
+        input2.ddx += ddx
 
 
 class cross_entropy (no_params, module_2_1):

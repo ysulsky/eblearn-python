@@ -3,6 +3,11 @@ from eblearn import *
 # test (g(f))'' instead of f'' to ensure a non-zero second derivative
 test_xfer = transfer_exp # |None | transfer_square | transfer_cube
 
+# Note: since bbprop assumes that the off-diagonal elements of the
+# Hessian matrix are zero, any bbprop test for a machine with
+# nonzero mixed second partial derivatives might fail
+
+
 jacobian_tol = 0.01, 1e-6 # relative, actual
 hessian_tol  = 0.05, 1e-5 
 
@@ -123,23 +128,29 @@ def jacobian_fwd_m_1_1_param (mod, sin, sout, snd=False):
     return jac
 
 
-def test_module_1_1_jac (mod, sin, sout):
+def test_module_1_1_jac (mod, sin, sout, skip_bbprop=False):
     mod.fprop(sin, sout)
     jac_fprop = jacobian_fwd_m_1_1(mod, sin, sout)
     jac_bprop = jacobian_bwd_m_1_1(mod, sin, sout)
     report_err(jac_fprop, jac_bprop, "jacobian     input", jacobian_tol)
+    if skip_bbprop:
+        print '   *** skipping bbprop test ***   '
+        return (jac_fprop, jac_bprop)
     if test_xfer: mod = layers(mod, test_xfer())
     hes_fprop = jacobian_fwd_m_1_1(mod, sin, sout, True)
     hes_bprop = jacobian_bwd_m_1_1(mod, sin, sout, True)
     report_err(hes_fprop, hes_bprop, "diag hessian input", hessian_tol)
     return (jac_fprop, jac_bprop, hes_fprop, hes_bprop)
 
-def test_module_1_1_jac_param (mod, sin, sout):
+def test_module_1_1_jac_param (mod, sin, sout, skip_bbprop=False):
     if not mod.has_params(): return
     mod.fprop(sin, sout)
     jac_fprop = jacobian_fwd_m_1_1_param(mod, sin, sout)
     jac_bprop = jacobian_bwd_m_1_1_param(mod, sin, sout)
     report_err(jac_fprop, jac_bprop, "jacobian     param", jacobian_tol)
+    if skip_bbprop:
+        print '   *** skipping bbprop test ***   '
+        return (jac_fprop, jac_bprop)
     if test_xfer   : mod = layers(mod, test_xfer())
     hes_fprop = jacobian_fwd_m_1_1_param(mod, sin, sout, True)
     hes_bprop = jacobian_bwd_m_1_1_param(mod, sin, sout, True)
@@ -229,12 +240,15 @@ def jacobian_fwd_m_2_1_param (mod, sin1, sin2, sout, snd=False):
                 jac[i,:] = ((soutb.x - souta.x) / (2 * small)).ravel()
     return jac
 
-def test_module_2_1_jac (mod, sin1, sin2, sout):
+def test_module_2_1_jac (mod, sin1, sin2, sout, skip_bbprop=False):
     mod.fprop(sin1, sin2, sout)
     jac1_fprop, jac2_fprop = jacobian_fwd_m_2_1(mod, sin1, sin2, sout)
     jac1_bprop, jac2_bprop = jacobian_bwd_m_2_1(mod, sin1, sin2, sout)
     report_err(jac1_fprop, jac1_bprop, "jacobian     input 1", jacobian_tol)
     report_err(jac2_fprop, jac2_bprop, "jacobian     input 2", jacobian_tol)
+    if skip_bbprop:
+        print '   *** skipping bbprop test ***   '
+        return (jac1_fprop, jac2_fprop, jac1_bprop, jac2_bprop,)
     if test_xfer: mod = filter_output_2_1(mod, test_xfer())
     hes1_fprop, hes2_fprop = jacobian_fwd_m_2_1(mod, sin1, sin2, sout, True)
     hes1_bprop, hes2_bprop = jacobian_bwd_m_2_1(mod, sin1, sin2, sout, True)
@@ -243,12 +257,15 @@ def test_module_2_1_jac (mod, sin1, sin2, sout):
     return (jac1_fprop, jac2_fprop, jac1_bprop, jac2_bprop,
             hes1_fprop, hes2_fprop, hes1_bprop, hes2_bprop)
 
-def test_module_2_1_jac_param (mod, sin1, sin2, sout):
+def test_module_2_1_jac_param (mod, sin1, sin2, sout, skip_bbprop=False):
     if not mod.has_params(): return
     mod.fprop(sin1, sin2, sout)
     jac_fprop = jacobian_fwd_m_2_1_param(mod, sin1, sin2, sout)
     jac_bprop = jacobian_bwd_m_2_1_param(mod, sin1, sin2, sout)
     report_err(jac_fprop, jac_bprop,   "jacobian     param", jacobian_tol)
+    if skip_bbprop:
+        print '   *** skipping bbprop test ***   '
+        return (jac_fprop, jac_bprop)
     if test_xfer: mod = filter_output_2_1(mod, test_xfer())
     hes_fprop = jacobian_fwd_m_2_1_param(mod, sin1, sin2, sout, True)
     hes_bprop = jacobian_bwd_m_2_1_param(mod, sin1, sin2, sout, True)
@@ -266,7 +283,8 @@ def make_test_m11_jac(ctor):
         name = pop_kwarg(kwargs, 'name')
         sin  = pop_kwarg(kwargs, 'use_input')
         mod  = pop_kwarg(kwargs, 'use_mod')
-        rmin, rmax = pop_kwarg(kwargs, 'rrange', (-2, 2))
+        rmin, rmax  = pop_kwarg(kwargs, 'rrange', (-2, 2))
+        skip_bbprop = pop_kwarg(kwargs, 'skip_bbprop', False)
         sout = state(())
         if sin is None:
             sin = state(size)
@@ -279,8 +297,8 @@ def make_test_m11_jac(ctor):
         name = name or mod.__class__.__name__
         print_testing(name)
         mod.fprop(sin, sout) # resize sout
-        r1 = test_module_1_1_jac(mod, sin, sout)
-        r2 = test_module_1_1_jac_param(mod, sin, sout)
+        r1 = test_module_1_1_jac(mod, sin, sout, skip_bbprop)
+        r2 = test_module_1_1_jac_param(mod, sin, sout, skip_bbprop)
         return (mod, sin, r1, r2)
     return test_jac
 
@@ -291,7 +309,8 @@ def make_test_m21_jac(ctor):
         mod  = pop_kwarg(kwargs, 'use_mod')
         sin1 = pop_kwarg(kwargs, 'use_input1')
         sin2 = pop_kwarg(kwargs, 'use_input2')
-        rmin, rmax = pop_kwarg(kwargs, 'rrange', (-2, 2))
+        rmin, rmax  = pop_kwarg(kwargs, 'rrange', (-2, 2))
+        skip_bbprop = pop_kwarg(kwargs, 'skip_bbprop', False)
         sout = state(())
         if sin1 is None:
             sin1 = state(size1)
@@ -309,8 +328,8 @@ def make_test_m21_jac(ctor):
         name = name or mod.__class__.__name__
         print_testing(name)
         mod.fprop(sin1, sin2, sout) # resize out
-        r1 = test_module_2_1_jac(mod, sin1, sin2, sout)
-        r2 = test_module_2_1_jac_param(mod, sin1, sin2, sout)
+        r1 = test_module_2_1_jac(mod, sin1, sin2, sout, skip_bbprop)
+        r2 = test_module_2_1_jac_param(mod, sin1, sin2, sout, skip_bbprop)
         return (mod, sin1, sin2, r1, r2)
     return test_jac
 
@@ -358,7 +377,7 @@ def test_jac():
     test_bias_jac( (2,5,5), per_feature = True, name='bias (per feature)' )
     test_diag_jac( (5,2,5) )
     test_mult_jac( (5,2,5) )
-    test_tanh_jac( (2,3,4) )
+    test_tanh_jac( (2,3,4), skip_bbprop=True )
     test_identity_jac( (2,3,4) )
     test_square_jac( (2,3,4) )
     test_cube_jac( (2,3,4) )

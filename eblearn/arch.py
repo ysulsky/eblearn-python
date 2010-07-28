@@ -1,7 +1,6 @@
 from module import *
 
 class layers_1 (module_1_1):
-    
     def __init__(self, *layers):
         self.layers = layers
         self.hidden = [state(()) for lyr in layers[:-1]]
@@ -46,7 +45,6 @@ layers = layers_1
 
 
 class layers_2 (module_2_2):
-    
     def __init__(self, *layers):
         self.layers = layers
         self.hidden = [(state(()), state(())) for lyr in layers[:-1]]
@@ -125,6 +123,7 @@ class ebm_2 (module_2_1):
         self.machine.bbprop_param(input1, self.machine_out)
 
 class filter_output_2_1 (module_2_1):
+    ''' apply a filter to the output of a module_2_1 '''
     def __init__(self, machine, filter):
         self.machine = machine
         self.filter  = filter
@@ -159,6 +158,7 @@ class filter_output_2_1 (module_2_1):
         self.machine.bbprop_param(input1, input2, self.hidden)
 
 class filter_input_2_1 (module_2_1):
+    ''' apply filters to the inputs of a module_2_1 '''
     def __init__(self, machine, filter1, filter2):
         self.machine = machine
         self.filter1 = filter1

@@ -12,26 +12,54 @@ def func_sin(x):
 
 func = func_sin
 
-def plot(ds, machine):
-    shape_in, shape_out = ds.shape()
+def plot(machine, train_ds, valid_ds = None):
+    from matplotlib import pyplot
+    
+    shape_in, shape_out = train_ds.shape()
     assert (shape_in == shape_out == (1,))
     inp = state((1,)); out = state((1,)); des = state((1,))
-    ds.seek(0)
-    size = ds.size()
-    coords  = empty(size); outputs = empty(size); targets = empty(size)
-    for i in xrange(size):
-        ds.fprop(inp, des)
-        machine.fprop(inp, out)
-        coords[i] = inp.x; outputs[i] = out.x; targets[i] = des.x
-        ds.next()
-    from matplotlib import pyplot
+
+    all_ds = [train_ds]+([valid_ds] if valid_ds else [])
+    fullsize = sum([ds.size() for ds in all_ds])
+    coords  = empty(fullsize)
+    outputs = empty(fullsize)
+    targets = empty(fullsize)
+    offset = 0
+    for ds in all_ds:
+        ds.seek(0)
+        size = ds.size()
+        for i in xrange(offset, offset+size):
+            ds.fprop(inp, des)
+            machine.fprop(inp, out)
+            coords[i] = inp.x; outputs[i] = out.x; targets[i] = des.x
+            ds.next()
+        offset += size
+
+    pyplot.ioff()
+    
+    offset = 0
+    if train_ds:
+        size = train_ds.size()
+        ds_coords, ds_targets = \
+            narrow(coords, 0, size, offset), narrow(targets, 0, size, offset)
+        indices = ds_coords.argsort()
+        pyplot.plot(ds_coords.take(indices), ds_targets.take(indices),
+                    'rx', label = 'training points')
+        offset += size
+
+    if valid_ds:
+        size = valid_ds.size()
+        ds_coords, ds_targets = \
+            narrow(coords, 0, size, offset), narrow(targets, 0, size, offset)
+        indices = ds_coords.argsort()
+        pyplot.plot(ds_coords.take(indices), ds_targets.take(indices),
+                    'gx', label = 'validation points')
+        offset += size
+
     indices = coords.argsort()
     coords  = coords.take(indices)
     outputs = outputs.take(indices)
-    targets = targets.take(indices)
-    pyplot.ioff()
     pyplot.plot(coords, outputs, 'b',  label = 'machine output')
-    pyplot.plot(coords, targets, 'gx', label = 'desired output')
     pyplot.legend()
     pyplot.show()
 
@@ -52,47 +80,36 @@ machine = layers( linear(shape_in, hidden),
                   bias_module(hidden),
                   transfer_tanh(),
                   linear(hidden, shape_out),
-                  bias_module(shape_out)
-                  )
-
+                  bias_module(shape_out)    )
 
 cost    = distance_l2()
-
-print 'Testing the module + cost'
-ebm = ebm_2(machine, cost)
-ebm.forget()
-tm.test_module_2_1_jac      (ebm, state(shape_in), state(shape_out), state(1))
-tm.test_module_2_1_jac_param(ebm, state(shape_in), state(shape_out), state(1))
-
-debug_break()
-
 
 param = machine.parameter
 
 hessian_interval = 2000 # 0 disables
 
-trainer = eb_trainer(param, ebm, ds_train, 
+trainer = eb_trainer(param, ebm_2(machine, cost), ds_train,
                      ds_valid = ds_valid,
                      backup_location = '/tmp',
 #                    backup_interval = 2000,
                      hess_interval = hessian_interval,
                      verbose = True,
-#                    report_interval = 1
+#                    report_interval = 1,
+                     debugging = True,
 )
 
-
-
-norm_grad = True if hessian_interval else False
+gd_params = dict (
+    eta = 0.5 if linesearch else 0.01
+,   norm_grad = False
+)
 
 if linesearch:
     feval = feval_from_trainer(trainer)
-    param.updater = gd_linesearch_update( feval, eta = 0.5,
-                                          norm_grad = norm_grad )
+    param.updater = gd_linesearch_update(feval, **gd_params)
 else:
-    param.updater = gd_update( eta = 0.002,
-                               norm_grad = norm_grad )
+    param.updater = gd_update(**gd_params)
 
 
 trainer.train(10000)
 
-plot(ds_valid, machine)
+plot(machine, ds_train, ds_valid)
