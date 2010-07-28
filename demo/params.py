@@ -1,5 +1,6 @@
 exper  = 1
 
+debugging    = False
 eblearn_path = '../'
 import sys; sys.path.append(eblearn_path)
 
@@ -30,6 +31,7 @@ train_encoder = dict (
 ,   decay_l2    = 0.0      # L2 regularization
 ,   decay_l1    = 0.0      # L1 regularization
 ,   decay_time  = 1000
+,   debugging = debugging
 )
 
 train_decoder = dict (
@@ -39,6 +41,7 @@ train_decoder = dict (
 ,   decay_l2    = 0.0      # L2 regularization
 ,   decay_l1    = 0.0      # L1 regularization
 ,   decay_time  = 1000
+,   debugging = debugging
 )
 
 ######################################################################
@@ -51,6 +54,7 @@ minimize_code = dict (
 ,   max_iters   = 10
 ,   max_line_steps = 10
 ,   grad_thresh = 0.001
+,   debugging = debugging
 )
 
 ######################################################################

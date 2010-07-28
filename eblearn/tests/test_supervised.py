@@ -95,12 +95,13 @@ trainer = eb_trainer(param, ebm_2(machine, cost), ds_train,
                      hess_interval = hessian_interval,
                      verbose = True,
 #                    report_interval = 1,
-                     debugging = True,
 )
 
 gd_params = dict (
     eta = 0.5 if linesearch else 0.01
 ,   norm_grad = False
+,   quiet     = False
+,   debugging = True
 )
 
 if linesearch:

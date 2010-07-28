@@ -39,8 +39,7 @@ class eb_trainer (object):
                  do_normalization  = False,
                  quiet             = False,
                  auto_forget       = True,
-                 verbose           = False,
-                 debugging         = False,):
+                 verbose           = False,):
         vals = dict(locals())
         del vals['self']
         self.__dict__.update(vals)
@@ -209,14 +208,11 @@ class eb_trainer (object):
         self.ds_train.seek(start_pos)
         self.parameter.compute_epsilon(self.hess_mu)
         eps = None
-        if self.debugging or self.verbose:
-            eps = sp.fromiter(self.parameter.epsilon, rtype)
         if self.verbose:
+            eps = sp.fromiter(self.parameter.epsilon, rtype)
             self.msg('avg. epsilon = %g' % eps.mean())
         else:
             self.msg('done')
-            if self.debugging:
-                if (eps < 0).any(): debug_break('*** epsilon < 0')
         if not self.verbose:
             self.msg('done.')
 

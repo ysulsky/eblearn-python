@@ -43,6 +43,19 @@ class parameter (object):
         self.forget    = parameter_forget()
         self.parents   = set()
         self.updater   = parameter_update_default_gd
+
+    def __getstate__(self):
+        parent_refs = [p() for p in self.parents]
+        parent_refs = [p for p in parent_refs if p]
+        state = dict(self.__dict__)
+        state['parents'] = parent_refs
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        parent_refs    = self.parents
+        self.parents   = set()
+        for p in parent_refs: self._add_parent(p)
     
     def reset(self):
         # may be called several times in a row
@@ -64,13 +77,16 @@ class parameter (object):
 
     def _clear_parent(self, p):
         self.parents.remove(p)
+
+    def _add_parent(self, p):
+        self.parents.add(weakref.ref(p, self._clear_parent))
     
     def merge(self, other, keep_updated = True):
         if self is other:                     return
         if self.__weakref__ in other.parents: return
         
         if keep_updated:
-            other.parents.add(weakref.ref(self, other._clear_parent))
+            other._add_parent(self)
         
         for state in other.states:
             self.append(state)
@@ -150,7 +166,8 @@ class gd_update (parameter_update):
                  anneal_time = 1000,
                  grad_thresh = 0.0001,
                  norm_grad   = False,
-                 thresh_x    = None):
+                 thresh_x    = None,
+                 debugging   = False):
         vals = dict(locals())
         del vals['self']
         self.__dict__.update(vals)
@@ -201,6 +218,12 @@ class gd_update (parameter_update):
             self.stop_code = 'iteration limit reached'
         if grad_norm < self.grad_thresh:
             self.stop_code = 'gradient threshold reached'
+
+        if self.debugging:
+            if min([state.epsilon.min() for state in states]) < 0:
+                debug_break('negative epsilon')
+            if grad_norm > 100.0:
+                debug_break('huge gradient norm')
         
         return (grad, grad_norm, step_coeff)
     
@@ -343,3 +366,17 @@ class parameter_container (object):
         for p in self.params: ret = p.update() or ret
         return ret
         
+    def iter_state_prop(prop):
+        def iter(self):
+            for p in self.params:
+                for state in p.states:
+                    xs = getattr(state, prop)
+                    for x in xs.flat: yield x
+        return iter
+    
+    x       = property(iter_state_prop('x'))
+    dx      = property(iter_state_prop('dx'))
+    ddx     = property(iter_state_prop('ddx'))
+    deltax  = property(iter_state_prop('deltax'))
+    ddeltax = property(iter_state_prop('ddeltax'))
+    epsilon = property(iter_state_prop('epsilon'))

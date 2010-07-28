@@ -2,12 +2,56 @@
 
 import sys, os, shutil, socket, time
 
-params_mod = 'params'
-if len(sys.argv) > 1:
-  params_mod = sys.argv[1]
+def_params_mod = 'params.py'
+
+def usage():
+    print '%s [-b|--batch] [parameter-file]' % (sys.argv[0],)
+    sys.exit(0)
+
+def which_params():
+    def ask():
+        r = raw_input('Enter input file [%s]> ' % (def_params_mod,))
+        if not r.strip(): return def_params_mod
+    
+    try:
+        import readline
+        def ask():
+            def hook():
+                readline.insert_text(def_params_mod)
+                readline.redisplay()
+            readline.set_pre_input_hook(hook)
+            try:
+                return raw_input('Enter input file> ')
+            finally:
+                readline.set_pre_input_hook(None)
+    except ImportError:
+        pass
+
+    while True:
+        r = ask().strip()
+        if not r: continue
+        if not r.endswith('.py'): r += '.py'
+        if os.path.exists(r): return r
+        print "File '%s' doesn't exist." % (r,)
+    print "Using input file '%s'." % (r,)
+
+interactive = True
+
+params_mod = def_params_mod
+if __name__ == '__main__':
+    if '-h'      in sys.argv: usage()
+    if '--help'  in sys.argv: usage()
+    if '-b'      in sys.argv: interactive = False
+    if '--batch' in sys.argv: interactive = False
+    sys.argv = [x for x in sys.argv if x not in ('-b', '--batch')]
+    if len(sys.argv) > 1:
+        params_mod = sys.argv[1]
+    else:
+        params_mod = which_params()
+
 
 if params_mod.endswith('.py'):
-  params_mod = params_mod[:-3]
+    params_mod = params_mod[:-3]
 
 params = __import__(params_mod)
 
@@ -18,7 +62,7 @@ machine = socket.gethostname().split('.')[0]
 timestr = time.strftime('%Y%m%d_%H%M%S')
 
 if not os.path.exists(params.outputs):
-  os.makedirs(params.outputs)
+    os.makedirs(params.outputs)
 
 savedir = '%s/exper%d_%s_%s' % (params.outputs, params.exper, machine, timestr)
 os.makedirs(savedir)
@@ -32,29 +76,38 @@ shutil.copyfile(params.script,
                 '%s/%s' % (savedir, os.path.basename(params.script)))
 
 def copy_code():
-  for imp_mod in sys.modules.values():
-    if not imp_mod or '__file__' not in dir(imp_mod):
-      continue
-    if imp_mod.__name__ == params_mod: continue
-    imp_file = imp_mod.__file__
-    if imp_file.endswith('.pyc'):
-      imp_file = imp_file[:-1]
-    imp_dir = os.path.realpath(os.path.dirname(imp_file))
-    if imp_dir.startswith(run_dir):
-      imp_savedir = savedir + imp_dir[len(run_dir):]
-      if not os.path.exists(imp_savedir):
-        os.makedirs(imp_savedir)
-      shutil.copyfile(imp_file, imp_savedir + '/' + os.path.basename(imp_file))
+    for imp_mod in sys.modules.values():
+        if not imp_mod or '__file__' not in dir(imp_mod):
+            continue
+        if imp_mod.__name__ == params_mod: continue
+        imp_file = imp_mod.__file__
+        if imp_file.endswith('.pyc'):
+            imp_file = imp_file[:-1]
+        imp_dir = os.path.realpath(os.path.dirname(imp_file))
+        if imp_dir.startswith(run_dir):
+            imp_savedir = savedir + imp_dir[len(run_dir):]
+            if not os.path.exists(imp_savedir):
+                os.makedirs(imp_savedir)
+            shutil.copyfile(imp_file, '%s/%s' % (imp_savedir,
+                                                 os.path.basename(imp_file)))
 
 sys.path = [savedir] + sys.path
 m_vars = dict(savedir = savedir)
 
 try:
-  exec open(params.script) in m_vars
+    exec open(params.script) in m_vars
 finally:
-  copy_code()
+    copy_code()
 
+if interactive:
+    __open_shell = None
 
+    try:
+        import IPython.Shell
+        __open_shell = IPython.Shell.IPShellEmbed()
+    except ImportError:
+        import code as __code
+        __open_shell = lambda: __code.interact(local=globals())
 
-
-
+    globals().update(m_vars)
+    __open_shell()

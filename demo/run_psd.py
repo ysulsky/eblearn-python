@@ -85,6 +85,7 @@ trainer = eb.eb_trainer(all_params, machine, train_ds,
                         backup_interval = 20000,
                         hess_interval   = compute_hessian)
 
+
 trainer.train(train_iters)
 
 if savedir is not None:
@@ -101,3 +102,8 @@ def plot():
 
     new_window()
     plots.plot_reconstructions(train_ds, machine, n=100, scale=scale)
+
+
+if __name__ == '__main__':
+    plot()
+    raw_input('press return to exit> ')
