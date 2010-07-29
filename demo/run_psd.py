@@ -10,7 +10,7 @@ if 'savedir' not in globals():
 ######################################################################
 # DATASOURCE
 
-train_mat  = map_matrix('%s/%s' % (data_dir, train_file)).astype(rtype)
+train_mat  = map_matrix('%s/%s' % (data_dir, train_file))
 train_ds   = eb.dsource_unsup(train_mat)
 
 if bias is None or coeff is None:

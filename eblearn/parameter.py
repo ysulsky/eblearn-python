@@ -134,8 +134,8 @@ class parameter (object):
             state.ddeltax = kold * state.ddeltax + knew * state.ddx
     
     def update(self):
-        ret = self.updater.step(self)
         self.age += 1
+        ret = self.updater.step(self)
         return ret
 
     def iterstats(self):
@@ -165,7 +165,7 @@ class gd_update (parameter_update):
 
     def __init__(self,
                  eta         = 0.01,
-                 max_iters   = 0,
+                 max_iters   = -1,
                  decay_l1    = 0,
                  decay_l2    = 0,
                  decay_time  = 1000,
@@ -225,7 +225,7 @@ class gd_update (parameter_update):
         if self.norm_grad:
             step_coeff /= max(grad_norm, eta)
         
-        if self.max_iters and p.age >= self.max_iters:
+        if self.max_iters >= 0 and p.age >= self.max_iters:
             self.stop_code = 'iteration limit reached'
         if grad_norm < self.grad_thresh:
             self.stop_code = 'gradient threshold reached'
@@ -258,14 +258,14 @@ class feval_from_trainer(object):
     def __init__(self, trainer):
         self.trainer         = trainer
         self.trnum           = 0
-        self.trage_firsteval = 0
+        self.trage_firsteval = 1
         self.energy          = state((1,))
     def __call__(self):
         trainer = self.trainer
             
         if trainer.train_num != self.trnum:
             self.trnum = trainer.train_num
-            self.trage_firsteval = 0
+            self.trage_firsteval = 1
 
         if trainer.age == self.trage_firsteval:
             # first one's free
@@ -280,8 +280,9 @@ class gd_linesearch_update (gd_update):
         ''' Gradient-descent parameter update strategy, performing
             a line-search to select the step size
 
-            feval: () -> energy
-            see: gd_linesearch_update.feval_from_trainer '''
+              feval: () -> energy
+            
+            SEE: feval_from_trainer '''
         
         self.feval                = feval
         self.max_line_steps       = max_line_steps
@@ -308,9 +309,9 @@ class gd_linesearch_update (gd_update):
         feval  = self.feval
         states = p.states
         bup    = p.backup()
-        stop   = self.max_line_steps - 1
+        stop   = self.max_line_steps
         step   = 0
-
+        
         cur_energy = feval()
         new_energy = np.infty
         
