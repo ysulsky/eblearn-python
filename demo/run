@@ -102,13 +102,29 @@ def copy_code():
 sys.path = [savedir] + sys.path
 m_vars = dict(savedir = savedir)
 
+def __page_stats(stats):
+    import subprocess
+    pager = subprocess.Popen([os.getenv('PAGER', 'less'), '-'],
+                             stdin = subprocess.PIPE)
+    stats.stream = pager.stdin
+    stats.print_stats()
+    stats.stream = sys.stdout
+    
+
 try:
     if profiling:
         from cProfile import Profile
-        profiler = Profile()
-        profiler.runctx(open(params.script), m_vars, {})
-        profiler.dump_stats(savedir+'/prof.out')
-        profiler.print_stats()
+        from pstats   import Stats
+        __profiler = Profile()
+
+        __profiler.runctx(open(params.script), m_vars, {})
+
+        __profiler.dump_stats(savedir+'/prof.out')
+        __stats = Stats(__profiler)
+        __stats.sort_stats(1)
+        __stats.print_stats(20)
+        try: __page_stats(__stats)            
+        except: pass
     else:
         exec open(params.script) in m_vars
 finally:
