@@ -64,7 +64,7 @@ class eb_trainer (object):
         self.target        = state(())
         self.energy        = state((1,))
         self.energy.dx[0]  = 1.
-        self.energy.ddx[0] = 1.
+        self.energy.ddx[0] = 0.
         
         self.msg = eb_trainer.reporter(self)
         self.clear_log()
@@ -135,6 +135,7 @@ class eb_trainer (object):
         backup_interval = self.backup_interval
         prev_vld_loss   = None
         keep_training   = True
+        stop_condition  = None
 
         training_loss_log = None
         if self.keep_log:
@@ -153,6 +154,8 @@ class eb_trainer (object):
                 self.compute_diag_hessian()
             
             keep_training = self.train_sample()
+            if not keep_training:
+                stop_condition = parameter.stop_reason()
             
             if self.keep_log:
                 training_loss_log.append(self.energy.x[0])
@@ -189,13 +192,12 @@ class eb_trainer (object):
                 pickle.dump(self.machine, open(fname, 'wb'),
                             protocol = pickle.HIGHEST_PROTOCOL)
 
-            if not keep_training:
-                msg('stopping because condition was reached: %s' % \
-                    parameter.stop_reason())
+            if stop_condition is not None:
+                msg('stopping because condition was reached: %s' % (stop_condition,))
                 if self.verbose:
-                    for (field, val) in zip(parameter.stat_fields,
-                                            parameter.step_stats()):
-                        msg('last iteration: %s = %g' % (field, val))
+                    for field in sorted(self.train_stats):
+                        lastval = self.train_stats[field][-1]
+                        msg('last iteration: %s = %g' % (field, lastval))
             
             if age == stop_age:
                 msg('stopping after %d iterations' % maxiter)

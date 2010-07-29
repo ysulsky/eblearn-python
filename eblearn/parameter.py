@@ -140,9 +140,6 @@ class parameter (object):
 
     def iterstats(self):
         return self.updater.iterstats()
-                
-    stat_fields = property(lambda self: self.updater.stat_fields)
-    def step_stats(self): return self.updater.step_stats()
     
     def iter_state_prop(prop):
         def iter(self):
@@ -236,8 +233,8 @@ class gd_update (parameter_update):
         if self.debugging:
             if min([state.epsilon.min() for state in states]) < 0:
                 debug_break('negative epsilon')
-            if grad_norm > 5000.0:
-                debug_break('huge gradient norm')
+            if grad_norm > 50000.0:
+                debug_break('huge gradient norm: %g' % grad_norm)
 
         self.cur_grad_norm = grad_norm
         return (grad, step_coeff)

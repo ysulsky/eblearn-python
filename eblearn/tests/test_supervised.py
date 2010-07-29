@@ -1,5 +1,4 @@
 from eblearn import *
-from eblearn.tests import test_modules as tm
 
 def map_inputs(f, x):
     return array([f(i) for i in x])
@@ -105,7 +104,7 @@ gd_params = dict (
 
 if linesearch:
     feval = feval_from_trainer(trainer)
-    gd_params['quiet']  = False
+    #gd_params['quiet']  = False
     param.updater = gd_linesearch_update(feval, **gd_params)
 else:
     param.updater = gd_update(**gd_params)
