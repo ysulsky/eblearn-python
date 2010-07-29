@@ -117,7 +117,7 @@ try:
         from pstats   import Stats
         __profiler = Profile()
 
-        __profiler.runctx(open(params.script), m_vars, {})
+        __profiler.runctx(open(params.script), m_vars, m_vars)
 
         __profiler.dump_stats(savedir+'/prof.out')
         __stats = Stats(__profiler)
