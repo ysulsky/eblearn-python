@@ -92,6 +92,7 @@ def debug_break(msg = None):
     print msg
     print '==================================='
     try:
+        raise ImportError() # buggy outside if interactive IPython sessions
         import IPython.Debugger; 
         t = IPython.Debugger.Tracer()
         t.debugger.set_trace(sys._getframe().f_back)
