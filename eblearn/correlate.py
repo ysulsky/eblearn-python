@@ -1,15 +1,28 @@
-import scipy.signal
 from idx     import *
-from vecmath import mkextmk
+from vecmath import mkextmk, m2kdotmk
 import numpy as np
 
-sig_correlate = scipy.signal.correlate
-def correlate(input, kernel, output=None, accumulate=False):
-    y = sig_correlate(input, kernel, 'valid')
-    if output is None: output    = y
-    elif accumulate:   output   += y
-    else:              output[:] = y
-    return output
+try:
+    import scipy.signal
+    sig_correlate = scipy.signal.correlate
+    def correlate(input, kernel, output=None, accumulate=False):
+        y = sig_correlate(input, kernel, 'valid')
+        if output is None: output    = y
+        elif accumulate:   output   += y
+        else:              output[:] = y
+        return output
+except ImportError:
+    # no scipy
+    def correlate(input, kernel, output=None, accumulate=False):
+        out_shape = tuple(np.subtract(input.shape, kernel.shape) + 1)
+        if output is None:
+            output = np.zeros(out_shape, input.dtype)
+        assert (out_shape == output.shape), "shapes don't match"
+        uin = input
+        for d, kd in enumerate(kernel.shape):
+            uin = unfold(uin, d, kd, 1)
+        m2kdotmk(uin, kernel, output, accumulate)
+        return output
 
 def correlate_table(table, inputs, kernels, outputs):
     for (i,k,j) in table:

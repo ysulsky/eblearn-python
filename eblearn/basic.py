@@ -6,8 +6,8 @@ class linear (module_1_1):
         ''' out[] = w[][] . in[] '''
         self.shape_in  = ensure_tuple(shape_in)
         self.shape_out = ensure_tuple(shape_out)
-        size_in  = product(shape_in)
-        size_out = product(shape_out)
+        size_in  = np.prod(shape_in)
+        size_out = np.prod(shape_out)
         self.w = self.param((size_out, size_in))
 
     def forget(self):

@@ -77,7 +77,7 @@ ds_valid = dsource_sup(valid_data, map_inputs(func, valid_data),
 shape_in, shape_out = ds_train.shape()
 machine = layers( linear(shape_in, hidden),
                   bias_module(hidden),
-                  transfer_tanh(),
+#                  transfer_tanh(),
                   linear(hidden, shape_out),
                   bias_module(shape_out)    )
 

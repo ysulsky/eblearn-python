@@ -1,6 +1,5 @@
 import sys
 import numpy as np
-import scipy as sp
 from math import pi, sqrt
 from vecmath import *
 from idx import *
@@ -30,8 +29,6 @@ empty = lambda shape: np.empty(shape, rtype, 'C')
 zeros = lambda shape: np.zeros(shape, rtype, 'C')
 ones  = lambda shape: np.ones(shape, rtype, 'C')
 
-imshow = sp.misc.imshow
-product = np.prod
 
 def ensure_dims(x, d):
     need = d - len(x.shape)
