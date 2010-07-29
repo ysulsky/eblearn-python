@@ -5,10 +5,10 @@ def map_inputs(f, x):
     return array([f(i) for i in x])
 
 def func_sq(x):
-    return sp.square((x - .5) * 10)
+    return np.square((x - .5) * 10)
 
 def func_sin(x):
-    return 10 * sp.sin(x * (2*pi))
+    return 10 * np.sin(x * (2*pi))
 
 func = func_sin
 
@@ -66,8 +66,8 @@ def plot(machine, train_ds, valid_ds = None):
 linesearch = False
 hidden = 512
 
-train_data = sp.random.random((100,1))
-valid_data = sp.random.random((50,1))
+train_data = np.random.random((100,1))
+valid_data = np.random.random((50,1))
 
 ds_train = dsource_sup(train_data, map_inputs(func, train_data))
 ds_train.normalize()

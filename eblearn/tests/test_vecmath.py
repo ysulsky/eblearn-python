@@ -4,6 +4,7 @@ from time import clock
 
 from eblearn        import vecmath as slow_vecmath
 from eblearn.gofast import vecmath as fast_vecmath
+from eblearn.util   import debug_break
 
 def cmp_slow_fast(name, *arg_dims, **kwargs):
     note = kwargs.get('note', '')
@@ -22,9 +23,9 @@ def cmp_slow_fast(name, *arg_dims, **kwargs):
         for i in xrange(n):
             fn2(*args2)
         t3 = clock()
-        if t3 - t2 < 1e-8:
+        if t3 - t2 < 1e-2:
             return speedup(n * 10, fn1, args1, fn2, args2)
-        return (t2 - t1) / (t3 - t2)
+        return "%s -> %s" % ((t2 - t1), (t3 - t2))
     
     args1 = [np.random.random(dims)*4-2 for dims in arg_dims]
     args2 = [arg1.copy() for arg1 in args1]
@@ -55,7 +56,7 @@ def cmp_slow_fast(name, *arg_dims, **kwargs):
     if ctg_err < 1e-6:
         if speedtest:
             su = speedup(speedtest, slow_fn, args1, fast_fn, args2)
-            cpass = 'pass (%fx)' % su
+            cpass = 'pass (%s)' % su
         else:
             cpass = 'pass'
 
@@ -64,7 +65,7 @@ def cmp_slow_fast(name, *arg_dims, **kwargs):
             su = speedup(speedtest,
                          slow_fn, args1_noncontig,
                          fast_fn, args2_noncontig)
-            npass = 'pass (%fx)' % su
+            npass = 'pass (%s)' % su
         else:
             npass = 'pass'
     

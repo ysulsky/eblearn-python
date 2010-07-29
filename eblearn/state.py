@@ -1,4 +1,3 @@
-from scipy import ndarray
 from util import *
 
 class state (object):

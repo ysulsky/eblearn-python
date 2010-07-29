@@ -26,7 +26,7 @@ shape_in, shape_out = train_ds.shape()
 
 conv_kernel     = (ki, kj)
 conv_conn_table = eb.convolution.full_table(shape_in[0], size_code)
-conv_out_size   = (size_code,)+tuple(1+sp.subtract(shape_in[1:], conv_kernel))
+conv_out_size   = (size_code,)+tuple(1+np.subtract(shape_in[1:], conv_kernel))
 
 encoder = None
 if encoder_arch == 0:

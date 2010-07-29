@@ -6,7 +6,7 @@ from vecmath import *
 from idx import *
 from lush_mat import *
 
-sp.seterr('raise')
+np.seterr('raise')
 
 try:
     from ui import *
@@ -17,7 +17,7 @@ try:
     from gofast._util import rtype
 except ImportError:
     print "+++ Warning: gofast isn't compiled."
-    rtype = sp.float64
+    rtype = np.float64
 
 class ref(object):
     __slots__ = ('contents')
@@ -25,13 +25,13 @@ class ref(object):
     def __getstate__(self): return self.contents
     def __setstate__(self, v): self.contents=v
 
-array = lambda items: sp.array(items, rtype)
-empty = lambda shape: sp.empty(shape, rtype, 'C')
-zeros = lambda shape: sp.zeros(shape, rtype, 'C')
-ones  = lambda shape: sp.ones(shape, rtype, 'C')
+array = lambda items: np.array(items, rtype)
+empty = lambda shape: np.empty(shape, rtype, 'C')
+zeros = lambda shape: np.zeros(shape, rtype, 'C')
+ones  = lambda shape: np.ones(shape, rtype, 'C')
 
 imshow = sp.misc.imshow
-product = sp.prod
+product = np.prod
 
 def ensure_dims(x, d):
     need = d - len(x.shape)
@@ -89,8 +89,10 @@ def enable_breaks(b = True):
 
 def debug_break(msg = None):
     if not ENABLE_BREAKPOINTS: return
+    if msg: msg = 'DEBUG BREAK: %s' % (msg,)
+    else:   msg = 'DEBUG BREAK'
     print '==================================='
-    print 'DEBUG BREAK:', msg
+    print msg
     print '==================================='
     try:
         import IPython.Debugger; 

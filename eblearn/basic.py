@@ -14,7 +14,7 @@ class linear (module_1_1):
         arg = self.forget_param
         fanin = self.w.shape[1]
         z = arg.lin_value / (fanin ** (1.0 / arg.lin_exponent))
-        self.w.x = sp.random.random(self.w.shape) * (2*z) - z
+        self.w.x = np.random.random(self.w.shape) * (2*z) - z
 
     def normalize(self):
         normrows(self.w.x.T)
@@ -27,13 +27,13 @@ class linear (module_1_1):
     def bprop_input(self, input, output):
         m2dotm1(self.w.x.T, output.dx.ravel(), input.dx.ravel(), True)
     def bprop_param(self, input, output):
-        self.w.dx += sp.outer(output.dx.ravel(), input.x.ravel())
+        self.w.dx += np.outer(output.dx.ravel(), input.x.ravel())
     
     def bbprop_input(self, input, output):
         iddx, oddx = input.ddx.ravel(), output.ddx.ravel()
-        m2dotm1(sp.square(self.w.x.T), oddx, iddx, True)
+        m2dotm1(np.square(self.w.x.T), oddx, iddx, True)
     def bbprop_param(self, input, output):
-        self.w.ddx += sp.outer(output.ddx.ravel(), sp.square(input.x.ravel()))
+        self.w.ddx += np.outer(output.ddx.ravel(), np.square(input.x.ravel()))
 
 
 class bias_module (module_1_1):
@@ -51,7 +51,7 @@ class bias_module (module_1_1):
     def forget(self):
         arg = self.forget_param
         z = arg.lin_value
-        self.b.x = sp.random.random(self.b.shape) * (2*z) - z
+        self.b.x = np.random.random(self.b.shape) * (2*z) - z
     
     def normalize(self): pass
     
@@ -91,7 +91,7 @@ class diagonal (module_1_1):
     def fprop(self, input, output):
         assert (self.shape_in == input.shape)
         output.resize(input.shape)
-        sp.multiply(input.x, self.d.x, output.x)
+        np.multiply(input.x, self.d.x, output.x)
     
     def bprop_input(self, input, output):
         input.dx += output.dx * self.d.x
@@ -101,11 +101,11 @@ class diagonal (module_1_1):
         m2dotrows(ix, odx, self.d.dx.ravel(), True)
     
     def bbprop_input(self, input, output):
-        input.ddx += output.ddx * sp.square(self.d.x)
+        input.ddx += output.ddx * np.square(self.d.x)
     def bbprop_param(self, input, output):
         ix   = input.x.reshape   ((len(self.d), -1))
         oddx = output.ddx.reshape((len(self.d), -1))
-        m2dotrows(sp.square(ix), oddx, self.d.ddx.ravel(), True)
+        m2dotrows(np.square(ix), oddx, self.d.ddx.ravel(), True)
 
 class convolution (module_1_1):
     @staticmethod
@@ -116,15 +116,15 @@ class convolution (module_1_1):
     
     @staticmethod
     def rand_table(feat_in, feat_out, fanin):
-        tab        = sp.empty((fanin * feat_out,2), dtype=int)
+        tab        = np.empty((fanin * feat_out,2), dtype=int)
         out_col    = unfold(tab[:,1], 0, fanin,   fanin)
-        out_col[:] = sp.arange(feat_out).reshape(feat_out,1)
+        out_col[:] = np.arange(feat_out).reshape(feat_out,1)
         in_col     = unfold(tab[:,0], 0, feat_in, feat_in)
         for chunk in in_col:
-            chunk[:] = sp.random.permutation(feat_in)
+            chunk[:] = np.random.permutation(feat_in)
         if len(tab) > len(in_col):
             remainder = tab[in_col.size:,0]
-            remainder[:] = sp.random.permutation(feat_in)[:len(remainder)]
+            remainder[:] = np.random.permutation(feat_in)[:len(remainder)]
         
         tab = map(tuple, tab)
         tab.sort()
@@ -133,10 +133,10 @@ class convolution (module_1_1):
     def __init__(self, kernel_shape, conn_table):
         ''' out[j][] += in[i][] <*> kernel[k][]
             where conn_table[k] = (i,j) '''
-        self.conn_table = sp.asarray(conn_table, int)
+        self.conn_table = np.asarray(conn_table, int)
         self.kernels    = self.param((len(conn_table),) + kernel_shape)
         self.feat_out   = 1 + self.conn_table[:,1].max()
-        self.fanin      = sp.zeros(self.feat_out, dtype=int)
+        self.fanin      = np.zeros(self.feat_out, dtype=int)
         for j in self.conn_table[:,1]: self.fanin[j] += 1
         
         ndim = len(kernel_shape)
@@ -144,22 +144,22 @@ class convolution (module_1_1):
         self.bcorr   = back_correlate_table_for_dim(ndim)
 
         e = enumerate
-        self.tbl_ikj = sp.asarray([(a,k,b) for (k,(a,b)) in e(conn_table)], 'i')
-        self.tbl_jki = sp.asarray([(b,k,a) for (k,(a,b)) in e(conn_table)], 'i')
-        self.tbl_ijk = sp.asarray([(a,b,k) for (k,(a,b)) in e(conn_table)], 'i')
+        self.tbl_ikj = np.asarray([(a,k,b) for (k,(a,b)) in e(conn_table)], 'i')
+        self.tbl_jki = np.asarray([(b,k,a) for (k,(a,b)) in e(conn_table)], 'i')
+        self.tbl_ijk = np.asarray([(a,b,k) for (k,(a,b)) in e(conn_table)], 'i')
     
     def forget(self):
         arg = self.forget_param
         p = 1. / arg.lin_exponent
         for j, kx in zip( self.conn_table[:,1], self.kernels.x ):
             z = arg.lin_value / ((self.fanin[j] * kx.size) ** p)
-            kx[:] = sp.random.random(kx.shape) * (2*z) - z
+            kx[:] = np.random.random(kx.shape) * (2*z) - z
 
     def normalize(self):
         normrows(self.kernels.x)
     
     def fprop(self, input, output):
-        out_shape = sp.subtract(input.shape[1:], self.kernels.shape[1:]) + 1
+        out_shape = np.subtract(input.shape[1:], self.kernels.shape[1:]) + 1
         output.resize((self.feat_out,) + tuple(out_shape))
         clear(output.x)
         self.fcorr(self.tbl_ikj, input.x, self.kernels.x, output.x)
@@ -170,10 +170,10 @@ class convolution (module_1_1):
         self.fcorr(self.tbl_ijk, input.x, output.dx, self.kernels.dx)
     
     def bbprop_input(self, input, output):
-        sq = sp.square
+        sq = np.square
         self.bcorr(self.tbl_jki, output.ddx, sq(self.kernels.x), input.ddx)
     def bbprop_param(self, input, output):
-        sq = sp.square
+        sq = np.square
         self.fcorr(self.tbl_ijk, sq(input.x), output.ddx, self.kernels.ddx)
 
 
@@ -186,10 +186,10 @@ class back_convolution (convolution):
         super(back_convolution, self).__init__(kernel_shape, conn_table)
 
         e = enumerate
-        self.tbl_jik = sp.asarray([(b,a,k) for (k,(a,b)) in e(conn_table)], 'i')
+        self.tbl_jik = np.asarray([(b,a,k) for (k,(a,b)) in e(conn_table)], 'i')
         
     def fprop(self, input, output):
-        out_shape = sp.subtract(input.shape[1:], 1) + self.kernels.shape[1:]
+        out_shape = np.subtract(input.shape[1:], 1) + self.kernels.shape[1:]
         output.resize((self.feat_out,) + tuple(out_shape))
         clear(output.x)
         self.bcorr(self.tbl_ikj, input.x, self.kernels.x, output.x)
@@ -200,10 +200,10 @@ class back_convolution (convolution):
         self.fcorr(self.tbl_jik, output.dx, input.x, self.kernels.dx)
 
     def bbprop_input(self, input, output):
-        sq = sp.square
+        sq = np.square
         self.fcorr(self.tbl_jki, output.ddx, sq(self.kernels.x), input.ddx)
     def bbprop_param(self, input, output):
-        sq = sp.square
+        sq = np.square
         self.fcorr(self.tbl_jik, output.ddx, sq(input.x), self.kernels.ddx)
 
 
@@ -211,12 +211,12 @@ class multiplication (no_params, module_2_1):
     def fprop(self, input1, input2, output):
         assert(input1.shape == input2.shape)
         output.resize(input1.shape)
-        sp.multiply(input1.x, input2.x, output.x)
+        np.multiply(input1.x, input2.x, output.x)
     def bprop_input(self, input1, input2, output):
         input1.dx += output.dx * input2.x
         input2.dx += output.dx * input1.x
     def bbprop_input(self, input1, input2, output):
-        input1.ddx += output.ddx * sp.square(input2.x)
-        input2.ddx += output.ddx * sp.square(input1.x)
+        input1.ddx += output.ddx * np.square(input2.x)
+        input2.ddx += output.ddx * np.square(input1.x)
         
         

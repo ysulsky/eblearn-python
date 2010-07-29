@@ -1,7 +1,7 @@
 from eblearn import *
 
 # test (g(f))'' instead of f'' to ensure a non-zero second derivative
-test_xfer = transfer_exp # |None | transfer_square | transfer_cube
+test_xfer = transfer_square # |None | transfer_square | transfer_cube
 
 # Note: since bbprop assumes that the off-diagonal elements of the
 # Hessian matrix are zero, any bbprop test for a machine with
@@ -44,7 +44,7 @@ def clear_param(p):
 
 def rand_param(p, rmin, rmax):
     for state in p.states:
-        state.x[:]=sp.random.random(state.shape) * (rmax - rmin) + rmin
+        state.x[:]=np.random.random(state.shape) * (rmax - rmin) + rmin
 
 def mod_bprop(snd, mod, *args):
     mod.bprop(*args)
@@ -65,7 +65,7 @@ def jacobian_bwd_m_1_1 (mod, sin, sout, snd=False):
 def jacobian_bwd_m_1_1_param (mod, sin, sout, snd=False):
     jac = zeros((mod.parameter.size(), sout.size))
     param    = mod.parameter
-    param_dx = lambda: sp.fromiter((param.ddx if snd else param.dx), rtype)
+    param_dx = lambda: np.fromiter((param.ddx if snd else param.dx), rtype)
     for i in xrange(sout.size):
         clear_state(sout)
         sout.dx.flat[i] = 1.
@@ -174,7 +174,7 @@ def jacobian_bwd_m_2_1 (mod, sin1, sin2, sout, snd=False):
 def jacobian_bwd_m_2_1_param (mod, sin1, sin2, sout, snd=False):
     jac = zeros((mod.parameter.size(), sout.size))
     param    = mod.parameter
-    param_dx = lambda: sp.fromiter((param.ddx if snd else param.dx), rtype)
+    param_dx = lambda: np.fromiter((param.ddx if snd else param.dx), rtype)
     for i in xrange(sout.size):
         clear_state(sout)
         sout.dx.flat[i] = 1.
@@ -288,7 +288,7 @@ def make_test_m11_jac(ctor):
         sout = state(())
         if sin is None:
             sin = state(size)
-            sin.x[:] = sp.random.random(sin.shape) * (rmax - rmin) + rmin
+            sin.x[:] = np.random.random(sin.shape) * (rmax - rmin) + rmin
         else:
             size = sin.shape
         if mod is None:
@@ -314,12 +314,12 @@ def make_test_m21_jac(ctor):
         sout = state(())
         if sin1 is None:
             sin1 = state(size1)
-            sin1.x[:] = sp.random.random(sin1.shape) * (rmax - rmin) + rmin
+            sin1.x[:] = np.random.random(sin1.shape) * (rmax - rmin) + rmin
         else:
             size1 = sin.shape
         if sin2 is None:
             sin2 = state(size2)
-            sin2.x[:] = sp.random.random(sin2.shape) * (rmax - rmin) + rmin
+            sin2.x[:] = np.random.random(sin2.shape) * (rmax - rmin) + rmin
         else:
             size2 = sin.shape
         if mod is None:

@@ -1,4 +1,4 @@
-import scipy as sp
+import numpy as np
 import opencv.highgui  as hg
 import opencv.cv       as cv
 
@@ -64,7 +64,7 @@ class video_base (object):
             (img.height, img.width, nchannels)
         
         if format == FORMAT_BGR: # default format
-            frame = sp.ndarray(shape = shape, dtype = sp.uint8, 
+            frame = np.ndarray(shape = shape, dtype = np.uint8, 
                                buffer = img.imageData)
             if self.own_data: frame = frame.copy()
             return frame
@@ -82,7 +82,7 @@ class video_base (object):
         
         cv.cvCvtColor(img, img2, cvt_type)
         
-        frame = sp.ndarray(shape = shape, dtype = sp.uint8,
+        frame = np.ndarray(shape = shape, dtype = np.uint8,
                            buffer = img2.imageData)
         if self.own_data: frame = frame.copy()
         return frame

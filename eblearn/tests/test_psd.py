@@ -3,7 +3,7 @@ from eblearn.psd import *
 
 def gen_sample():
     x = zeros((16,16))
-    row = x[sp.random.randint(len(x))]
+    row = x[np.random.randint(len(x))]
     row.fill(1.)
     return x
 

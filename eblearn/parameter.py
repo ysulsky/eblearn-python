@@ -1,4 +1,4 @@
-import scipy as sp
+import numpy as np
 from state import *
 from util  import *
 import weakref
@@ -129,7 +129,7 @@ class parameter (object):
             state.deltax = kold * state.deltax + knew * state.dx
     
     def update_ddeltax(self, knew, kold):
-        assert (sp.all(sp.all(state.ddx > -1e-6) for state in self.states))
+        assert (np.all(np.all(state.ddx > -1e-6) for state in self.states))
         for state in self.states:
             state.ddeltax = kold * state.ddeltax + knew * state.ddx
     
@@ -213,7 +213,7 @@ class gd_update (parameter_update):
                     state.dx += state.x * decay_l2
             if decay_l1 > 0:
                 for state in states: 
-                    state.dx += sp.sign(state.x) * decay_l1
+                    state.dx += np.sign(state.x) * decay_l1
         
         grad = None
         if inertia == 0:
@@ -315,7 +315,7 @@ class gd_linesearch_update (gd_update):
         step   = 0
 
         cur_energy = feval()
-        new_energy = sp.infty
+        new_energy = np.infty
         
         while new_energy > cur_energy and step != stop:
             for (g, state) in zip(grad,states):

@@ -13,11 +13,11 @@ class transfer_identity (no_params, module_1_1):
 class transfer_square (no_params, module_1_1):
     def fprop(self, input, output):
         output.resize(input.shape)
-        sp.square(input.x, output.x)
+        np.square(input.x, output.x)
     def bprop_input (self, input, output):
         input.dx  += output.dx * 2 * input.x
     def bbprop_input(self, input, output):
-        input.ddx += output.ddx * 4 * sp.square(input.x)
+        input.ddx += output.ddx * 4 * np.square(input.x)
         input.ddx += output.dx * 2
 
 class transfer_cube (no_params, module_1_1):
@@ -25,7 +25,7 @@ class transfer_cube (no_params, module_1_1):
         output.resize(input.shape)
         output.x[:] = input.x ** 3
     def bprop_input(self, input, output):
-        input.dx += output.dx * 3 * sp.square(input.x)
+        input.dx += output.dx * 3 * np.square(input.x)
     def bbprop_input(self, input, output):
         input.ddx += output.ddx * 9 * (input.x **4)
         input.ddx += output.dx * 6 * input.x
@@ -33,18 +33,18 @@ class transfer_cube (no_params, module_1_1):
 class transfer_exp (no_params, module_1_1):
     def fprop(self, input, output):
         output.resize(input.shape)
-        sp.exp(input.x, output.x)
+        np.exp(input.x, output.x)
     def bprop_input(self, input, output):
-        input.dx += output.dx * sp.exp(input.x)
+        input.dx += output.dx * np.exp(input.x)
     def bbprop_input(self, input, output):
-        expin = sp.exp(input.x)
+        expin = np.exp(input.x)
         input.ddx += output.ddx * (expin ** 2)
         input.ddx += output.dx * expin
 
 class transfer_tanh (no_params, module_1_1):
     def fprop(self, input, output):
         output.resize(input.shape)
-        sp.tanh(input.x, output.x)
+        np.tanh(input.x, output.x)
     def bprop_input (self, input, output):
         input.dx  += output.dx  * dtanh(input.x)
     def bbprop_input(self, input, output):
@@ -57,15 +57,15 @@ class transfer_abs (no_params, module_1_1):
         self.thresh = thresh
     def fprop(self, input, output):
         output.resize(input.shape)
-        sp.absolute(input.x, output.x)
+        np.absolute(input.x, output.x)
     def bprop_input (self, input, output):
         sx = None
         if self.thresh != 0:
             sx = input.x / self.thresh
-            sp.trunc(sx, sx)
-            sp.sign(sx, sx)
+            np.trunc(sx, sx)
+            np.sign(sx, sx)
         else:
-            sx = sp.sign(input.x)
+            sx = np.sign(input.x)
         input.dx += sx * output.dx
     def bbprop_input(self, input, output):
         input.ddx += output.ddx

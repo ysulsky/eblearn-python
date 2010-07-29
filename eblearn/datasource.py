@@ -1,5 +1,5 @@
 from eblearn import *
-import scipy as sp
+import numpy as np
 
 class eb_dsource (object):
     def __init__(self): self.current = 0
@@ -19,8 +19,8 @@ class dsource_unsup (eb_dsource):
         self.inputs  = ensure_dims(inputs, 2)
         self.bias    = bias
         self.coeff   = coeff
-        self.shuffle = sp.arange(len(inputs))
-        sp.random.shuffle(self.shuffle)
+        self.shuffle = np.arange(len(inputs))
+        np.random.shuffle(self.shuffle)
 
     def size(self): return len(self.inputs)
 
