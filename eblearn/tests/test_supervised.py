@@ -100,12 +100,12 @@ trainer = eb_trainer(param, ebm_2(machine, cost), ds_train,
 gd_params = dict (
     eta = 0.5 if linesearch else 0.01
 ,   norm_grad = False
-,   quiet     = False
 ,   debugging = True
 )
 
 if linesearch:
     feval = feval_from_trainer(trainer)
+    gd_params['quiet']  = False
     param.updater = gd_linesearch_update(feval, **gd_params)
 else:
     param.updater = gd_update(**gd_params)

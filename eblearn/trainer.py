@@ -1,4 +1,5 @@
 from eblearn import *
+from util import *
 
 import pickle, time
 
@@ -7,7 +8,7 @@ class eb_trainer (object):
     class reporter (object):
         def __init__(self, trainer):
             self.trainer = trainer
-            self.prev_age      = -1
+            self.prev_age      = 0
             self.prefix_width  = 15
         def __call__(self, msg):
             if self.trainer.quiet: return
@@ -39,24 +40,24 @@ class eb_trainer (object):
                  do_normalization  = False,
                  quiet             = False,
                  auto_forget       = True,
-                 verbose           = False,):
+                 verbose           = False):
         vals = dict(locals())
         del vals['self']
         self.__dict__.update(vals)
-
+        
         if not backup_location:
             self.backup_interval = 0
-
+        
         if quiet: self.verbose = False
-
+        
         assert (parameter and parameter.size() > 0)
         assert (ds_train.size() > 0) 
-
+        
         if ds_valid is not None and ds_valid.size() <= 0:
             self.ds_valid = None
         if self.ds_valid is None: 
             self.valid_interval = 0
-
+        
         self.train_num     = 0
         self.age           = 0
         self.input         = state(())
@@ -64,19 +65,29 @@ class eb_trainer (object):
         self.energy        = state((1,))
         self.energy.dx[0]  = 1.
         self.energy.ddx[0] = 1.
-
+        
         self.msg = eb_trainer.reporter(self)
         self.clear_log()
 
+        self._tracked_stats = []
+        self.track_stats(machine)
+
     def clear_log(self):
-        self.train_loss     = None
         self.valid_loss     = None
-        self.train_gradnorm = None
+        self.train_stats    = None
         if self.keep_log:
-            self.train_loss = []
-            self.valid_loss = []
-            if self.verbose:
-                self.train_gradnorm = []
+            if self.valid_interval > 0:
+                self.valid_loss  = abuffer((1,2))
+            self.train_stats  = {'training loss': abuffer()}
+
+    def track_stats(self, mod):
+        if not self.keep_log: return
+        stats = mod.get_stats()
+        if self.age > 0:
+            for k in stats:
+                stat_name = mod._name.contents + ' ' + k
+                self.train_stats[stat_name] = [np.nan] * self.age
+        self._tracked_stats.append((mod._name, stats))
     
     def train(self, maxiter = 0):
         self.train_num += 1
@@ -88,13 +99,34 @@ class eb_trainer (object):
         if self.auto_forget:
             self.machine.forget()
         self.train_online(maxiter)
-        
+    
+    def append_stats(self, stats, prefix=''):
+        if not self.keep_log: return
+        stat_logs = self.train_stats
+        for k, v  in stats.items():
+            k = prefix + k
+            log = stat_logs.get(k)
+            if log is None:
+                stat_logs[k] = log = abuffer()
+            log.append(v)
+    
+    def average_stats(self, num = None):
+        if not self.keep_log: return {}
+        ret = {}
+        for k, log in self.train_stats.iteritems():
+            assert(len(log) == self.age)
+            if num is not None: log = log[-num:]
+            ret['avg. '+k] = np.mean(log, 0)
+        return ret
+    
     def train_online(self, maxiter = 0):
         if not self.quiet:
             print 'Starting training on %s%s' % \
                   (time.asctime(),
                    ' (max %d iterations)' % maxiter if maxiter else '')
-        
+
+        parameter       = self.parameter
+
         msg             = self.msg
         hess_interval   = self.hess_interval
         report_interval = self.report_interval
@@ -103,36 +135,41 @@ class eb_trainer (object):
         backup_interval = self.backup_interval
         prev_vld_loss   = None
         keep_training   = True
-        
-        if hess_interval <= 0:
-            self.parameter.set_epsilon(1.)
 
-        stop_age = self.age + maxiter - 1
+        training_loss_log = None
+        if self.keep_log:
+            training_loss_log = self.train_stats['training loss']
+        
+        if hess_interval <= 0: parameter.set_epsilon(1.)
+        else:                  self.compute_diag_hessian()
+        
+        stop_age = self.age + maxiter
         
         while True:
+            self.age += 1
             age = self.age
             
             if hess_interval > 0 and (age % hess_interval) == 0:
                 self.compute_diag_hessian()
-                
+            
             keep_training = self.train_sample()
             
-            if self.train_loss is not None:
-                self.train_loss.append(self.energy.x[0])
+            if self.keep_log:
+                training_loss_log.append(self.energy.x[0])
+                self.append_stats(parameter.iterstats())
+                for (nameref, stats) in self._tracked_stats:
+                    self.append_stats(stats, prefix=nameref.contents+' ')
+                
+                if report_interval > 0 and (age % report_interval) == 0:
+                    if self.verbose:
+                        avg_stats = self.average_stats(report_interval)
+                        for field in sorted(avg_stats):
+                            msg('%s = %g' % (field, avg_stats[field]))
+                    else:
+                        avloss = np.mean(training_loss_log[-report_interval:])
+                        msg('avg. training loss = %g' % avloss)
             
-            if self.train_gradnorm is not None:
-                gradnorm = sqrt(sqmag(sp.fromiter(self.parameter.dx, rtype)))
-                self.train_gradnorm.append(gradnorm)
-
-            if report_interval > 0 and age > 0 and (age % report_interval) == 0:
-                if self.train_gradnorm is not None:
-                    avgnrm = sp.mean(self.train_gradnorm[-report_interval:])
-                    msg('avg. grad norm  = %g' % (avgnrm,))
-                if self.train_loss is not None:
-                    avloss = sp.mean(self.train_loss[-report_interval:])
-                    msg('avg. train loss = %g' % (avloss,))
-            
-            if valid_interval > 0 and age > 0 and (age % valid_interval) == 0:
+            if valid_interval > 0 and (age % valid_interval) == 0:
                 vld_loss = self.validate()
                 if self.valid_loss is not None:
                     self.valid_loss.append((age, vld_loss))
@@ -145,7 +182,7 @@ class eb_trainer (object):
                         
                 prev_vld_loss = vld_loss
 
-            if backup_interval > 0 and age > 0 and (age % backup_interval) == 0:
+            if backup_interval > 0 and (age % backup_interval) == 0:
                 fname = '%s/%s_%d.obj' % (self.backup_location, 
                                           self.backup_name,
                                           age // backup_interval)
@@ -154,17 +191,17 @@ class eb_trainer (object):
 
             if not keep_training:
                 msg('stopping because condition was reached: %s' % \
-                    self.parameter.stop_reason())
+                    parameter.stop_reason())
                 if self.verbose:
-                    if self.train_gradnorm:
-                        msg('last gradient norm = %g' % self.train_gradnorm[-1])
+                    for (field, val) in zip(parameter.stat_fields,
+                                            parameter.step_stats()):
+                        msg('last iteration: %s = %g' % (field, val))
             
             if age == stop_age:
                 msg('stopping after %d iterations' % maxiter)
                 keep_training = False
             
             self.ds_train.next()
-            self.age += 1
             
             if not keep_training: break
         
@@ -210,7 +247,7 @@ class eb_trainer (object):
         self.parameter.compute_epsilon(self.hess_mu)
         eps = None
         if self.verbose:
-            eps = sp.fromiter(self.parameter.epsilon, rtype)
+            eps = np.fromiter(self.parameter.epsilon, rtype)
             self.msg('avg. epsilon = %g' % eps.mean())
         else:
             self.msg('done.')

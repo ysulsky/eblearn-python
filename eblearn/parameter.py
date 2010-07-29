@@ -19,6 +19,8 @@ class parameter_update (object):
         raise NotImplementedError()
     def reset(self):
         raise NotImplementedError()
+    def iterstats(self):
+        raise NotImplementedError()
 
 class parameter (object):
     cur_id = 1
@@ -36,21 +38,22 @@ class parameter (object):
     def __init__(self):
         self.id = parameter.cur_id
         parameter.cur_id += 1
+        self._name = ref('parameter(%d)' % (self.id,))
         
         self.age       = 0
         self.states    = []
         self.state_ids = set()
         self.forget    = parameter_forget()
         self.parents   = set()
-        self.updater   = parameter_update_default_gd
-
+        self.updater   = gd_update()
+    
     def __getstate__(self):
         parent_refs = [p() for p in self.parents]
         parent_refs = [p for p in parent_refs if p]
         state = dict(self.__dict__)
         state['parents'] = parent_refs
         return state
-
+    
     def __setstate__(self, state):
         self.__dict__.update(state)
         parent_refs    = self.parents
@@ -62,12 +65,12 @@ class parameter (object):
         if self.age == 0: return
         self.age = 0
         self.updater.reset()
-
+    
     def backup(self):
         ''' returns an object to be used with restore
             does not save gradients '''
         return [state.x.copy() for state in self.states]
-
+    
     def restore(self, backup):
         for state, src  in zip(self.states, backup):
             state.x[:] = src
@@ -135,6 +138,12 @@ class parameter (object):
         self.age += 1
         return ret
 
+    def iterstats(self):
+        return self.updater.iterstats()
+                
+    stat_fields = property(lambda self: self.updater.stat_fields)
+    def step_stats(self): return self.updater.step_stats()
+    
     def iter_state_prop(prop):
         def iter(self):
             for state in self.states:
@@ -149,12 +158,14 @@ class parameter (object):
     ddeltax = property(iter_state_prop('ddeltax'))
     epsilon = property(iter_state_prop('epsilon'))
 
-# for pickling
-update_default = parameter.update_default
+    def _get_name(self): return self._name.contents
+    def _set_name(self, v): self._name.contents = v
+    name = property(_get_name, _set_name)
 
 
 class gd_update (parameter_update):
     ''' Gradient-descent parameter update strategy '''
+
     def __init__(self,
                  eta         = 0.01,
                  max_iters   = 0,
@@ -179,7 +190,10 @@ class gd_update (parameter_update):
 
     def reset(self):
         self.stop_code = None
+        self.cur_grad_norm = -1.
 
+    def iterstats(self): return {'grad norm': self.cur_grad_norm}
+    
     def _step_direction(self, p):
         ''' internal - returns (gradient, |gradient|, and step) '''
         age         = p.age
@@ -222,14 +236,15 @@ class gd_update (parameter_update):
         if self.debugging:
             if min([state.epsilon.min() for state in states]) < 0:
                 debug_break('negative epsilon')
-            if grad_norm > 100.0:
+            if grad_norm > 5000.0:
                 debug_break('huge gradient norm')
-        
-        return (grad, grad_norm, step_coeff)
+
+        self.cur_grad_norm = grad_norm
+        return (grad, step_coeff)
     
 
     def step(self, p):
-        grad, grad_norm, step_coeff = self._step_direction(p)
+        grad, step_coeff = self._step_direction(p)
         states = p.states
         
         for (g, state) in zip(grad,states):
@@ -240,8 +255,6 @@ class gd_update (parameter_update):
                 thresh_less(state.x, state.x, self.thresh_x, state.x)
         
         return self.stop_code is None
-
-parameter_update_default_gd = parameter.update_default(gd_update)
 
 
 class feval_from_trainer(object):
@@ -283,12 +296,18 @@ class gd_linesearch_update (gd_update):
     
     def reset(self):
         self.linesearch_stop_code = None
+        self.cur_num_steps        = -1
         super(gd_linesearch_update, self).reset()
 
+    def iterstats(self):
+        r = super(gd_linesearch_update, self).iterstats()
+        r['line search steps'] = self.cur_num_steps
+        return r
+    
     def _step_direction(self, p):
-        grad, grad_norm, step_coeff = \
+        grad, step_coeff = \
               super(gd_linesearch_update, self)._step_direction(p)
-
+        
         feval  = self.feval
         states = p.states
         bup    = p.backup()
@@ -308,6 +327,7 @@ class gd_linesearch_update (gd_update):
             p.restore(bup)
             step += 1
 
+        self.cur_num_steps = step
         if step == stop:
             self.linesearch_stop_code = 'iteration limit reached'
         else:
@@ -317,8 +337,7 @@ class gd_linesearch_update (gd_update):
             print 'linesearch: stopped after %d iterations because: %s' % \
                   (step, self.linesearch_stop_code)
         
-        return grad, grad_norm, step_coeff
-
+        return grad, step_coeff
 
 
 class parameter_container (object):
@@ -365,7 +384,15 @@ class parameter_container (object):
         ret = False
         for p in self.params: ret = p.update() or ret
         return ret
-        
+    
+    def iterstats(self):
+        r = {}
+        for p in self.params:
+            name, stats = p.name, p.iterstats()
+            for k, v in stats.items():
+                r[name + ' ' + k] = v
+        return r
+
     def iter_state_prop(prop):
         def iter(self):
             for p in self.params:

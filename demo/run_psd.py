@@ -84,9 +84,11 @@ trainer = eb.eb_trainer(all_params, machine, train_ds,
                         do_normalization = True,
                         backup_location = savedir,
                         backup_interval = 20000,
-                        hess_interval   = compute_hessian)
+                        hess_interval   = compute_hessian,
+                        verbose = True)
 
-
+encoder.parameter.name = 'encoder-param'
+decoder.parameter.name = 'decoder-param'
 trainer.train(train_iters)
 
 if savedir is not None:

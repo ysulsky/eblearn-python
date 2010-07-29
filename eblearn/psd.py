@@ -61,7 +61,7 @@ class psd_codec (module_2_1):
             energy.x[:] = (self.weight_encoder * self.encoder_energy.x +
                            self.weight_code    * self.code_energy.x    +
                            self.weight_decoder * self.decoder_energy.x)
-
+        
         def bprop_input(self, decoder_out, output, energy):
             encoder_out, code = self.encoder_out, self.code
             encoder_energy, code_energy, decoder_energy =\
@@ -148,7 +148,7 @@ class psd_codec (module_2_1):
         self.encoder.forget()
         self.decoder.forget()
         self.costs.forget()
-        
+
         self.decoder.normalize()
 
     def normalize(self):
@@ -157,6 +157,7 @@ class psd_codec (module_2_1):
     def fprop(self, input, output, energy):
         encoder_out, code, decoder_out = \
             self.encoder_out, self.code, self.decoder_out
+        code_trainer = self.code_trainer
         
         # input                         -> encoder_out
         self.encoder.fprop(input, encoder_out)
@@ -166,9 +167,16 @@ class psd_codec (module_2_1):
         code.x[:] = encoder_out.x
         
         # optimize code
-        if self.code_trainer is not None:
-            self.code_trainer.ds_train.set_output(output)
-            self.code_trainer.train()
+        if code_trainer is not None:
+            code_trainer.ds_train.set_output(output)
+            code_trainer.train()
+            
+            stats = self.get_stats()
+            stats['code iterations'] = code_trainer.age-1
+            if code_trainer.keep_log:
+                code_stats = code_trainer.average_stats()
+                for k,v in code_stats.items():
+                    stats['code '+k] = v
         
         # code                          -> decoder_out
         self.decoder.fprop(code, decoder_out)

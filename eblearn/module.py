@@ -2,14 +2,24 @@ from util import *
 from state import *
 from parameter import *
 
+import numpy as np
 from around import * # around_methods metaclass
 
 class eb_module (object):
     __metaclass__ = around_methods
+    cur_id        = 1
     cur_parameter = None
     init_lvl = 0
     
     def _init_around(self, inner_init, *args, **kwargs):
+        self.id = eb_module.cur_id
+        eb_module.cur_id += 1
+        
+        myclass   = self.__class__
+        classname = myclass.__name__
+        self._name = ref('%s(%d)' % (classname, self.id))
+        self._stats = None
+        
         if eb_module.init_lvl == 0:
             #print 'dynamic extent started'
             eb_module.cur_parameter = parameter()
@@ -17,13 +27,11 @@ class eb_module (object):
         self._forget_param = None
         eb_module.init_lvl += 1
         #print '   ebmod_init_start'
-
+        
         try:
             inner_init(self, *args, **kwargs)
-
-            mycls = self.__class__
-            if getattr(mycls, '_%s__automerge_parameters' % mycls.__name__,
-                       True):
+            
+            if getattr(myclass, '_%s__automerge_parameters' % classname, True):
                 for arg in args:
                     if isinstance(arg, eb_module): self._merge_parameters(arg)
                 for arg in kwargs.itervalues():
@@ -43,6 +51,7 @@ class eb_module (object):
         return self._parameter.size() > 0
 
     def _forget_around(self, old_forget, *args, **kwargs):
+        if self._stats is not None: self._stats.clear()
         self._parameter.reset()
         old_forget(self, *args, **kwargs)
 
@@ -63,7 +72,6 @@ class eb_module (object):
 
     def _get_parameter(self):
         return self._parameter
-    
     parameter = property(_get_parameter)
 
     def _get_forget_param(self):
@@ -71,9 +79,17 @@ class eb_module (object):
         return self._parameter.forget
     def _set_forget_param(self, v):
         self._forget_param = v
-
     forget_param = property(_get_forget_param, _set_forget_param)
-    
+
+    def _get_name(self): return self._name.contents
+    def _set_name(self, v): self._name.contents = v
+    name = property(_get_name, _set_name)
+
+    def get_stats(self):
+        if self._stats is None:
+            self._stats = {}
+        return self._stats
+
 
 class no_params (object):
     def param(self, shape):  assert 0, 'No parameters allowed'
