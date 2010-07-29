@@ -199,8 +199,13 @@ class gd_update (parameter_update):
         self.cur_grad_norm = -1.
 
     def iterstats(self): return {'grad norm': self.cur_grad_norm}
+
+    def _perform_step(self, p, grad, coeff):
+        states = p.states
+        for (g, state) in zip(grad,states):
+            state.x += coeff * g
     
-    def _step_direction(self, p):
+    def _step_direction(self, p, dostep = True):
         ''' internal - returns (gradient, |gradient|, and step) '''
         age         = p.age
         eta         = self.eta
@@ -246,16 +251,17 @@ class gd_update (parameter_update):
                 debug_break('huge gradient norm: %g' % grad_norm)
 
         self.cur_grad_norm = grad_norm
+
+        if dostep:
+            self._perform_step(p, grad, step_coeff)
+        
         return (grad, step_coeff)
     
 
     def step(self, p):
-        grad, step_coeff = self._step_direction(p)
+        grad, step_coeff = self._step_direction(p, dostep = True)
         states = p.states
         
-        for (g, state) in zip(grad,states):
-            state.x += step_coeff * g
-
         if self.thresh_x is not None:
             for state in states:
                 thresh_less(state.x, state.x, self.thresh_x, state.x)
@@ -296,13 +302,11 @@ class gd_linesearch_update (gd_update):
         self.feval                = feval
         self.max_line_steps       = max_line_steps
         self.quiet                = quiet
-        self.linesearch_stop_code = None
 
         if 'eta' not in kwargs: kwargs['eta'] = 0.5
         super(gd_linesearch_update, self).__init__(**kwargs)
     
     def reset(self):
-        self.linesearch_stop_code = None
         self.cur_num_steps        = -1
         super(gd_linesearch_update, self).reset()
 
@@ -311,9 +315,9 @@ class gd_linesearch_update (gd_update):
         r['line search steps'] = self.cur_num_steps
         return r
     
-    def _step_direction(self, p):
+    def _step_direction(self, p, dostep=True):
         grad, step_coeff = \
-              super(gd_linesearch_update, self)._step_direction(p)
+              super(gd_linesearch_update, self)._step_direction(p, False)
         
         feval  = self.feval
         states = p.states
@@ -324,25 +328,29 @@ class gd_linesearch_update (gd_update):
         cur_energy = feval()
         new_energy = np.infty
         
-        while new_energy > cur_energy and step != stop:
-            for (g, state) in zip(grad,states):
-                state.x += step_coeff * g
-            
+        while step != stop:
+            step += 1
+            self._perform_step(p, grad, step_coeff)
             new_energy = feval()
-
+            
+            if new_energy < cur_energy:
+                break
+            
             step_coeff /= 2.
             p.restore(bup)
-            step += 1
-
+            
+        
         self.cur_num_steps = step
-        if step == stop:
-            self.linesearch_stop_code = 'iteration limit reached'
-        else:
-            self.linesearch_stop_code = 'energy decreased'
+        if new_energy >= cur_energy:
+            self.stop_code = 'line search failed'
         
         if not self.quiet:
             print 'linesearch: stopped after %d iterations because: %s' % \
-                  (step, self.linesearch_stop_code)
+                  (step, ('energy decreased' if new_energy < cur_energy else
+                          'iteration limit reached'))
+        
+        if not dostep:
+            p.restore(bup)
         
         return grad, step_coeff
 
