@@ -36,14 +36,22 @@ def which_params():
     print "Using input file '%s'." % (r,)
 
 interactive = True
+def set_batch():
+    global interactive
+    interactive =False
+
+profiling = False
+def set_prof():
+    global profiling
+    profiling = True
 
 params_mod = def_params_mod
 if __name__ == '__main__':
-    if '-h'      in sys.argv: usage()
-    if '--help'  in sys.argv: usage()
-    if '-b'      in sys.argv: interactive = False
-    if '--batch' in sys.argv: interactive = False
-    sys.argv = [x for x in sys.argv if x not in ('-b', '--batch')]
+    options = {'-h' : usage,     '--help':    usage,
+               '-b' : set_batch, '--batch':   set_batch,
+               '-p' : set_prof,  '--profile': set_prof}
+    [options[x]() for x in sys.argv if x in options]
+    sys.argv = [x for x in sys.argv if x not in options]
     if len(sys.argv) > 1:
         params_mod = sys.argv[1]
     else:
@@ -95,7 +103,14 @@ sys.path = [savedir] + sys.path
 m_vars = dict(savedir = savedir)
 
 try:
-    exec open(params.script) in m_vars
+    if profiling:
+        from cProfile import Profile
+        profiler = Profile()
+        profiler.runctx(open(params.script), m_vars, {})
+        profiler.dump_stats(savedir+'/prof.out')
+        profiler.print_stats()
+    else:
+        exec open(params.script) in m_vars
 finally:
     copy_code()
 
