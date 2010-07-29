@@ -158,20 +158,20 @@ class psd_codec (module_2_1):
         encoder_out, code, decoder_out = \
             self.encoder_out, self.code, self.decoder_out
         code_trainer = self.code_trainer
-        
+        stats = self.get_stats()
+
         # input                         -> encoder_out
         self.encoder.fprop(input, encoder_out)
         
         # encoder_out                   -> code
         code.resize(encoder_out.shape)
         code.x[:] = encoder_out.x
-        
+
         # optimize code
         if code_trainer is not None:
             code_trainer.ds_train.set_output(output)
             code_trainer.train()
             
-            stats = self.get_stats()
             stats['code iterations'] = code_trainer.age-1
             if code_trainer.keep_log:
                 code_stats = code_trainer.average_stats()
@@ -182,6 +182,9 @@ class psd_codec (module_2_1):
         self.decoder.fprop(code, decoder_out)
         
         self.costs.fprop(decoder_out, output, energy)
+        stats['encoder energy'] = self.costs.encoder_energy.x[0]
+        stats['code energy']    = self.costs.code_energy.x[0]
+        stats['decoder energy'] = self.costs.decoder_energy.x[0]
     
     
     def bprop_input(self, input, output, energy):

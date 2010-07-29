@@ -90,6 +90,10 @@ trainer = eb.eb_trainer(all_params, machine, train_ds,
 
 encoder.parameter.name = 'encoder-param'
 decoder.parameter.name = 'decoder-param'
+
+print "============================================================"
+print "EXPERIMENT: #%d (%s)" % (exper, savedir or "manual")
+print "============================================================"
 trainer.train(train_iters)
 
 if savedir is not None:
