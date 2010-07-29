@@ -141,19 +141,28 @@ class parameter (object):
     def iterstats(self):
         return self.updater.iterstats()
     
-    def iter_state_prop(prop):
-        def iter(self):
+    def iter_state_get(prop):
+        def xiter(self):
             for state in self.states:
                 xs = getattr(state, prop)
                 for x in xs.flat: yield x
-        return iter
+        return xiter
 
-    x       = property(iter_state_prop('x'))
-    dx      = property(iter_state_prop('dx'))
-    ddx     = property(iter_state_prop('ddx'))
-    deltax  = property(iter_state_prop('deltax'))
-    ddeltax = property(iter_state_prop('ddeltax'))
-    epsilon = property(iter_state_prop('epsilon'))
+    def iter_state_set(prop):
+        def xiter(self, vals):
+            for state in self.states:
+                xs = getattr(state, prop)
+                vals = iter(vals)
+                for i in range(xs.size):
+                    xs.flat[i] = vals.next()
+        return xiter
+
+    x       = property(iter_state_get('x'),       iter_state_set('x'))
+    dx      = property(iter_state_get('dx'),      iter_state_set('dx'))
+    ddx     = property(iter_state_get('ddx'),     iter_state_set('ddx'))
+    deltax  = property(iter_state_get('deltax'),  iter_state_set('deltax'))
+    ddeltax = property(iter_state_get('ddeltax'), iter_state_set('ddeltax'))
+    epsilon = property(iter_state_get('epsilon'), iter_state_set('epsilon'))
 
     def _get_name(self): return self._name.contents
     def _set_name(self, v): self._name.contents = v
@@ -225,7 +234,7 @@ class gd_update (parameter_update):
         if self.norm_grad:
             step_coeff /= max(grad_norm, eta)
         
-        if self.max_iters >= 0 and p.age >= self.max_iters:
+        if self.max_iters >= 0 and p.age > self.max_iters:
             self.stop_code = 'iteration limit reached'
         if grad_norm < self.grad_thresh:
             self.stop_code = 'gradient threshold reached'
@@ -391,17 +400,24 @@ class parameter_container (object):
                 r[name + ' ' + k] = v
         return r
 
-    def iter_state_prop(prop):
-        def iter(self):
+    def iter_param_get(prop):
+        def xiter(self):
             for p in self.params:
-                for state in p.states:
-                    xs = getattr(state, prop)
-                    for x in xs.flat: yield x
-        return iter
+                for x in getattr(p, prop):
+                    yield x
+        return xiter
+
+    def iter_param_set(prop):
+        def xiter(self, vals):
+            vals = iter(vals)
+            for p in self.params:
+                setattr(p, prop, vals)
+        return xiter
     
-    x       = property(iter_state_prop('x'))
-    dx      = property(iter_state_prop('dx'))
-    ddx     = property(iter_state_prop('ddx'))
-    deltax  = property(iter_state_prop('deltax'))
-    ddeltax = property(iter_state_prop('ddeltax'))
-    epsilon = property(iter_state_prop('epsilon'))
+    x       = property(iter_param_get('x'),       iter_param_set('x'))
+    dx      = property(iter_param_get('dx'),      iter_param_set('dx'))
+    ddx     = property(iter_param_get('ddx'),     iter_param_set('ddx'))
+    deltax  = property(iter_param_get('deltax'),  iter_param_set('deltax'))
+    ddeltax = property(iter_param_get('ddeltax'), iter_param_set('ddeltax'))
+    epsilon = property(iter_param_get('epsilon'), iter_param_set('epsilon'))
+

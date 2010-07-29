@@ -12,6 +12,7 @@ class eb_dsource (object):
         inp = state(()); outp = state(())
         self.fprop(inp, outp)
         return (inp.shape, outp.shape)
+    def __len__(self):  return self.size()
 
 class dsource_unsup (eb_dsource):
     def __init__(self, inputs, bias = 0., coeff = 1.):
