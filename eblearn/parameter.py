@@ -206,7 +206,7 @@ class gd_update (parameter_update):
             state.x += coeff * g
     
     def _step_direction(self, p, dostep = True):
-        ''' internal - returns (gradient, |gradient|, and step) '''
+        ''' internal - returns (gradient, step size) '''
         age         = p.age
         eta         = self.eta
         anneal_time = self.anneal_time
@@ -214,7 +214,7 @@ class gd_update (parameter_update):
         decay_l2    = self.decay_l2
         inertia     = self.inertia
         states      = p.states
-
+        
         if anneal_time > 0 and (age % anneal_time) == 0:
             eta /= 1. + (self.anneal_amt * age / anneal_time)
         

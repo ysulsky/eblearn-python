@@ -27,17 +27,18 @@ class eb_trainer (object):
     def __init__(self, parameter, machine, ds_train,
                  ds_valid          = None, 
                  valid_interval    = 2000,
-                 valid_iter        = -1,
+                 valid_iters       = -1,
                  valid_err_tol     = 0.1,
                  report_interval   = 2000,
                  hess_interval     = 2000,
-                 hess_iter         = 500,
+                 hess_iters        = 500,
                  hess_mu           = 0.02,
-                 backup_interval   = 0,
+                 backup_interval   = -1,
                  backup_location   = '.',
                  backup_name       = 'machine',
                  keep_log          = True,
                  do_normalization  = False,
+                 complete_training = True,
                  quiet             = False,
                  auto_forget       = True,
                  verbose           = False):
@@ -46,7 +47,7 @@ class eb_trainer (object):
         self.__dict__.update(vals)
         
         if not backup_location:
-            self.backup_interval = 0
+            self.backup_interval = -1
         
         if quiet: self.verbose = False
         
@@ -68,6 +69,7 @@ class eb_trainer (object):
         
         self.msg = eb_trainer.reporter(self)
         self.clear_log()
+        self.clear_stop()
 
         self._tracked_stats = []
         self.track_stats(machine)
@@ -77,8 +79,10 @@ class eb_trainer (object):
         self.train_stats    = None
         if self.keep_log:
             if self.valid_interval > 0:
-                self.valid_loss  = abuffer((1,2))
-            self.train_stats  = {'training loss': abuffer()}
+                self.valid_loss = abuffer((50, 2))
+            self.train_stats = {'training loss': abuffer()}
+        self.last_stop      = None
+        self.last_valid     = np.infty
 
     def track_stats(self, mod):
         if not self.keep_log: return
@@ -88,65 +92,98 @@ class eb_trainer (object):
                 stat_name = mod._name.contents + ' ' + k
                 self.train_stats[stat_name] = [np.nan] * self.age
         self._tracked_stats.append((mod._name, stats))
+
+    def clear_stop(self):
+        self.stop_code = None
     
-    def train(self, maxiter = 0):
+    def stop_reason(self):
+        return self.stop_code
+    
+    def train(self, niters = -1):
         self.train_num += 1
         self.age = 0
         self.msg = eb_trainer.reporter(self)
         self.clear_log()
+        self.clear_stop()
         self.ds_train.seek(0)
         self.parameter.reset()
         if self.auto_forget:
             self.machine.forget()
-        self.train_online(maxiter)
+        self.train_online(niters)
     
-    def append_stats(self, stats, prefix=''):
+    def log_stats(self):
         if not self.keep_log: return
-        stat_logs = self.train_stats
-        for k, v  in stats.items():
-            k = prefix + k
-            log = stat_logs.get(k)
-            if log is None:
-                stat_logs[k] = log = abuffer()
-            log.append(v)
+        
+        train_stats = self.train_stats
+        def append_stats(stats, prefix = None):
+            for k, v in stats.items():
+                if prefix is not None: k = prefix+k
+                log = train_stats.get(k)
+                if log is None: train_stats[k] = log = abuffer()
+                log.append(v)
+        
+        train_stats['training loss'].append(self.energy.x[0])
+        append_stats(self.parameter.iterstats())
+        for (nameref, stats) in self._tracked_stats:
+            append_stats(stats, nameref.contents + ' ')
     
-    def average_stats(self, num = None):
+    def average_stats(self, num = None, stats = None):
         if not self.keep_log: return {}
         ret = {}
-        for k, log in self.train_stats.iteritems():
+        if stats is None: stats = self.train_stats.iterkeys()
+        for stat in stats:
+            log = self.train_stats.get(stat)
+            if log is None: continue
             assert(len(log) == self.age)
             if num is not None: log = log[-num:]
-            ret['avg. '+k] = np.mean(log, 0)
+            ret['avg. '+stat] = np.mean(log, 0)
         return ret
     
-    def train_online(self, maxiter = 0):
+    def backup_machine(self):
+        fname = '%s/%s_%d.obj' % (self.backup_location,
+                                  self.backup_name, self.age)
+        pickle.dump(self.machine, open(fname, 'wb'),
+                    protocol = pickle.HIGHEST_PROTOCOL)
+    
+    def report_stats(self):
+        msg   = self.msg
+        stats = None if self.verbose else ('training loss',)
+        avg_stats = self.average_stats(self.report_interval, stats)
+        for field in sorted(avg_stats):
+            msg('%s = %g' % (field, avg_stats[field]))
+    
+    def train_online(self, niters = -1):
         if not self.quiet:
             print 'Starting training on %s%s' % \
                   (time.asctime(),
-                   ' (max %d iterations)' % maxiter if maxiter else '')
-
+                   ' (max %d iterations)' % (niters,) if niters >= 0 else '')
+        
         parameter       = self.parameter
-
+        
+        age             = self.age
         msg             = self.msg
         hess_interval   = self.hess_interval
         report_interval = self.report_interval
         valid_interval  = self.valid_interval
-        valid_err_tol   = self.valid_err_tol
         backup_interval = self.backup_interval
-        prev_vld_loss   = None
         keep_training   = True
-        stop_condition  = None
-
-        training_loss_log = None
-        if self.keep_log:
-            training_loss_log = self.train_stats['training loss']
         
         if hess_interval <= 0: parameter.set_epsilon(1.)
         else:                  self.compute_diag_hessian()
         
-        stop_age = self.age + maxiter
+        stop_age     = age + niters
+        min_finished = self.ds_train.size() if self.complete_training else 0
         
-        while True:
+        while age != stop_age and (keep_training or age < min_finished):
+
+            if not keep_training:
+                reason = self.stop_reason()
+                if self.last_stop is None:
+                    msg('%s, but continuing with remaining samples' % (reason,))
+                self.last_stop = reason
+                self.clear_stop()
+                keep_training = True
+            
             self.age += 1
             age = self.age
             
@@ -154,62 +191,36 @@ class eb_trainer (object):
                 self.compute_diag_hessian()
             
             keep_training = self.train_sample()
-            if not keep_training:
-                stop_condition = parameter.stop_reason()
+
+            self.log_stats()
             
-            if self.keep_log:
-                training_loss_log.append(self.energy.x[0])
-                self.append_stats(parameter.iterstats())
-                for (nameref, stats) in self._tracked_stats:
-                    self.append_stats(stats, prefix=nameref.contents+' ')
-                
-                if report_interval > 0 and (age % report_interval) == 0:
-                    if self.verbose:
-                        avg_stats = self.average_stats(report_interval)
-                        for field in sorted(avg_stats):
-                            msg('%s = %g' % (field, avg_stats[field]))
-                    else:
-                        avloss = np.mean(training_loss_log[-report_interval:])
-                        msg('avg. training loss = %g' % avloss)
+            if report_interval > 0 and (age % report_interval) == 0:
+                self.report_stats()
             
             if valid_interval > 0 and (age % valid_interval) == 0:
-                vld_loss = self.validate()
-                if self.valid_loss is not None:
-                    self.valid_loss.append((age, vld_loss))
-                msg('validation loss = %g' % vld_loss)
-
-                if valid_err_tol >= 0 and prev_vld_loss is not None:
-                    if vld_loss - prev_vld_loss > valid_err_tol * prev_vld_loss:
-                        msg('stopping due to increased validation loss')
-                        keep_training = False
-                        
-                prev_vld_loss = vld_loss
-
-            if backup_interval > 0 and (age % backup_interval) == 0:
-                fname = '%s/%s_%d.obj' % (self.backup_location, 
-                                          self.backup_name,
-                                          age // backup_interval)
-                pickle.dump(self.machine, open(fname, 'wb'),
-                            protocol = pickle.HIGHEST_PROTOCOL)
-
-            if stop_condition is not None:
-                msg('stopping because condition was reached: %s' % (stop_condition,))
-                if self.verbose:
-                    for field in sorted(self.train_stats):
-                        lastval = self.train_stats[field][-1]
-                        msg('last iteration: %s = %g' % (field, lastval))
+                valid_ok, valid_loss = self.validate()
+                keep_training = keep_training and valid_ok
+                msg('validation loss = %g' % (valid_loss,))
             
-            if age == stop_age:
-                msg('stopping after %d iterations' % maxiter)
-                keep_training = False
+            if backup_interval > 0 and (age % backup_interval) == 0:
+                self.backup_machine()
             
             self.ds_train.next()
-            
-            if not keep_training: break
+        
+        
+        if not keep_training:
+            msg('stopping because %s' % (self.stop_reason(),))
+            if self.verbose:
+                for field in sorted(self.train_stats):
+                    lastval = self.train_stats[field][-1]
+                    msg('last iteration: %s = %g' % (field, lastval))
+        
+        if age == stop_age:
+            msg('completed %d iterations' % (niters,))
         
         if not self.quiet:
             print 'Ended training on %s'%(time.asctime())
-
+    
     def _fprop_bprop(self):
         machine, energy = self.machine, self.energy
         input, target   = self.input, self.target
@@ -227,11 +238,14 @@ class eb_trainer (object):
         if self.do_normalization:
             machine.normalize()
         
+        if not keep_training:
+            self.stop_code = self.parameter.stop_reason()
+        
         return keep_training
 
     def train_sample_bbprop(self):
         machine, energy = self.machine, self.energy
-        knew = 1.0 / self.hess_iter
+        knew = 1.0 / self.hess_iters
         kold = 1.0
         
         self._fprop_bprop()
@@ -240,9 +254,10 @@ class eb_trainer (object):
         self.parameter.update_ddeltax(knew, kold)
     
     def compute_diag_hessian(self):
-        self.msg('computing diagonal Hessian approximation')
+        self.msg('computing diagonal Hessian approximation (%d iterations)'\
+                 % (self.hess_iters,))
         start_pos = self.ds_train.tell()
-        for i in xrange(self.hess_iter):
+        for i in xrange(self.hess_iters):
             self.train_sample_bbprop()
             self.ds_train.next()
         self.ds_train.seek(start_pos)
@@ -255,11 +270,9 @@ class eb_trainer (object):
             self.msg('done.')
     
     def validate(self):
-        assert (self.valid_interval > 0)
-        
         ds_valid = self.ds_valid
-
-        n = self.valid_iter
+        
+        n = self.valid_iters
         if n <= 0: n = ds_valid.size()
         
         machine, energy = self.machine, self.energy
@@ -271,8 +284,20 @@ class eb_trainer (object):
             machine.fprop(input, target, energy)
             tot_err += energy.x[0]
             ds_valid.next()
-
-        return tot_err / n
+        
+        tol, last_err = self.valid_err_tol, self.last_valid
+        err = tot_err / n
+        
+        good = True
+        if tol >= 0 and err - last_err > tol * last_err:
+            self.stop_code = 'validation loss increased'
+            good = False
+        
+        if self.valid_loss is not None:
+            self.valid_loss.append((self.age, err))
+        
+        self.last_valid = err
+        return good, err
 
 # for pickling
 reporter = eb_trainer.reporter
