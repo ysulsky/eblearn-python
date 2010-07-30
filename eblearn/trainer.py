@@ -179,7 +179,7 @@ class eb_trainer (object):
         stop_age     = age + niters
         min_finished = 0
         if self.complete_training:
-            min_finished = self.ds_train.size() - self.ds.tell()
+            min_finished = self.ds_train.size() - self.ds_train.tell()
         
         while age != stop_age and (keep_training or age < min_finished):
 
