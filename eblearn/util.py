@@ -4,6 +4,7 @@ from math import pi, sqrt
 from vecmath import *
 from idx import *
 from lush_mat import *
+import pickle
 
 np.seterr('raise')
 
@@ -39,6 +40,14 @@ def ensure_tuple(x):
     if isinstance(x, tuple): return x
     if isinstance(x, int):   return (x,)
     return tuple(x)
+
+def save_object(obj, dest):
+    if type(dest) == str: dest = open(dest, 'wb')
+    pickle.dump(obj, dest, protocol = pickle.HIGHEST_PROTOCOL)
+
+def load_object(loc):
+    if type(loc) == str: loc = open(loc, 'rb')
+    return pickle.load(loc)
 
 class abuffer (object):
     def __init__(self, n=(100,), dtype=rtype, initial=None):

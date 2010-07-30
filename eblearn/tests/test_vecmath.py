@@ -30,8 +30,8 @@ def cmp_slow_fast(name, *arg_dims, **kwargs):
     args1 = [np.random.random(dims)*4-2 for dims in arg_dims]
     args2 = [arg1.copy() for arg1 in args1]
 
-    args1_noncontig = [arg1.T.copy().T for arg1 in args1]
-    args2_noncontig = [arg2.T.copy().T for arg2 in args2]
+    args1_noncontig = [arg1.transpose().copy().transpose() for arg1 in args1]
+    args2_noncontig = [arg2.transpose().copy().transpose() for arg2 in args2]
 
     chg_scalars(args1);           chg_scalars(args2)
     chg_scalars(args1_noncontig); chg_scalars(args2_noncontig)

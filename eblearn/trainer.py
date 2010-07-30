@@ -1,7 +1,7 @@
 from eblearn import *
 from util import *
 
-import pickle, time
+import time
 
 class eb_trainer (object):
     
@@ -35,7 +35,6 @@ class eb_trainer (object):
                  hess_mu           = 0.02,
                  backup_interval   = -1,
                  backup_location   = '.',
-                 backup_name       = 'machine',
                  keep_log          = True,
                  do_normalization  = False,
                  complete_training = True,
@@ -139,11 +138,17 @@ class eb_trainer (object):
             ret['avg. '+stat] = np.mean(log, 0)
         return ret
     
-    def backup_machine(self):
-        fname = '%s/%s_%d.obj' % (self.backup_location,
-                                  self.backup_name, self.age)
-        pickle.dump(self.machine, open(fname, 'wb'),
-                    protocol = pickle.HIGHEST_PROTOCOL)
+    def backup_machine(self, dest = None):
+        if dest is None:
+            dest = '%s/%s_%d.obj' % (self.backup_location,
+                                     self.machine.name, self.age)
+        save_object(self.machine, dest)
+    
+    def backup_stats(self, dest = None):
+        if dest is None:
+            dest = '%s/%s_%d.obj' % (self.backup_location,
+                                     'train_stats', self.age)
+        save_object(self.train_stats, dest)
     
     def report_stats(self):
         msg   = self.msg
@@ -172,7 +177,9 @@ class eb_trainer (object):
         else:                  self.compute_diag_hessian()
         
         stop_age     = age + niters
-        min_finished = self.ds_train.size() if self.complete_training else 0
+        min_finished = 0
+        if self.complete_training:
+            min_finished = self.ds_train.size() - self.ds.tell()
         
         while age != stop_age and (keep_training or age < min_finished):
 
@@ -204,6 +211,7 @@ class eb_trainer (object):
             
             if backup_interval > 0 and (age % backup_interval) == 0:
                 self.backup_machine()
+                self.backup_stats()
             
             self.ds_train.next()
         

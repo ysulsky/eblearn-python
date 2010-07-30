@@ -35,10 +35,10 @@ class parameter (object):
             p.updater = self.ctor()
             return p.updater.step(p)
     
-    def __init__(self):
+    def __init__(self, name=None):
         self.id = parameter.cur_id
         parameter.cur_id += 1
-        self._name = ref('parameter(%d)' % (self.id,))
+        self._name = ref(name or 'parameter(%d)' % (self.id,))
         
         self.age       = 0
         self.states    = []

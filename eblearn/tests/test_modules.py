@@ -272,19 +272,13 @@ def test_module_2_1_jac_param (mod, sin1, sin2, sout, skip_bbprop=False):
     report_err(hes_fprop, hes_bprop,   "diag hessian param", hessian_tol)
     return (jac_fprop, jac_bprop, hes_fprop, hes_bprop)
 
-def pop_kwarg(kwargs, k, default=None):
-    v = default
-    if k in kwargs:
-        v = kwargs[k]; del kwargs[k]
-    return v
-
 def make_test_m11_jac(ctor):
     def test_jac(size, *args, **kwargs):
-        name = pop_kwarg(kwargs, 'name')
-        sin  = pop_kwarg(kwargs, 'use_input')
-        mod  = pop_kwarg(kwargs, 'use_mod')
-        rmin, rmax  = pop_kwarg(kwargs, 'rrange', (-2, 2))
-        skip_bbprop = pop_kwarg(kwargs, 'skip_bbprop', False)
+        name = kwargs.pop('name', None)
+        sin  = kwargs.pop('use_input', None)
+        mod  = kwargs.pop('use_mod', None)
+        rmin, rmax  = kwargs.pop('rrange', (-2, 2))
+        skip_bbprop = kwargs.pop('skip_bbprop', False)
         sout = state(())
         if sin is None:
             sin = state(size)
@@ -305,12 +299,12 @@ def make_test_m11_jac(ctor):
 def make_test_m21_jac(ctor):
     def test_jac(size1, size2=None, *args, **kwargs):
         if size2 is None: size2=size1
-        name = pop_kwarg(kwargs, 'name')
-        mod  = pop_kwarg(kwargs, 'use_mod')
-        sin1 = pop_kwarg(kwargs, 'use_input1')
-        sin2 = pop_kwarg(kwargs, 'use_input2')
-        rmin, rmax  = pop_kwarg(kwargs, 'rrange', (-2, 2))
-        skip_bbprop = pop_kwarg(kwargs, 'skip_bbprop', False)
+        name = kwargs.pop('name', None)
+        mod  = kwargs.pop('use_mod', None)
+        sin1 = kwargs.pop('use_input1', None)
+        sin2 = kwargs.pop('use_input2', None)
+        rmin, rmax  = kwargs.pop('rrange', (-2, 2))
+        skip_bbprop = kwargs.pop('skip_bbprop', False)
         sout = state(())
         if sin1 is None:
             sin1 = state(size1)

@@ -87,10 +87,10 @@ param = machine.parameter
 
 hessian_interval = 2000 # 0 disables
 
-trainer = eb_trainer(param, ebm_2(machine, cost), ds_train,
+trainer = eb_trainer(param, ebm_2(machine, cost, name='machine+cost'), ds_train,
                      ds_valid = ds_valid,
                      backup_location = '/tmp',
-#                    backup_interval = 2000,
+                     backup_interval = 2000,
                      hess_interval = hessian_interval,
                      verbose = True,
 #                    report_interval = 1,
@@ -98,7 +98,6 @@ trainer = eb_trainer(param, ebm_2(machine, cost), ds_train,
 
 gd_params = dict (
     eta = 0.5 if linesearch else 0.01
-,   norm_grad = False
 ,   debugging = True
 )
 

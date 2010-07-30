@@ -17,7 +17,9 @@ class eb_module (object):
         
         myclass   = self.__class__
         classname = myclass.__name__
-        self._name = ref('%s(%d)' % (classname, self.id))
+        
+        name = kwargs.pop('name', '%s(%d)' % (classname, self.id))
+        self._name = ref(name)
         self._stats = None
         
         if eb_module.init_lvl == 0:

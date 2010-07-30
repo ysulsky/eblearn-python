@@ -138,6 +138,7 @@ class psd_codec (module_2_1):
                            keep_log         = False,
                            do_normalization = False,
                            quiet            = True,
+                           complete_training= False,
                            auto_forget      = False)
             self.code_trainer.input  = self.code
 
