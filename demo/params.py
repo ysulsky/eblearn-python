@@ -1,4 +1,6 @@
-exper  = 1
+#!./run ##############################################################
+
+exper_nr  = 1
 
 debugging    = False
 eblearn_path = '../'
@@ -74,6 +76,6 @@ train_file      = "tr-berkeley-N50K-M9x9.mat"
 
 
 ######################################################################
-script  = 'run_psd.py'
+script  = './run_psd.py'
 outputs = './outputs'
 
