@@ -1,4 +1,9 @@
 import numpy as np
 
-# also change me in _util.pxd
-rtype = np.float64
+if NPY_RTYPE == np.NPY_DOUBLE:
+    rtype = np.float64
+else:
+    rtype = np.float32
+
+
+

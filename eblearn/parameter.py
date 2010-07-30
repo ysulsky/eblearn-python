@@ -126,12 +126,15 @@ class parameter (object):
     
     def update_deltax(self, knew, kold):
         for state in self.states:
-            state.deltax = kold * state.deltax + knew * state.dx
+            deltax = state.deltax
+            mdotc(deltax,   kold, deltax)
+            mdotc(state.dx, knew, deltax, True)
     
     def update_ddeltax(self, knew, kold):
-        assert (np.all(np.all(state.ddx > -1e-6) for state in self.states))
         for state in self.states:
-            state.ddeltax = kold * state.ddeltax + knew * state.ddx
+            ddeltax = state.deltax
+            mdotc(ddeltax,   kold, ddeltax)
+            mdotc(state.ddx, knew, ddeltax, True)
     
     def update(self):
         self.age += 1
@@ -203,7 +206,7 @@ class gd_update (parameter_update):
     def _perform_step(self, p, grad, coeff):
         states = p.states
         for (g, state) in zip(grad,states):
-            state.x += coeff * g
+            mdotc(g, coeff, state.x, True)
     
     def _step_direction(self, p, dostep = True):
         ''' internal - returns (gradient, step size) '''
@@ -220,11 +223,11 @@ class gd_update (parameter_update):
         
         if age >= self.decay_time:
             if decay_l2 > 0:
-                for state in states: 
-                    state.dx += state.x * decay_l2
+                for state in states:
+                    mdotc(        state.x,  decay_l2, state.dx, True)
             if decay_l1 > 0:
-                for state in states: 
-                    state.dx += np.sign(state.x) * decay_l1
+                for state in states:
+                    mdotc(np.sign(state.x), decay_l1, state.dx, True)
         
         grad = None
         if inertia == 0:

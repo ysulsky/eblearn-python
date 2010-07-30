@@ -96,7 +96,8 @@ def test():
         cmp_slow_fast('mkextmk', (3,1,2,1,1,2), (6,3,2,1,2,1),
                                  (3,1,2,1,1,2,   6,3,2,1,2,1))
         cmp_slow_fast('m2dotrows', (200,300), (200,300),)
-        cmp_slow_fast('copy_normrows', (256,3,3), speedtest=100)
+        cmp_slow_fast('copy_normrows', (256,3,3))
+        cmp_slow_fast('mdotc', (200,300), (), (200,300), speedtest=500)
     
     finally:
         fast_vecmath.__all__ = fast_fns
