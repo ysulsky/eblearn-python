@@ -109,7 +109,24 @@ def __page_stats(stats):
     stats.stream = pager.stdin
     stats.print_stats()
     stats.stream = sys.stdout
-    
+
+def open_interactive_shell():
+    try:
+        import IPython.Shell
+        IPython.Shell.IPShellEmbed()()
+    except ImportError:
+        import code
+        code.interact(local=globals())
+
+def uncaught_exception(exctype, value, tb):
+    print '==================================='
+    print '    *** Uncaught Exception ***'
+    print '==================================='
+    import traceback; traceback.print_exception(exctype, value, tb)
+    import pdb; pdb.post_mortem(tb)
+    open_interactive_shell()
+
+sys.excepthook = uncaught_exception
 
 try:
     if profiling:
@@ -131,14 +148,5 @@ finally:
     copy_code()
 
 if interactive:
-    __open_shell = None
-
-    try:
-        import IPython.Shell
-        __open_shell = IPython.Shell.IPShellEmbed()
-    except ImportError:
-        import code as __code
-        __open_shell = lambda: __code.interact(local=globals())
-
     globals().update(m_vars)
-    __open_shell()
+    open_interactive_shell()
