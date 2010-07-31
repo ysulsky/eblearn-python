@@ -228,7 +228,7 @@ def clean_outputs(outputs_dir):
     deleted = 0
     found_expers = False
     for exper_dir in os.listdir(outputs_dir):
-        m = re.match('exper([0-9]+)_(.*)_(.*)_(.*)', exper_dir)
+        m = re.match('^exper([0-9]+)_(.*)_(.*)_(.*)$', exper_dir)
         if m is None: continue
         found_expers = True
         exper_id, machine, date, time = m.groups()
