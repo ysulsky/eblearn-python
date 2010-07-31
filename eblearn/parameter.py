@@ -132,7 +132,7 @@ class parameter (object):
     
     def update_ddeltax(self, knew, kold):
         for state in self.states:
-            ddeltax = state.deltax
+            ddeltax = state.ddeltax
             mdotc(ddeltax,   kold, ddeltax)
             mdotc(state.ddx, knew, ddeltax, True)
     
