@@ -10,6 +10,7 @@ cdef extern from "numpy/arrayobject.h":
     cdef bint     PyArray_ISWRITEABLE(np.ndarray)
     cdef bint     PyArray_SAMESHAPE(np.ndarray, np.ndarray)
     cdef long     PyArray_SIZE(np.ndarray)
+    cdef long     PyArray_NBYTES(np.ndarray)
     cdef int      PyArray_ITEMSIZE(np.ndarray)
     cdef int      PyArray_TYPE(np.ndarray)
     cdef np.ndarray PyArray_ZEROS(int, np.npy_intp *dims, int, bint)

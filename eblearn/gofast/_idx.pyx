@@ -74,17 +74,14 @@ def narrow(np.ndarray x, int dim, int size, int offset = 0):
 
 @cython.boundscheck(False)
 def reverse(np.ndarray x):
-    cdef char *p
-    cdef int i, s
+    cdef int i
+    cdef long n = 0
+    for i in range(x.ndim):
+        if x.shape[i] < 1: return x
+        n += (x.shape[i] - 1) * x.strides[i]
     x = x[:]
+    x.data += n
     for i in range(x.ndim):
-        if x.shape[i] < 1:
-            return x
-    p = x.data
-    for i in range(x.ndim):
-        s = x.strides[i]
-        p += s * (x.shape[i]-1)
-        x.strides[i] = -s
-    x.data = p
+        x.strides[i] = -x.strides[i]
     return x
 
