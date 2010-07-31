@@ -16,8 +16,27 @@ def clear(np.ndarray m not None):
     size = PyArray_SIZE(m) * PyArray_ITEMSIZE(m)
     memset(p, 0, size)
 
-def sqmag(np.ndarray m not None):
-    ''' sqmag(m) = |m|^2 '''
+def sumabs(np.ndarray m not None):
+    ''' sumsq(m) = |m|^2 '''
+    cdef rtype_t *base
+    cdef rtype_t x, acc = 0.
+    cdef long i, size
+    
+    if not PyArray_ISCARRAY_RO(m) or (PyArray_TYPE(m) != NPY_RTYPE):
+        return abs(m).sum()
+    
+    base = <rtype_t*> m.data
+    size = PyArray_SIZE(m)
+    
+    for i in range(size):
+        x = base[i]
+        if x < 0: x = -x
+        acc += x
+    
+    return acc
+
+def sumsq(np.ndarray m not None):
+    ''' sumsq(m) = |m|^2 '''
     cdef rtype_t *base
     cdef rtype_t x, acc = 0.
     cdef long i, size
@@ -44,7 +63,7 @@ def sqdist(np.ndarray a not None, np.ndarray b not None):
     
     if not PyArray_ISCARRAY_RO(a) or (PyArray_TYPE(a) != NPY_RTYPE) or \
        not PyArray_ISCARRAY_RO(b) or (PyArray_TYPE(b) != NPY_RTYPE):
-        return sqmag(a - b)
+        return sumsq(a - b)
     
     base_a = <rtype_t*> a.data
     base_b = <rtype_t*> b.data
@@ -795,7 +814,7 @@ def normrows(np.ndarray m not None):
     cdef char *p
     cdef rtype_t x, v
     if not PyArray_ISCARRAY(m) or PyArray_TYPE(m) != NPY_RTYPE:
-        for r in m: r /= sqrt(sqmag(r))
+        for r in m: r /= sqrt(sumsq(r))
     else:
         rowsize = PyArray_SIZE(m) / m.shape[0]
         stride  = m.strides[0]

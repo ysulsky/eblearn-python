@@ -66,7 +66,7 @@ class penalty_l1 (no_params, module_1_1):
         self.average = average
     def fprop(self, input, energy):
         energy.resize((1,))
-        energy.x[0] = np.absolute(input.x).sum()
+        energy.x[0] = sumabs(input.x)
         if self.average: energy.x[0] /= input.size
     def bprop_input (self, input, energy):
         d = None
@@ -91,7 +91,7 @@ class penalty_l2 (no_params, module_1_1):
         self.average = average
     def fprop(self, input, energy):
         energy.resize((1,))
-        energy.x[0] = 0.5 * sqmag(input.x)
+        energy.x[0] = 0.5 * sumsq(input.x)
         if self.average: energy.x[0] /= input.size
     def bprop_input (self, input, energy):
         edx = energy.dx[0]

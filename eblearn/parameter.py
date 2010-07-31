@@ -236,7 +236,7 @@ class gd_update (parameter_update):
             p.update_deltax(inertia, 1.-inertia)
             grad = [state.deltax * state.epsilon for state in states]
         
-        grad_norm = sqrt(sum(sqmag(g) for g in grad))
+        grad_norm = sqrt(sum(sumsq(g) for g in grad))
         
         step_coeff = -eta
         if self.norm_grad:

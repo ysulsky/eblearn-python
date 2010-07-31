@@ -78,7 +78,8 @@ def test():
         fast_vecmath.__all__ = []
         reload(slow_vecmath)
 
-        cmp_slow_fast('sqmag',   (3,4,5) )
+        cmp_slow_fast('sumabs',  (3,4,5))
+        cmp_slow_fast('sumsq',   (3,4,5))
         cmp_slow_fast('sqdist',  (3,4,5), (3,4,5))
         cmp_slow_fast('dtanh',   (30,20,20))
         cmp_slow_fast('ddtanh',  (30,20,20))
@@ -97,7 +98,7 @@ def test():
                                  (3,1,2,1,1,2,   6,3,2,1,2,1))
         cmp_slow_fast('m2dotrows', (200,300), (200,300),)
         cmp_slow_fast('copy_normrows', (256,3,3))
-        cmp_slow_fast('mdotc', (200,300), (), (200,300), speedtest=500)
+        cmp_slow_fast('mdotc', (200,300), (), (200,300))
     
     finally:
         fast_vecmath.__all__ = fast_fns

@@ -2,8 +2,9 @@ from math import sqrt
 import numpy as np
 
 clear  = lambda x: x.fill(0)
-sqmag  = lambda x: np.square(x).sum()
-sqdist = lambda a, b: sqmag(a - b)
+sumabs = lambda x: abs(x).sum()
+sumsq  = lambda x: np.square(x).sum()
+sqdist = lambda a, b: sumsq(a - b)
 
 def dtanh(x):
     e = x.clip(-12, 12)
@@ -28,7 +29,7 @@ def m2dotrows(m1, m2, res=None, accumulate=False):
 
 def normrows(m):
     for r in m:
-        r /= sqrt(sqmag(r))
+        r /= sqrt(sumsq(r))
 
 def copy_normrows(m): # for testing
     x=m.copy()

@@ -28,8 +28,8 @@ def report_err (a, b, name, tol):
     rel_err = 2 * (thresh_less(d, abs(d), 1e-6))/((a+b) + 1e-6)
     max_rel_err = abs(rel_err).max()
     max_act_err = abs(d).max()
-    tot_rel_err = sqrt(sqmag(rel_err))
-    tot_act_err = sqrt(sqmag(d))
+    tot_rel_err = sqrt(sumsq(rel_err))
+    tot_act_err = sqrt(sumsq(d))
     report_str_err(max_rel_err, max_act_err,
                    'Max %s rel. (abs.) error' % (name,))
     #report_str_err(max_err, 'Total %s relative difference' % (name,))
