@@ -133,6 +133,8 @@ class convolution (module_1_1):
     def __init__(self, kernel_shape, conn_table):
         ''' out[j][] += in[i][] <*> kernel[k][]
             where conn_table[k] = (i,j) '''
+        kernel_shape = ensure_tuple(kernel_shape)
+        
         self.conn_table = np.asarray(conn_table, int)
         self.kernels    = self.param((len(conn_table),) + kernel_shape)
         self.feat_out   = 1 + self.conn_table[:,1].max()
@@ -147,6 +149,8 @@ class convolution (module_1_1):
         self.tbl_ikj = np.asarray([(a,k,b) for (k,(a,b)) in e(conn_table)], 'i')
         self.tbl_jki = np.asarray([(b,k,a) for (k,(a,b)) in e(conn_table)], 'i')
         self.tbl_ijk = np.asarray([(a,b,k) for (k,(a,b)) in e(conn_table)], 'i')
+        
+        self.dsize = 1 - np.asarray((1,) + kernel_shape, 'i')
     
     def forget(self):
         arg = self.forget_param
@@ -159,8 +163,9 @@ class convolution (module_1_1):
         normrows(self.kernels.x)
     
     def fprop(self, input, output):
-        out_shape = np.subtract(input.shape[1:], self.kernels.shape[1:]) + 1
-        output.resize((self.feat_out,) + tuple(out_shape))
+        out_shape    = self.dsize + input.shape
+        out_shape[0] = self.feat_out
+        output.resize(out_shape)
         clear(output.x)
         self.fcorr(self.tbl_ikj, input.x, self.kernels.x, output.x)
             
@@ -183,14 +188,17 @@ class back_convolution (convolution):
         return [(b,a) for (a,b) in encoder_table]
 
     def __init__(self, kernel_shape, conn_table):
+        kernel_shape = ensure_tuple(kernel_shape)
         super(back_convolution, self).__init__(kernel_shape, conn_table)
-
+        
         e = enumerate
         self.tbl_jik = np.asarray([(b,a,k) for (k,(a,b)) in e(conn_table)], 'i')
+        self.dsize = np.asarray((1,) + kernel_shape, 'i') - 1
         
     def fprop(self, input, output):
-        out_shape = np.subtract(input.shape[1:], 1) + self.kernels.shape[1:]
-        output.resize((self.feat_out,) + tuple(out_shape))
+        out_shape    = self.dsize + input.shape
+        out_shape[0] = self.feat_out
+        output.resize(out_shape)
         clear(output.x)
         self.bcorr(self.tbl_ikj, input.x, self.kernels.x, output.x)
     
