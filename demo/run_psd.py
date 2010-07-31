@@ -4,9 +4,6 @@ import eblearn as eb
 from   eblearn.psd  import psd_codec
 from   eblearn.util import *
 
-if 'savedir' not in globals():
-    savedir = None
-
 ######################################################################
 # DATASOURCE
 
@@ -92,7 +89,7 @@ encoder.parameter.name = 'encoder-param'
 decoder.parameter.name = 'decoder-param'
 
 print "============================================================"
-print "EXPERIMENT: #%d (%s)" % (exper, savedir or "manual")
+print "EXPERIMENT: #%d (%s)" % (exper_nr, savedir or 'manual run')
 print "============================================================"
 trainer.train(train_iters)
 

@@ -165,7 +165,10 @@ def run(params_file, interactive=False, profiling=False):
     exper_id = 'exper%d_%s_%s'%(params.exper_nr, machine,timestr)
     savedir = os.path.join(params.outputs, exper_id)
     os.makedirs(savedir)
-        
+    
+    params.exper_id = exper_id
+    params.savedir  = savedir
+    
     slnk = 'exper%d' % (params.exper_nr,)
     if os.path.exists(slnk): os.unlink(slnk)
     os.symlink(savedir, slnk)
@@ -174,7 +177,7 @@ def run(params_file, interactive=False, profiling=False):
     shutil.copyfile(exec_script, join_path(savedir, basename(exec_script)))
     
     sys.path = [savedir] + sys.path
-    m_vars = dict(exper_id = exper_id, savedir = savedir)
+    m_vars = {}
     
     try:
         if profiling:

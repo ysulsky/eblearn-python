@@ -76,6 +76,9 @@ train_file      = "tr-berkeley-N50K-M9x9.mat"
 
 
 ######################################################################
-script  = './run_psd.py'
-outputs = './outputs'
+script   = './run_psd.py'
+outputs  = './outputs'
+
+savedir  = None                                 # set by the run script
+exper_id = 'exper%d (manual run)' % (exper_nr,) # ditto
 
