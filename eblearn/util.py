@@ -17,7 +17,7 @@ try:
     from gofast._util import rtype
 except ImportError:
     print "+++ Warning: gofast isn't compiled."
-    rtype = np.float64
+    rtype = float
 
 class ref(object):
     __slots__ = ('contents')
@@ -29,6 +29,10 @@ array = lambda items: np.array(items, rtype)
 empty = lambda shape: np.empty(shape, rtype, 'C')
 zeros = lambda shape: np.zeros(shape, rtype, 'C')
 ones  = lambda shape: np.ones(shape, rtype, 'C')
+if rtype == float:
+    random = np.random.random
+else:
+    random = lambda shape: np.random.random(shape).astype(rtype)
 
 
 def ensure_dims(x, d):

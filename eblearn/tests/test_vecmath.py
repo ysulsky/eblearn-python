@@ -4,7 +4,7 @@ from time import clock
 
 from eblearn        import vecmath as slow_vecmath
 from eblearn.gofast import vecmath as fast_vecmath
-from eblearn.util   import debug_break
+from eblearn.util   import debug_break, random
 
 def cmp_slow_fast(name, *arg_dims, **kwargs):
     note = kwargs.get('note', '')
@@ -27,7 +27,7 @@ def cmp_slow_fast(name, *arg_dims, **kwargs):
             return speedup(n * 10, fn1, args1, fn2, args2)
         return "%s -> %s" % ((t2 - t1), (t3 - t2))
     
-    args1 = [np.random.random(dims)*4-2 for dims in arg_dims]
+    args1 = [random(dims)*4-2 for dims in arg_dims]
     args2 = [arg1.copy() for arg1 in args1]
 
     args1_noncontig = [arg1.transpose().copy().transpose() for arg1 in args1]

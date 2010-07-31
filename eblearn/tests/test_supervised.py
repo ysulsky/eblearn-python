@@ -1,4 +1,5 @@
-from eblearn import *
+from eblearn      import *
+from eblearn.util import *
 
 def map_inputs(f, x):
     return array([f(i) for i in x])
@@ -65,8 +66,8 @@ def plot(machine, train_ds, valid_ds = None):
 linesearch = False
 hidden = 512
 
-train_data = np.random.random((100,1))
-valid_data = np.random.random((50,1))
+train_data = random((100,1))
+valid_data = random((50,1))
 
 ds_train = dsource_sup(train_data, map_inputs(func, train_data))
 ds_train.normalize()

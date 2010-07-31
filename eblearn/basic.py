@@ -14,7 +14,7 @@ class linear (module_1_1):
         arg = self.forget_param
         fanin = self.w.shape[1]
         z = arg.lin_value / (fanin ** (1.0 / arg.lin_exponent))
-        self.w.x = np.random.random(self.w.shape) * (2*z) - z
+        self.w.x = random(self.w.shape) * (2*z) - z
 
     def normalize(self):
         normrows(self.w.x.T)
@@ -51,7 +51,7 @@ class bias_module (module_1_1):
     def forget(self):
         arg = self.forget_param
         z = arg.lin_value
-        self.b.x = np.random.random(self.b.shape) * (2*z) - z
+        self.b.x = random(self.b.shape) * (2*z) - z
     
     def normalize(self): pass
     
@@ -153,7 +153,7 @@ class convolution (module_1_1):
         p = 1. / arg.lin_exponent
         for j, kx in zip( self.conn_table[:,1], self.kernels.x ):
             z = arg.lin_value / ((self.fanin[j] * kx.size) ** p)
-            kx[:] = np.random.random(kx.shape) * (2*z) - z
+            kx[:] = random(kx.shape) * (2*z) - z
 
     def normalize(self):
         normrows(self.kernels.x)

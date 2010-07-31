@@ -44,7 +44,7 @@ def clear_param(p):
 
 def rand_param(p, rmin, rmax):
     for state in p.states:
-        state.x[:]=np.random.random(state.shape) * (rmax - rmin) + rmin
+        state.x[:]=random(state.shape) * (rmax - rmin) + rmin
 
 def mod_bprop(snd, mod, *args):
     mod.bprop(*args)
@@ -77,6 +77,7 @@ def jacobian_bwd_m_1_1_param (mod, sin, sout, snd=False):
 def jacobian_fwd_m_1_1 (mod, sin, sout, snd=False):
     jac = zeros((sin.size, sout.size))
     small = 1e-4 if snd else 1e-6
+    if rtype == np.float32: small *= 100
     sina  = state(sin.shape);     souta = state(sout.shape)
     sinb  = state(sin.shape);     soutb = state(sout.shape)
     sin_x = sin.x.ravel();
@@ -104,6 +105,7 @@ def jacobian_fwd_m_1_1 (mod, sin, sout, snd=False):
 def jacobian_fwd_m_1_1_param (mod, sin, sout, snd=False):
     jac = zeros((mod.parameter.size(), sout.size))
     small = 1e-4 if snd else 1e-6
+    if rtype == np.float32: small *= 100
     souta = state(sout.shape)
     soutb = state(sout.shape)
     i = -1
@@ -187,6 +189,7 @@ def jacobian_fwd_m_2_1 (mod, sin1, sin2, sout, snd=False):
     jac1 = zeros((sin1.size, sout.size))
     jac2 = zeros((sin2.size, sout.size))
     small = 1e-4 if snd else 1e-6
+    if rtype == np.float32: small *= 100
     sins = [sin1, sin2]; jacs = [jac1, jac2]
     if snd: mod.fprop(sin1, sin2, sout)
     for which in [0, 1]:
@@ -217,6 +220,7 @@ def jacobian_fwd_m_2_1 (mod, sin1, sin2, sout, snd=False):
 def jacobian_fwd_m_2_1_param (mod, sin1, sin2, sout, snd=False):
     jac = zeros((mod.parameter.size(), sout.size))
     small = 1e-4 if snd else 1e-6
+    if rtype == np.float32: small *= 100
     souta = state(sout.shape)
     soutb = state(sout.shape)
     i = -1
@@ -282,7 +286,7 @@ def make_test_m11_jac(ctor):
         sout = state(())
         if sin is None:
             sin = state(size)
-            sin.x[:] = np.random.random(sin.shape) * (rmax - rmin) + rmin
+            sin.x[:] = random(sin.shape) * (rmax - rmin) + rmin
         else:
             size = sin.shape
         if mod is None:
@@ -308,12 +312,12 @@ def make_test_m21_jac(ctor):
         sout = state(())
         if sin1 is None:
             sin1 = state(size1)
-            sin1.x[:] = np.random.random(sin1.shape) * (rmax - rmin) + rmin
+            sin1.x[:] = random(sin1.shape) * (rmax - rmin) + rmin
         else:
             size1 = sin.shape
         if sin2 is None:
             sin2 = state(size2)
-            sin2.x[:] = np.random.random(sin2.shape) * (rmax - rmin) + rmin
+            sin2.x[:] = random(sin2.shape) * (rmax - rmin) + rmin
         else:
             size2 = sin.shape
         if mod is None:
