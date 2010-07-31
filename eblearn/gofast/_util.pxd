@@ -15,6 +15,8 @@ cdef extern from "numpy/arrayobject.h":
     cdef int      PyArray_TYPE(np.ndarray)
     cdef np.ndarray PyArray_ZEROS(int, np.npy_intp *dims, int, bint)
     cdef np.ndarray PyArray_EMPTY(int, np.npy_intp *dims, int, bint)
+    cdef void     PyArray_UpdateFlags(np.ndarray, int)
+    
 
 cdef extern from "math.h":
     cdef double  exp(double)

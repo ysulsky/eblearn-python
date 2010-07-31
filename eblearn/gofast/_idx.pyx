@@ -11,7 +11,7 @@ def unfold(np.ndarray x, int dim, int size, int step):
     cdef int dimlen, n, s, i
     assert (size > 0 and step > 0), 'size and step must be positive'
     assert (x.ndim > dim >= 0), 'dim is out of bounds'
-    x = x[None] # add another dimension, don't modify x
+    x = x[None] # add another dimension, don't modify x (sets non-contig flag)
     dim   += 1
     dimlen = x.shape[dim]
     n = (dimlen - size) / step
@@ -59,6 +59,7 @@ def select(np.ndarray x, int dim, int idx):
             ret.shape[i]   = ret.shape[i-1]
         ret.strides[0] = stride
         ret.shape[0] = size
+    PyArray_UpdateFlags(ret, np.NPY_C_CONTIGUOUS)
     return ret
 
 
@@ -83,5 +84,6 @@ def reverse(np.ndarray x):
     x.data += n
     for i in range(x.ndim):
         x.strides[i] = -x.strides[i]
+    PyArray_UpdateFlags(x, np.NPY_C_CONTIGUOUS)
     return x
 
