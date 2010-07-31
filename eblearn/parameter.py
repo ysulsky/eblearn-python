@@ -372,7 +372,7 @@ class parameter_container (object):
         for p in self.params: p.restore()
 
     def stop_reason(self):
-        reasons = [p.stop_reason() for p in self.params]
+        reasons = [p.name+': '+p.stop_reason() for p in self.params]
         return '(%s)' % (', '.join(reasons))
 
     def size(self):
@@ -432,3 +432,7 @@ class parameter_container (object):
     ddeltax = property(iter_param_get('ddeltax'), iter_param_set('ddeltax'))
     epsilon = property(iter_param_get('epsilon'), iter_param_set('epsilon'))
 
+    def _get_name(self):
+        return '(%s)'%(', '.join([p.name for p in self.params]),)
+    
+    name    = property(_get_name)
