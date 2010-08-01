@@ -182,8 +182,8 @@ def m1ldot(np.ndarray a not None, np.ndarray b not None):
     ''' m1ldot(m1, m2) = sum_i (m1_i * m2_i) '''
     assert (a.ndim == 1 and b.ndim == 1), "wrong dimensions"
     assert (a.shape[0] == b.shape[0]),    "shapes don't match"
-    a = cvt(a, NPY_RTYPE, np.NPY_CONTIGUOUS)
-    b = cvt(b, NPY_RTYPE, np.NPY_CONTIGUOUS)
+    a = cvt(a, NPY_RTYPE, 0)
+    b = cvt(b, NPY_RTYPE, 0)
     return c_m1ldot(a.data, b.data, a.shape[0],
                     a.strides[0], b.strides[0])
 
@@ -194,8 +194,8 @@ def m2ldot(np.ndarray a not None, np.ndarray b not None):
     assert (a.ndim == 2 and b.ndim == 2), "wrong dimensions"
     assert (a.shape[0] == b.shape[0] and 
             a.shape[1] == b.shape[1]),    "shapes don't match"
-    a = cvt(a, NPY_RTYPE, np.NPY_CONTIGUOUS)
-    b = cvt(b, NPY_RTYPE, np.NPY_CONTIGUOUS)
+    a = cvt(a, NPY_RTYPE, 0)
+    b = cvt(b, NPY_RTYPE, 0)
     return c_m2ldot(a.data, b.data,
                     a.shape[0], a.shape[1],
                     a.strides[0], a.strides[1],
@@ -207,8 +207,8 @@ def m3ldot(np.ndarray a not None, np.ndarray b not None):
     assert(a.shape[0] == b.shape[0] and
            a.shape[1] == b.shape[1] and
            a.shape[2] == b.shape[2]),     "shapes don't match"
-    a = cvt(a, NPY_RTYPE, np.NPY_CONTIGUOUS)
-    b = cvt(b, NPY_RTYPE, np.NPY_CONTIGUOUS)
+    a = cvt(a, NPY_RTYPE, 0)
+    b = cvt(b, NPY_RTYPE, 0)
     return c_m3ldot(a.data, b.data,
                     a.shape[0], a.shape[1], a.shape[2],
                     a.strides[0], a.strides[1], a.strides[2],
@@ -223,7 +223,7 @@ def ldot(np.ndarray a not None, np.ndarray b not None):
     if ndim == 2: return m2ldot(a, b)
     if ndim == 3: return m3ldot(a, b)
     assert (PyArray_SAMESHAPE(a, b)), "shapes don't match"
-    return np.sum(a * b)
+    return m1ldot(a.ravel(), b.ravel())
 
 
 cdef np.ndarray c_m2dotm1(np.ndarray m1, np.ndarray m2,

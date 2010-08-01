@@ -55,25 +55,25 @@ def cmp_slow_fast(name, *arg_dims, **kwargs):
     cmsg = 'SLOW vs. FAST (contiguous%s)    : %s' % (note, name)
     nmsg = 'SLOW vs. FAST (non-contiguous%s): %s' % (note, name)
 
+    cspd  = nspd  = ''
     cpass = npass = 'FAIL'
+    
     if ctg_err < 1e-6:
+        cpass = 'pass'
         if speedtest:
             su = speedup(speedtest, slow_fn, args1, fast_fn, args2)
-            cpass = 'pass (%s)' % su
-        else:
-            cpass = 'pass'
-
+            cspd = '\n%s: %s' % ('...speed test ', su)
+    
     if nctg_err < 1e-6:
+        npass = 'pass'
         if speedtest:
             su = speedup(speedtest,
                          slow_fn, args1_noncontig,
                          fast_fn, args2_noncontig)
-            npass = 'pass (%s)' % su
-        else:
-            npass = 'pass'
+            nspd = '\n%s: %s' % ('...speed test ', su)
     
-    print '%-45s error = %-15g %10s' % (cmsg, ctg_err,  cpass)
-    print '%-45s error = %-15g %10s' % (nmsg, nctg_err, npass)
+    print '%-45s error = %-15g %10s%s' % (cmsg, ctg_err,  cpass, cspd)
+    print '%-45s error = %-15g %10s%s' % (nmsg, nctg_err, npass, nspd)
 
 def test():
     fast_fns = fast_vecmath.__all__
@@ -94,6 +94,7 @@ def test():
         cmp_slow_fast('m1ldot',  (5,), (5,))
         cmp_slow_fast('m2ldot',  (30,50), (30,50))
         cmp_slow_fast('m3ldot',  (3,4,5), (3,4,5))
+        cmp_slow_fast('ldot',    (30,2,5,2), (30,2,5,2))
         cmp_slow_fast('m1extm1', (30,), (400,), (30,400))
         cmp_slow_fast('m2extm2', (3,4), (5,6), (3,4,5,6))
         cmp_slow_fast('m3extm3', (3,4,5), (6,7,8), (3,4,5,6,7,8))

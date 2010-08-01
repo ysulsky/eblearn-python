@@ -19,8 +19,8 @@ def ddtanh(x, out = None):
     return out
 
 def ldot(m1, m2):
-    return np.sum(m1 * m2)
-    
+    return np.dot(m1.ravel(), m2.ravel())
+
 m1ldot = np.dot
 m2ldot = m3ldot = ldot
 
