@@ -96,7 +96,7 @@ def check_params_file(f):
 
     return True
 
-py_import_exts = ('.py', '.so', '.dll', '.dylib')
+py_import_exts = ('.py', '.so', '.pyd', '.dylib')
 def import_file(fname):
     fname = expand_path(fname)
     fdir  = os.path.dirname(fname)

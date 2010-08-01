@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from eblearn     import *
 from eblearn.psd import *
 

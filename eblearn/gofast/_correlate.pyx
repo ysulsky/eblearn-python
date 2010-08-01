@@ -9,7 +9,7 @@ from _vecmath cimport *
 from _vecmath import *
 
 import scipy.signal
-from eblearn.idx import *
+from _idx import *
 
 import_array()
 

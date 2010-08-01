@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from eblearn import *
 
 # test (g(f))'' instead of f'' to ensure a non-zero second derivative
