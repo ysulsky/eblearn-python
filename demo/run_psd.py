@@ -1,4 +1,4 @@
-from params         import *
+from   params       import *
 
 import eblearn as eb
 from   eblearn.psd  import psd_codec
@@ -94,9 +94,8 @@ print "============================================================"
 trainer.train(train_iters)
 
 if savedir is not None:
-    import pickle
-    pickle.dump(machine, open(savedir + '/machine.obj', 'wb'),
-                protocol = pickle.HIGHEST_PROTOCOL)
+    save_object(machine, savedir + '/machine.obj')
+
 
 def plot():
     import plots
