@@ -1,31 +1,100 @@
 cimport cython
 cimport numpy as np
 
+cdef extern from "Python.h":
+    void Py_INCREF(object)
+    void Py_XINCREF(object)
+    void Py_DECREF(object)
+    void Py_XDECREF(object)
+
 cdef extern from "numpy/arrayobject.h":
-    cdef void import_array()
-    cdef bint     PyArray_ISCONTIGUOUS(np.ndarray)
-    cdef bint     PyArray_ISBEHAVED(np.ndarray)
-    cdef bint     PyArray_ISCARRAY(np.ndarray)
-    cdef bint     PyArray_ISCARRAY_RO(np.ndarray)
-    cdef bint     PyArray_ISWRITEABLE(np.ndarray)
-    cdef bint     PyArray_SAMESHAPE(np.ndarray, np.ndarray)
-    cdef long     PyArray_SIZE(np.ndarray)
-    cdef long     PyArray_NBYTES(np.ndarray)
-    cdef int      PyArray_ITEMSIZE(np.ndarray)
-    cdef int      PyArray_TYPE(np.ndarray)
-    cdef np.ndarray PyArray_ZEROS(int, np.npy_intp *dims, int, bint)
-    cdef np.ndarray PyArray_EMPTY(int, np.npy_intp *dims, int, bint)
-    cdef void     PyArray_UpdateFlags(np.ndarray, int)
-    
+    void import_array()
+    bint     PyArray_ISCONTIGUOUS(np.ndarray)
+    bint     PyArray_ISBEHAVED(np.ndarray)
+    bint     PyArray_ISCARRAY(np.ndarray)
+    bint     PyArray_ISCARRAY_RO(np.ndarray)
+    bint     PyArray_ISWRITEABLE(np.ndarray)
+    bint     PyArray_ISONESEGMENT(np.ndarray)
+    bint     PyArray_FILLWBYTE(np.ndarray, int)
+    bint     PyArray_SAMESHAPE(np.ndarray, np.ndarray)
+    long     PyArray_SIZE(np.ndarray)
+    long     PyArray_NBYTES(np.ndarray)
+    int      PyArray_ITEMSIZE(np.ndarray)
+    int      PyArray_TYPE(np.ndarray)
+    np.ndarray PyArray_ZEROS(int, np.npy_intp *dims, int, bint)
+    np.ndarray PyArray_EMPTY(int, np.npy_intp *dims, int, bint)
+    void     PyArray_UpdateFlags(np.ndarray, int)
+
+    # steals a reference from dtype
+    np.ndarray PyArray_FromArray(np.ndarray, np.dtype, int) 
+
+ctypedef struct npy_intp2:
+     np.npy_intp d0, d1
+
+ctypedef struct npy_intp3:
+     np.npy_intp d0, d1, d2
+
+ctypedef struct npy_intp4:
+     np.npy_intp d0, d1, d2, d3
+
+ctypedef struct npy_intp5:
+     np.npy_intp d0, d1, d2, d3, d4
+
+ctypedef struct npy_intp6:
+     np.npy_intp d0, d1, d2, d3, d4, d5
+
+cdef inline PyArray_EMPTY1(np.npy_intp d0, int t):
+     return PyArray_EMPTY(1, &d0, t, 0)
+
+cdef inline PyArray_EMPTY2(np.npy_intp d0, np.npy_intp d1, int t):
+     cdef npy_intp2 d = dict(d0=d0, d1=d1)
+     return PyArray_EMPTY(2, <np.npy_intp*>&d, t, 0)
+     
+cdef inline PyArray_EMPTY3(np.npy_intp d0, np.npy_intp d1, np.npy_intp d2, 
+                           int t):
+     cdef npy_intp3 d = dict(d0=d0, d1=d1, d2=d2)
+     return PyArray_EMPTY(3, <np.npy_intp*>&d, t, 0)
+
+cdef inline PyArray_EMPTY4(np.npy_intp d0, np.npy_intp d1, np.npy_intp d2,
+                           np.npy_intp d3, int t):
+     cdef npy_intp4 d = dict(d0=d0, d1=d1, d2=d2, d3=d3)
+     return PyArray_EMPTY(4, <np.npy_intp*>&d, t, 0)
+
+cdef inline PyArray_EMPTY5(np.npy_intp d0, np.npy_intp d1, np.npy_intp d2,
+                           np.npy_intp d3, np.npy_intp d4, int t):
+     cdef npy_intp5 d = dict(d0=d0, d1=d1, d2=d2, d3=d3, d4=d4)
+     return PyArray_EMPTY(5, <np.npy_intp*>&d, t, 0)
+
+cdef inline PyArray_EMPTY6(np.npy_intp d0, np.npy_intp d1, np.npy_intp d2,
+                           np.npy_intp d3, np.npy_intp d4, np.npy_intp d5,
+                           int t):
+     cdef npy_intp6 d = dict(d0=d0, d1=d1, d2=d2, d3=d3, d4=d4, d5=d5)
+     return PyArray_EMPTY(6, <np.npy_intp*>&d, t, 0)
+
+cdef enum:
+    RESULTFLAGS = np.NPY_UPDATEIFCOPY | np.NPY_WRITEABLE
+
+cdef inline np.ndarray cvt(np.ndarray m, int npy_type, int flags):
+    cdef np.dtype t
+    if m is None: return None
+    t = np.PyArray_DescrFromType(npy_type)
+    Py_INCREF(t) # the following steals a reference
+    IF 1:
+        return PyArray_FromArray(m, t, flags)
+    ELSE:
+        m2 = PyArray_FromArray(m, t, flags)
+        if m2 is not m: print '+++ Warning: conversion happening'
+        return m2
+
 
 cdef extern from "math.h":
-    cdef double  exp(double)
-    cdef double  sqrt(double)
-    cdef double  log(double)
-    cdef double  tanh(double)
+    double  exp(double)
+    double  sqrt(double)
+    double  log(double)
+    double  tanh(double)
 
 cdef extern from "string.h":
-    cdef void*   memset(void*, int, size_t)
+    void*   memset(void*, int, size_t)
 
 
 IF 1:

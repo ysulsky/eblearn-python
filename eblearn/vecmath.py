@@ -6,13 +6,17 @@ sumabs = lambda x: abs(x).sum()
 sumsq  = lambda x: np.square(x).sum()
 sqdist = lambda a, b: sumsq(a - b)
 
-def dtanh(x):
+def dtanh(x, out = None):
     e = x.clip(-12, 12)
     np.exp(-2.*e, e)
-    return 4*e / np.square(e + 1)
+    if out is None: return 4*e / np.square(e + 1)
+    else:           out[:]=4*e / np.square(e + 1)
+    return out
 
-def ddtanh(x):
-    return -2.*np.tanh(x)*dtanh(x)
+def ddtanh(x, out = None):
+    out = dtanh(x, out)
+    out *= -2. * np.tanh(x)
+    return out
 
 def ldot(m1, m2):
     return np.sum(m1 * m2)

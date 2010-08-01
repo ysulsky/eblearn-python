@@ -8,13 +8,10 @@ from _util import *
 import_array()
 
 def clear(np.ndarray m not None):
-    cdef char *p
-    cdef long size
-    if not PyArray_ISCARRAY(m):
-        return m.fill(0)
-    p = m.data
-    size = PyArray_SIZE(m) * PyArray_ITEMSIZE(m)
-    memset(p, 0, size)
+    if PyArray_ISONESEGMENT(m):
+        PyArray_FILLWBYTE(m, 0)
+    else:
+        m.fill(0)
 
 def sumabs(np.ndarray m not None):
     ''' sumsq(m) = |m|^2 '''
@@ -22,8 +19,7 @@ def sumabs(np.ndarray m not None):
     cdef rtype_t x, acc = 0.
     cdef long i, size
     
-    if not PyArray_ISCARRAY_RO(m) or (PyArray_TYPE(m) != NPY_RTYPE):
-        return abs(m).sum()
+    m = cvt(m, NPY_RTYPE, np.NPY_CONTIGUOUS)
     
     base = <rtype_t*> m.data
     size = PyArray_SIZE(m)
@@ -41,8 +37,7 @@ def sumsq(np.ndarray m not None):
     cdef rtype_t x, acc = 0.
     cdef long i, size
     
-    if not PyArray_ISCARRAY_RO(m) or (PyArray_TYPE(m) != NPY_RTYPE):
-        return np.square(m).sum()
+    m = cvt(m, NPY_RTYPE, np.NPY_CONTIGUOUS)
     
     base = <rtype_t*> m.data
     size = PyArray_SIZE(m)
@@ -61,9 +56,8 @@ def sqdist(np.ndarray a not None, np.ndarray b not None):
     
     assert (PyArray_SAMESHAPE(a, b)), "shapes don't match"
     
-    if not PyArray_ISCARRAY_RO(a) or (PyArray_TYPE(a) != NPY_RTYPE) or \
-       not PyArray_ISCARRAY_RO(b) or (PyArray_TYPE(b) != NPY_RTYPE):
-        return sumsq(a - b)
+    a = cvt(a, NPY_RTYPE, np.NPY_CONTIGUOUS)
+    b = cvt(b, NPY_RTYPE, np.NPY_CONTIGUOUS)
     
     base_a = <rtype_t*> a.data
     base_b = <rtype_t*> b.data
@@ -105,26 +99,16 @@ def dtanh(np.ndarray x not None, np.ndarray out = None):
     cdef long i, size
     cdef np.ndarray e
 
-    if (PyArray_TYPE(x) != NPY_RTYPE):
-        x = x.astype(rtype)
-    if not PyArray_ISCARRAY_RO(x):
-        x = x.copy()
-    
-    assert (out is None or PyArray_SAMESHAPE(x, out)), "shapes don't match"
-    
-    if out is None or \
-       not PyArray_ISCARRAY(out) or (PyArray_TYPE(out) != NPY_RTYPE):
-        e = PyArray_EMPTY(x.ndim, x.shape, NPY_RTYPE, 0)
+    x = cvt(x, NPY_RTYPE, np.NPY_CONTIGUOUS)
+    if out is None:
+        e = out = PyArray_EMPTY(x.ndim, x.shape, NPY_RTYPE, 0)
     else:
-        e = out
+        assert (PyArray_SAMESHAPE(x, out)), "shapes don't match"
+        e = cvt(out, NPY_RTYPE, np.NPY_CONTIGUOUS | RESULTFLAGS)
     
     c_dtanh(<rtype_t*> x.data, PyArray_SIZE(x), <rtype_t*> e.data)
-    
-    if out is None or out is e:
-        return e
-
-    out[:] = e
     return out
+
 
 def ddtanh(np.ndarray x not None, np.ndarray out = None):
     ''' ddtanh(x) = -2 tanh(x) sech^2(x) '''
@@ -132,28 +116,15 @@ def ddtanh(np.ndarray x not None, np.ndarray out = None):
     cdef long i, size
     cdef np.ndarray e
 
-
-    if (PyArray_TYPE(x) != NPY_RTYPE):
-        x = x.astype(rtype)
-    if not PyArray_ISCARRAY_RO(x):
-        x = x.copy()
-    
-    assert (out is None or PyArray_SAMESHAPE(x, out)), "shapes don't match"
-    
-    if out is None or \
-       not PyArray_ISCARRAY(out) or (PyArray_TYPE(out) != NPY_RTYPE):
-        e = PyArray_EMPTY(x.ndim, x.shape, NPY_RTYPE, 0)
+    x = cvt(x, NPY_RTYPE, np.NPY_CONTIGUOUS)
+    if out is None:
+        e = out = PyArray_EMPTY(x.ndim, x.shape, NPY_RTYPE, 0)
     else:
-        e = out
+        assert (PyArray_SAMESHAPE(x, out)), "shapes don't match"
+        e = cvt(out, NPY_RTYPE, np.NPY_CONTIGUOUS | RESULTFLAGS)
     
     c_ddtanh(<rtype_t*> x.data, PyArray_SIZE(x), <rtype_t*> e.data)
-    
-    if out is None or out is e:
-        return e
-
-    out[:] = e
     return out
-
 
 cdef rtype_t c_m1ldot(char *a, char *b, int n, int a_s0, int b_s0):
     cdef int i
@@ -208,12 +179,11 @@ cdef rtype_t c_m3ldot(char *a,  char *b,
     return val
 
 def m1ldot(np.ndarray a not None, np.ndarray b not None):
-    ''' m2ldot(m1, m2) = sum_i (m1_i * m2_i) '''
+    ''' m1ldot(m1, m2) = sum_i (m1_i * m2_i) '''
     assert (a.ndim == 1 and b.ndim == 1), "wrong dimensions"
     assert (a.shape[0] == b.shape[0]),    "shapes don't match"
-    if not PyArray_ISCARRAY_RO(a) or PyArray_TYPE(a) != NPY_RTYPE or \
-       not PyArray_ISCARRAY_RO(b) or PyArray_TYPE(b) != NPY_RTYPE:
-        return np.dot(a, b)
+    a = cvt(a, NPY_RTYPE, np.NPY_CONTIGUOUS)
+    b = cvt(b, NPY_RTYPE, np.NPY_CONTIGUOUS)
     return c_m1ldot(a.data, b.data, a.shape[0],
                     a.strides[0], b.strides[0])
 
@@ -224,9 +194,8 @@ def m2ldot(np.ndarray a not None, np.ndarray b not None):
     assert (a.ndim == 2 and b.ndim == 2), "wrong dimensions"
     assert (a.shape[0] == b.shape[0] and 
             a.shape[1] == b.shape[1]),    "shapes don't match"
-    if not PyArray_ISCARRAY_RO(a) or PyArray_TYPE(a) != NPY_RTYPE or \
-       not PyArray_ISCARRAY_RO(b) or PyArray_TYPE(b) != NPY_RTYPE:
-        return np.sum(a * b)
+    a = cvt(a, NPY_RTYPE, np.NPY_CONTIGUOUS)
+    b = cvt(b, NPY_RTYPE, np.NPY_CONTIGUOUS)
     return c_m2ldot(a.data, b.data,
                     a.shape[0], a.shape[1],
                     a.strides[0], a.strides[1],
@@ -238,9 +207,8 @@ def m3ldot(np.ndarray a not None, np.ndarray b not None):
     assert(a.shape[0] == b.shape[0] and
            a.shape[1] == b.shape[1] and
            a.shape[2] == b.shape[2]),     "shapes don't match"
-    if not PyArray_ISCARRAY_RO(a) or PyArray_TYPE(a) != NPY_RTYPE or \
-       not PyArray_ISCARRAY_RO(b) or PyArray_TYPE(b) != NPY_RTYPE:
-        return np.sum(a * b)
+    a = cvt(a, NPY_RTYPE, np.NPY_CONTIGUOUS)
+    b = cvt(b, NPY_RTYPE, np.NPY_CONTIGUOUS)
     return c_m3ldot(a.data, b.data,
                     a.shape[0], a.shape[1], a.shape[2],
                     a.strides[0], a.strides[1], a.strides[2],
@@ -254,6 +222,7 @@ def ldot(np.ndarray a not None, np.ndarray b not None):
     if ndim == 1: return m1ldot(a, b)
     if ndim == 2: return m2ldot(a, b)
     if ndim == 3: return m3ldot(a, b)
+    assert (PyArray_SAMESHAPE(a, b)), "shapes don't match"
     return np.sum(a * b)
 
 
@@ -270,7 +239,6 @@ cdef np.ndarray c_m2dotm1(np.ndarray m1, np.ndarray m2,
     cdef int m2_s0
 
     ni, nj = m1.shape[0], m1.shape[1]
-    if res is None: res = PyArray_EMPTY(1, m1.shape, NPY_RTYPE, 0)
     
     res_s0 = res.strides[0]
     m1_s0  = m1.strides[0]
@@ -308,7 +276,6 @@ cdef np.ndarray c_m4dotm2(np.ndarray m1, np.ndarray m2,
     cdef int m2_s0, m2_s1
 
     ni, nj, nk, nl = m1.shape[0], m1.shape[1], m1.shape[2], m1.shape[3]
-    if res is None: res = PyArray_EMPTY(2, m1.shape, NPY_RTYPE, 0)
     
     res_s0 = res.strides[0]
     res_s1 = res.strides[1]
@@ -367,7 +334,6 @@ cdef np.ndarray c_m6dotm3(np.ndarray m1, np.ndarray m2,
 
     ni, nj, nk, nl, nm, nn = m1.shape[0], m1.shape[1], m1.shape[2], \
                              m1.shape[3], m1.shape[4], m1.shape[5]
-    if res is None: res = PyArray_EMPTY(3, m1.shape, NPY_RTYPE, 0)
     
     res_s0 = res.strides[0]
     res_s1 = res.strides[1]
@@ -432,57 +398,63 @@ def m2dotm1(np.ndarray m1 not None, np.ndarray m2 not None,
     ''' m2dotm1(m1, m2[, res[, accumulate]]):
              res_i = m1_ij * m2_j
     '''
+    cdef np.ndarray rr
     assert (m1.ndim == 2 and m2.ndim == 1),    "wrong dimensions"
     assert (m1.shape[1] == m2.shape[0]),       "shapes don't match"
     if res is not None:
-        assert (PyArray_ISWRITEABLE(res)),     "result isn't writeable"
         assert (res.ndim == 1 and
                 res.shape[0] == m1.shape[0]),  "shapes don't match"
-        assert (PyArray_TYPE(res) == NPY_RTYPE), "wrong result data type"
-    assert (PyArray_TYPE(m1) == NPY_RTYPE and \
-            PyArray_TYPE(m2) == NPY_RTYPE),      "wrong input data type" 
-    return c_m2dotm1(m1, m2, res, accumulate)
-
+        rr = cvt(res, NPY_RTYPE, RESULTFLAGS)
+    else:
+        rr = res = PyArray_EMPTY(1, m1.shape, NPY_RTYPE, 0)
+    m1 = cvt(m1, NPY_RTYPE, 0)
+    m2 = cvt(m2, NPY_RTYPE, 0)
+    c_m2dotm1(m1, m2, rr, accumulate)
+    return res
 
 def m4dotm2(np.ndarray m1 not None, np.ndarray m2 not None,
             np.ndarray res = None, bint accumulate = False):
     ''' m4dotm2(m1, m2[, res[, accumulate]]):
              res_ij = sum_kl (m1_ijkl * m2_kl)
     '''
+    cdef np.ndarray rr
     assert (m1.ndim == 4 and m2.ndim == 2),    "wrong dimensions"
     assert (m1.shape[2] == m2.shape[0] and
             m1.shape[3] == m2.shape[1]),       "shapes don't match"
     if res is not None:
-        assert (PyArray_ISWRITEABLE(res)),     "result isn't writeable"
         assert (res.ndim == 2 and
                 res.shape[0] == m1.shape[0] and
                 res.shape[1] == m1.shape[1]),  "shapes don't match"
-        assert (PyArray_TYPE(res) == NPY_RTYPE), "wrong result data type"
-    assert (PyArray_TYPE(m1) == NPY_RTYPE and \
-            PyArray_TYPE(m2) == NPY_RTYPE),      "wrong input data type" 
-    return c_m4dotm2(m1, m2, res, accumulate)
-
+        rr = cvt(res, NPY_RTYPE, RESULTFLAGS)
+    else:
+        rr = res = PyArray_EMPTY(2, m1.shape, NPY_RTYPE, 0)
+    m1 = cvt(m1, NPY_RTYPE, 0)
+    m2 = cvt(m2, NPY_RTYPE, 0)
+    c_m4dotm2(m1, m2, rr, accumulate)
+    return res
 
 def m6dotm3(np.ndarray m1 not None, np.ndarray m2 not None,
             np.ndarray res = None, bint accumulate = False):
     ''' m6dotm3(m1, m2[, res[, accumulate]]):
              res_ijk = sum_lmn (m1_ijklmn * m2_lmn)
     '''
+    cdef np.ndarray rr
     assert (m1.ndim == 6 and m2.ndim == 3),   "wrong dimensions"
     assert (m1.shape[3] == m2.shape[0] and
             m1.shape[4] == m2.shape[1] and
             m1.shape[5] == m2.shape[2]),      "shapes don't match"
     if res is not None:
-        assert (PyArray_ISWRITEABLE(res)),    "result isn't writeable"
         assert (res.ndim == 3 and
                 res.shape[0] == m1.shape[0] and
                 res.shape[1] == m1.shape[1] and
                 res.shape[2] == m1.shape[2]), "shapes don't match"
-        assert (PyArray_TYPE(res) == NPY_RTYPE), "wrong result data type"
-    assert (PyArray_TYPE(m1) == NPY_RTYPE and \
-            PyArray_TYPE(m2) == NPY_RTYPE),      "wrong input data type" 
-    return c_m6dotm3(m1, m2, res, accumulate)
-
+        rr = cvt(res, NPY_RTYPE, RESULTFLAGS)
+    else:
+        rr = res = PyArray_EMPTY(3, m1.shape, NPY_RTYPE, 0)
+    m1 = cvt(m1, NPY_RTYPE, 0)
+    m2 = cvt(m2, NPY_RTYPE, 0)
+    c_m6dotm3(m1, m2, rr, accumulate)
+    return res
 
 def m2kdotmk(np.ndarray m1 not None, np.ndarray m2 not None,
              np.ndarray res = None, bint accumulate = False):
@@ -501,7 +473,6 @@ def m2kdotmk(np.ndarray m1 not None, np.ndarray m2 not None,
     res_shape = np.shape(res)
     assert (res_shape == np.shape(m1)[:k] \
             and np.shape(m2) == np.shape(m1)[k:]), "shapes don't match"
-    assert (PyArray_ISWRITEABLE(res)), "result isn't writeable"
     
     if accumulate:
         for i in np.ndindex(res_shape):
@@ -520,7 +491,6 @@ cdef np.ndarray c_m1extm1(np.ndarray m1, np.ndarray m2,
     cdef int ni, nj
 
     ni, nj = m1.shape[0], m2.shape[0]
-    if res is None: res = np.empty((ni, nj), dtype=m1.descr)
     
     m1_s0 = m1.strides[0]
     m2_s0 = m2.strides[0]
@@ -559,9 +529,8 @@ cdef np.ndarray c_m2extm2(np.ndarray m1, np.ndarray m2,
     cdef int   res_s0,  res_s1,  res_s2,  res_s3
     cdef int  i,  j, k, l
     cdef int ni, nj, nk, nl
-
+    
     ni, nj, nk, nl = m1.shape[0], m1.shape[1], m2.shape[0], m2.shape[1]
-    if res is None: res = np.empty((ni, nj, nk, nl), dtype=m1.descr)
     
     m1_s0, m1_s1 = m1.strides[0], m1.strides[1]
     m2_s0, m2_s1 = m2.strides[0], m2.strides[1]
@@ -620,7 +589,6 @@ cdef np.ndarray c_m3extm3(np.ndarray m1, np.ndarray m2,
 
     ni, nj, nk, nl, nm, nn = m1.shape[0], m1.shape[1], m1.shape[2], \
                              m2.shape[0], m2.shape[1], m2.shape[2]
-    if res is None: res = np.empty((ni, nj, nk, nl, nm, nn), dtype=m1.descr)
     
     m1_s0, m1_s1, m1_s2 = m1.strides[0], m1.strides[1], m1.strides[2]
     m2_s0, m2_s1, m2_s2 = m2.strides[0], m2.strides[1], m2.strides[2]
@@ -691,43 +659,50 @@ def m1extm1(np.ndarray m1 not None, np.ndarray m2 not None,
     ''' m1extm1(m1, m2[, res[, accumulate]]):
              res_ij = m1_i * m2_j
     '''
+    cdef np.ndarray rr
     assert (m1.ndim == 1 and m2.ndim == 1), "wrong dimensions"
     if res is not None:
-        assert (PyArray_ISWRITEABLE(res)),  "result isn't writeable"
         assert (res.ndim == 2 and
                 res.shape[0] == m1.shape[0] and
                 res.shape[1] == m2.shape[0]), "shapes don't match"
-        assert (PyArray_TYPE(res) == NPY_RTYPE), "wrong result data type"
-    assert (PyArray_TYPE(m1) == NPY_RTYPE and \
-            PyArray_TYPE(m2) == NPY_RTYPE),      "wrong input data type" 
-    return c_m1extm1(m1, m2, res, accumulate)
+        rr = cvt(res, NPY_RTYPE, RESULTFLAGS)
+    else:
+        rr = res = PyArray_EMPTY2(m1.shape[0], m2.shape[0], NPY_RTYPE)
+    m1 = cvt(m1, NPY_RTYPE, 0)
+    m2 = cvt(m2, NPY_RTYPE, 0)
+    c_m1extm1(m1, m2, rr, accumulate)
+    return res
 
 def m2extm2(np.ndarray m1 not None, np.ndarray m2 not None,
             np.ndarray res = None, bint accumulate = False):
     ''' m2extm2(m1, m2[, res[, accumulate]]):
              res_ijkl = m1_ij * m2_kl
     '''
+    cdef np.ndarray rr
     assert (m1.ndim == 2 and m2.ndim == 2), "wrong dimensions"
     if res is not None:
-        assert (PyArray_ISWRITEABLE(res)),  "result isn't writeable"
         assert (res.ndim == 4 and
                 res.shape[0] == m1.shape[0] and
                 res.shape[1] == m1.shape[1] and
                 res.shape[2] == m2.shape[0] and
                 res.shape[3] == m2.shape[1]), "shapes don't match"
-        assert (PyArray_TYPE(res) == NPY_RTYPE), "wrong result data type"
-    assert (PyArray_TYPE(m1) == NPY_RTYPE and \
-            PyArray_TYPE(m2) == NPY_RTYPE),      "wrong input data type" 
-    return c_m2extm2(m1, m2, res, accumulate)
+        rr = cvt(res, NPY_RTYPE, RESULTFLAGS)
+    else:
+        rr = res = PyArray_EMPTY4(m1.shape[0], m1.shape[1],
+                                  m2.shape[0], m2.shape[1], NPY_RTYPE)
+    m1 = cvt(m1, NPY_RTYPE, 0)
+    m2 = cvt(m2, NPY_RTYPE, 0)
+    c_m2extm2(m1, m2, rr, accumulate)
+    return res
 
 def m3extm3(np.ndarray m1 not None, np.ndarray m2 not None,
             np.ndarray res = None, bint accumulate = False):
     ''' m3extm3(m1, m2[, res[, accumulate]]):
              res_ijklmn = m1_ijk * m2_lmn
     '''
+    cdef np.ndarray rr
     assert (m1.ndim == 3 and m2.ndim == 3), "wrong dimensions"
     if res is not None:
-        assert (PyArray_ISWRITEABLE(res)),  "result isn't writeable"
         assert (res.ndim == 6 and
                 res.shape[0] == m1.shape[0] and
                 res.shape[1] == m1.shape[1] and
@@ -735,10 +710,15 @@ def m3extm3(np.ndarray m1 not None, np.ndarray m2 not None,
                 res.shape[3] == m2.shape[0] and
                 res.shape[4] == m2.shape[1] and
                 res.shape[5] == m2.shape[2]), "shapes don't match"
-        assert (PyArray_TYPE(res) == NPY_RTYPE), "wrong result data type"
-    assert (PyArray_TYPE(m1) == NPY_RTYPE and \
-            PyArray_TYPE(m2) == NPY_RTYPE),      "wrong input data type" 
-    return c_m3extm3(m1, m2, res, accumulate)
+        rr = cvt(res, NPY_RTYPE, RESULTFLAGS)
+    else:
+        rr = res = PyArray_EMPTY6(m1.shape[0], m1.shape[1], m1.shape[2],
+                                  m2.shape[0], m2.shape[1], m2.shape[2],
+                                  NPY_RTYPE)
+    m1 = cvt(m1, NPY_RTYPE, 0)
+    m2 = cvt(m2, NPY_RTYPE, 0)
+    c_m3extm3(m1, m2, rr, accumulate)
+    return res
 
 def mkextmk(np.ndarray m1 not None, np.ndarray m2 not None,
             np.ndarray res=None, bint accumulate=False):
@@ -774,36 +754,32 @@ def m2dotrows(np.ndarray m1 not None, np.ndarray m2 not None,
     cdef int i, m, n
     cdef int m1s0, m1s1, m2s0, m2s1
     cdef char *pm1, *pm2
+    cdef np.ndarray rr
+    cdef rtype_t *pr
     
     assert (m1.ndim == 2 and m2.ndim == 2), "wrong dimensions"
     
     m, n = m1.shape[0], m1.shape[1]
     assert (m == m2.shape[0] and n == m2.shape[1]), "shapes don't match"
+    m1 = cvt(m1, NPY_RTYPE, np.NPY_CONTIGUOUS)
+    m2 = cvt(m2, NPY_RTYPE, np.NPY_CONTIGUOUS)
     if res is None:
-        if not PyArray_ISCARRAY_RO(m1) or PyArray_TYPE(m1) != NPY_RTYPE or \
-           not PyArray_ISCARRAY_RO(m2) or PyArray_TYPE(m2) != NPY_RTYPE:
-            return (m1 * m2).sum(1)
-        res = PyArray_ZEROS(1, m1.shape, NPY_RTYPE, 0)
+        rr = res = PyArray_EMPTY1(m, NPY_RTYPE)
     else:
-        assert (res.shape[0] == m), "shapes don't match"
-        if not PyArray_ISCARRAY_RO(m1) or PyArray_TYPE(m1) != NPY_RTYPE or \
-           not PyArray_ISCARRAY_RO(m2) or PyArray_TYPE(m2) != NPY_RTYPE or \
-           not PyArray_ISCARRAY(res)  or PyArray_TYPE(res) != NPY_RTYPE:
-            if accumulate: res[:] = (m1 * m2).sum(1)
-            else:          res   += (m1 * m2).sum(1)
-            return res
+        assert (res.ndim == 1 and res.shape[0] == m), "shapes don't match"
+        rr = cvt(res, NPY_RTYPE, np.NPY_CONTIGUOUS | RESULTFLAGS)
     
-    pm1, pm2 = m1.data, m2.data
+    pm1, pm2, pr = m1.data, m2.data, <rtype_t*>rr.data
     m1s0, m1s1 = m1.strides[0], m1.strides[1]
     m2s0, m2s1 = m2.strides[0], m2.strides[1]
     if accumulate:
         for i in range(m):
-            res[i] += c_m1ldot(pm1, pm2, n, m1s1, m2s1)
+            pr[i] += c_m1ldot(pm1, pm2, n, m1s1, m2s1)
             pm1 += m1s0
             pm2 += m2s0
     else:
         for i in range(m):
-            res[i]  = c_m1ldot(pm1, pm2, n, m1s1, m2s1)
+            pr[i]  = c_m1ldot(pm1, pm2, n, m1s1, m2s1)
             pm1 += m1s0
             pm2 += m2s0
     
@@ -813,48 +789,41 @@ def normrows(np.ndarray m not None):
     cdef int col, row, stride, rowsize
     cdef char *p
     cdef rtype_t x, v
-    if not PyArray_ISCARRAY(m) or PyArray_TYPE(m) != NPY_RTYPE:
-        for r in m: r /= sqrt(sumsq(r))
-    else:
-        rowsize = PyArray_SIZE(m) / m.shape[0]
-        stride  = m.strides[0]
-        p = m.data
-        for row in range(m.shape[0]):
-            v = 0.
-            for col in range(rowsize):
-                x = (<rtype_t*>p)[col]
-                v += x * x
-            v = sqrt(v)
-            for col in range(rowsize):
-                (<rtype_t*>p)[col] /= v
-            p += stride
+    m = cvt(m, NPY_RTYPE, np.NPY_CONTIGUOUS | RESULTFLAGS)
+    
+    rowsize = PyArray_SIZE(m) / m.shape[0]
+    stride  = m.strides[0]
+    p = m.data
+    for row in range(m.shape[0]):
+        v = 0.
+        for col in range(rowsize):
+            x = (<rtype_t*>p)[col]
+            v += x * x
+        v = sqrt(v)
+        for col in range(rowsize):
+            (<rtype_t*>p)[col] /= v
+        p += stride
+
+    return None
 
 
 def mdotc(np.ndarray m not None, rtype_t c,
           np.ndarray res = None, bint accumulate=False):
     cdef long i, size
     cdef rtype_t *pm, *pr
+    cdef np.ndarray rr
+    
+    m = cvt(m, NPY_RTYPE, np.NPY_CONTIGUOUS)
+    if res is None:
+        rr = res = PyArray_EMPTY(m.ndim, m.shape, NPY_RTYPE, 0)
+    else:
+        assert (PyArray_SAMESHAPE(m, res)), "shapes don't match"
+        rr = cvt(res, NPY_RTYPE, np.NPY_CONTIGUOUS | RESULTFLAGS)
     
     pm = <rtype_t*>m.data
+    pr = <rtype_t*>rr.data
     size = PyArray_SIZE(m)
-
-    if res is None:
-        if not PyArray_ISCARRAY_RO(m) or PyArray_TYPE(m) != NPY_RTYPE:
-            return m*c
-        res = PyArray_EMPTY(m.ndim, m.shape, NPY_RTYPE, 0)
-        pr = <rtype_t*>res.data
-        for i in range(size): pr[i] = pm[i] * c
-        return res
     
-    assert (PyArray_SAMESHAPE(m, res)), "shapes don't match"
-    if not PyArray_ISCARRAY_RO(m) or PyArray_TYPE(m)   != NPY_RTYPE or \
-       not PyArray_ISCARRAY(res)  or PyArray_TYPE(res) != NPY_RTYPE:
-        if accumulate: res   += m*c
-        else:          res[:] = m*c
-        return res
-    
-    pr = <rtype_t*>res.data
-
     if accumulate:
         for i in range(size):
             pr[i] += pm[i] * c
