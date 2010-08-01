@@ -1,0 +1,4 @@
+#!/usr/bin/env python
+
+from numpy.distutils.misc_util import *
+print '-I'+' -I'.join(get_numpy_include_dirs())

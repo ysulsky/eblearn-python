@@ -1,30 +1,33 @@
-CC=gcc
-CFLAGS=-g -shared -pthread -fPIC -fwrapv -O2 -Wall -fno-strict-aliasing
-INCLUDES=$(shell python-config --includes) $(shell python -c "from numpy.distutils.misc_util import *; print '-I'+' -I'.join(get_numpy_include_dirs())")
+CC = gcc
+CFLAGS = -g -shared -pthread -fPIC -fwrapv -O2 -Wall -fno-strict-aliasing
+LDFLAGS= -fPIC -shared
+CYTHON = cython
 
-all: _util.so _idx.so _vecmath.so _correlate.so
+INCLUDES = $(shell python-config --includes) \
+           $(shell ./numpy_includes)
+
+PYX_EXTS = _util _vecmath _idx _correlate
+PYX_DEPS = $(addsuffix .d, $(PYX_EXTS))
+ALLDEPS  = $(PYX_DEPS)
+
+all: depend $(addsuffix .so, $(PYX_EXTS))
+depend: $(ALLDEPS)
 clean:
-	rm -f *.c *.so *.pyc
+	rm -f *.pyc
+	rm -f $(addsuffix .o,  $(PYX_EXTS))
+	rm -f $(addsuffix .so, $(PYX_EXTS))
+	rm -f $(addsuffix .c,  $(PYX_EXTS))
+	rm -f $(ALLDEPS)
 
-_util.so: _util.c
-	$(CC) $(CFLAGS) $(INCLUDES) -o _util.so _util.c
-_util.c: _util.pyx _util.pxd
-	cython _util.pyx
+-include $(ALLDEPS)
 
-_vecmath.so: _vecmath.c
-	$(CC) $(CFLAGS) $(INCLUDES) -o _vecmath.so _vecmath.c
-_vecmath.c: _vecmath.pyx _util.pxd  _vecmath.pxd
-	cython _vecmath.pyx
+$(PYX_DEPS) : %.d : %.pyx
+	@echo $*.o $*.d : $(shell ./pyx_deps $*) > $@
 
-_idx.so: _idx.c
-	$(CC) $(CFLAGS) $(INCLUDES) -o _idx.so _idx.c
-_idx.c: _idx.pyx _util.pxd
-	cython _idx.pyx
+$(addsuffix .o, $(PYX_EXTS)) : %.o : %.pyx
+	$(CYTHON) $*.pyx
+	$(CC) -c $(CFLAGS) $(INCLUDES) $*.c
 
-_correlate.so: _correlate.c 
-	$(CC) $(CFLAGS) $(INCLUDES) -o _correlate.so _correlate.c
-_correlate.c: _correlate.pyx _util.pxd _vecmath.pxd
-	cython _correlate.pyx
-
-
+$(addsuffix .so, $(PYX_EXTS)) : %.so : %.o
+	$(CC) $(LDFLAGS) $*.o -o $@
 
