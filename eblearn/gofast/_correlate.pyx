@@ -15,40 +15,67 @@ import_array()
 
 sig_correlate = scipy.signal.correlate
 def gen_correlate(np.ndarray input, np.ndarray kernel, np.ndarray output=None,
-                  bool accumulate=False):
+                  bint accumulate=False):
     y = sig_correlate(input, kernel, 'valid')
     if output is None: output    = y
     elif accumulate:   output   += y
     else:              output[:] = y
     return output
 
-def m1_correlate(np.ndarray[rtype_t, ndim=1] input  not None,
-                 np.ndarray[rtype_t, ndim=1] kernel not None,
-                 np.ndarray[rtype_t, ndim=1] output=None,
-                 bool accumulate=False):
-    cdef int kw = kernel.shape[0]
-    cdef np.ndarray[rtype_t, ndim=2] uinput = unfold(input, 0, kw, 1)
-    return c_m2dotm1(uinput, kernel, output, accumulate)
+def m1_correlate(np.ndarray input not None, np.ndarray kernel not None,
+                 np.ndarray output=None, bint accumulate=False):
+    cdef np.ndarray uinput, rr
+    assert (input.ndim == 1 and kernel.ndim == 1),   "wrong dimensions"
+    input  = cvt(input,  NPY_RTYPE, 0)
+    kernel = cvt(kernel, NPY_RTYPE, 0)
+    uinput = unfold(input, 0, kernel.shape[0], 1)
+    if output is None:
+        rr = output = PyArray_EMPTY(1, uinput.shape, NPY_RTYPE, 0)
+    else:
+        assert (output.ndim == 1 and
+                output.shape[0] == uinput.shape[0]), "shapes don't match"
+        rr = cvt(output, NPY_RTYPE, RESULTFLAGS)
+    c_m2dotm1(uinput, kernel, rr, accumulate)
+    return output
 
-def m2_correlate(np.ndarray[rtype_t, ndim=2] input  not None,
-                 np.ndarray[rtype_t, ndim=2] kernel not None,
-                 np.ndarray[rtype_t, ndim=2] output=None,
-                 bool accumulate=False):
+def m2_correlate(np.ndarray input not None, np.ndarray kernel not None,
+                 np.ndarray output=None, bint accumulate=False):
+    cdef np.ndarray uinput, rr
     cdef int kh, kw
-    cdef np.ndarray[rtype_t, ndim=4] uinput
+    assert (input.ndim == 2 and kernel.ndim == 2),   "wrong dimensions"
     kh, kw = kernel.shape[0], kernel.shape[1]
+    input  = cvt(input,  NPY_RTYPE, 0)
+    kernel = cvt(kernel, NPY_RTYPE, 0)
     uinput = unfold(unfold(input, 0, kh, 1), 1, kw, 1)
-    return c_m4dotm2(uinput, kernel, output, accumulate)
+    if output is None:
+        rr = output = PyArray_EMPTY(2, uinput.shape, NPY_RTYPE, 0)
+    else:
+        assert (output.ndim == 1 and
+                output.shape[0] == uinput.shape[0] and
+                output.shape[1] == uinput.shape[1]), "shapes don't match"
+        rr = cvt(output, NPY_RTYPE, RESULTFLAGS)
+    c_m4dotm2(uinput, kernel, rr, accumulate)
+    return output
 
-def m3_correlate(np.ndarray[rtype_t, ndim=3] input  not None,
-                 np.ndarray[rtype_t, ndim=3] kernel not None,
-                 np.ndarray[rtype_t, ndim=3] output=None,
-                 bool accumulate=False):
+def m3_correlate(np.ndarray input not None, np.ndarray kernel not None,
+                 np.ndarray output=None, bint accumulate=False):
+    cdef np.ndarray uinput, rr
     cdef int kd, kh, kw
-    cdef np.ndarray[rtype_t, ndim=6] uinput
+    assert (input.ndim == 3 and kernel.ndim == 3),   "wrong dimensions"
     kd, kh, kw = kernel.shape[0], kernel.shape[1], kernel.shape[2]
+    input  = cvt(input,  NPY_RTYPE, 0)
+    kernel = cvt(kernel, NPY_RTYPE, 0)
     uinput = unfold(unfold(unfold(input, 0, kd, 1), 1, kh, 1), 2, kw, 1)
-    return c_m6dotm3(uinput, kernel, output, accumulate)
+    if output is None:
+        rr = output = PyArray_EMPTY(3, uinput.shape, NPY_RTYPE, 0)
+    else:
+        assert (output.ndim == 1 and
+                output.shape[0] == uinput.shape[0] and
+                output.shape[1] == uinput.shape[1] and
+                output.shape[2] == uinput.shape[2]), "shapes don't match"
+        rr = cvt(output, NPY_RTYPE, RESULTFLAGS)
+    c_m6dotm3(uinput, kernel, rr, accumulate)
+    return output
 
 def correlate_for_dim(int n):
     if n == 1: return m1_correlate
@@ -57,7 +84,7 @@ def correlate_for_dim(int n):
     return gen_correlate
 
 def correlate(np.ndarray input, np.ndarray kernel, np.ndarray output=None,
-              bool accumulate=False):
+              bint accumulate=False):
     corrfn = correlate_for_dim(input.ndim)
     return corrfn(input, kernel, output, accumulate)
 
@@ -72,58 +99,94 @@ def gen_correlate_table(np.ndarray[int, ndim=2] table not None,
         k = table[t,1]
         j = table[t,2]
         corrfn(inputs[i], kernels[k], outputs[j], True)
+    return None
 
-
-def m1_correlate_table(np.ndarray[int,     ndim=2] table   not None,
-                       np.ndarray[rtype_t, ndim=2] inputs  not None,
-                       np.ndarray[rtype_t, ndim=2] kernels not None,
-                       np.ndarray[rtype_t, ndim=2] outputs not None):
+def m1_correlate_table(np.ndarray[int, ndim=2] table not None,
+                       np.ndarray inputs  not None,
+                       np.ndarray kernels not None,
+                       np.ndarray outputs not None):
     cdef int kw
-    cdef np.ndarray[rtype_t, ndim=3] uinputs
+    cdef np.ndarray uinputs
     cdef int t, i, k, j
     
-    kh, kw = kernels.shape[1], kernels.shape[2]
+    assert (inputs.ndim==2 and kernels.ndim==2 and
+            outputs.ndim==2),                        "wrong dimensions"
+    
+    inputs  = cvt(inputs,  NPY_RTYPE, 0)
+    kernels = cvt(kernels, NPY_RTYPE, 0)
+    outputs = cvt(outputs, NPY_RTYPE, RESULTFLAGS)
+    
+    kw = kernels.shape[1]
     uinputs = unfold(inputs, 1, kw, 1)
+    
+    assert (outputs.shape[1] == uinputs.shape[1]),   "shapes don't match"
+
     for t in range(table.shape[0]):
         i = table[t,0]
         k = table[t,1]
         j = table[t,2]
         c_m2dotm1(uinputs[i], kernels[k], outputs[j], True)
+    
+    return None
 
-
-def m2_correlate_table(np.ndarray[int,     ndim=2] table   not None,
-                       np.ndarray[rtype_t, ndim=3] inputs  not None,
-                       np.ndarray[rtype_t, ndim=3] kernels not None,
-                       np.ndarray[rtype_t, ndim=3] outputs not None):
+def m2_correlate_table(np.ndarray[int, ndim=2] table not None,
+                       np.ndarray inputs  not None,
+                       np.ndarray kernels not None,
+                       np.ndarray outputs not None):
     cdef int kh, kw
-    cdef np.ndarray[rtype_t, ndim=5] uinputs
+    cdef np.ndarray uinputs
     cdef int t, i, k, j
-
+    
+    assert (inputs.ndim==3 and kernels.ndim==3 and
+            outputs.ndim==3),                        "wrong dimensions"
+    
+    inputs  = cvt(inputs,  NPY_RTYPE, 0)
+    kernels = cvt(kernels, NPY_RTYPE, 0)
+    outputs = cvt(outputs, NPY_RTYPE, RESULTFLAGS)
+    
     kh, kw = kernels.shape[1], kernels.shape[2]
     uinputs = unfold(unfold(inputs, 1, kh, 1), 2, kw, 1)
+    
+    assert (outputs.shape[1] == uinputs.shape[1] and
+            outputs.shape[2] == uinputs.shape[2]),   "shapes don't match"
+    
     for t in range(table.shape[0]):
         i = table[t,0]
         k = table[t,1]
         j = table[t,2]
         c_m4dotm2(uinputs[i], kernels[k], outputs[j], True)
+    
+    return None
 
-
-def m3_correlate_table(np.ndarray[int,     ndim=2] table   not None,
-                       np.ndarray[rtype_t, ndim=4] inputs  not None,
-                       np.ndarray[rtype_t, ndim=4] kernels not None,
-                       np.ndarray[rtype_t, ndim=4] outputs not None):
+def m3_correlate_table(np.ndarray[int, ndim=2] table not None,
+                       np.ndarray inputs  not None,
+                       np.ndarray kernels not None,
+                       np.ndarray outputs not None):
     cdef int kd, kh, kw
-    cdef np.ndarray[rtype_t, ndim=7] uinputs
+    cdef np.ndarray uinputs
     cdef int t, i, k, j
-
+    
+    assert (inputs.ndim==4 and kernels.ndim==4 and
+            outputs.ndim==4),                        "wrong dimensions"
+    
+    inputs  = cvt(inputs,  NPY_RTYPE, 0)
+    kernels = cvt(kernels, NPY_RTYPE, 0)
+    outputs = cvt(outputs, NPY_RTYPE, RESULTFLAGS)
+    
     kd, kh, kw = kernels.shape[1], kernels.shape[2], kernels.shape[3]
     uinputs = unfold(unfold(unfold(inputs, 1, kd, 1), 2, kh, 1), 3, kw, 1)
+    
+    assert (outputs.shape[1] == uinputs.shape[1] and
+            outputs.shape[2] == uinputs.shape[2] and
+            outputs.shape[3] == uinputs.shape[3]),   "shapes don't match"
+    
     for t in range(table.shape[0]):
         i = table[t,0]
         k = table[t,1]
         j = table[t,2]
         c_m6dotm3(uinputs[i], kernels[k], outputs[j], True)
 
+    return None
 
 def correlate_table_for_dim(int n):
     if n == 1: return m1_correlate_table
@@ -139,7 +202,7 @@ def correlate_table(np.ndarray[int, ndim=2] table not None,
     corrfn(table, inputs, kernels, outputs)
 
 def back_correlate(np.ndarray input, np.ndarray kernel, np.ndarray output=None,
-                   bool accumulate=False):
+                   bint accumulate=False):
     cdef int d
     out_shape = tuple(np.subtract(np.shape(input), 1) + np.shape(kernel))
     if output is None:
@@ -166,54 +229,100 @@ def gen_back_correlate_table(np.ndarray[int, ndim=2] table not None,
         k = table[t,1]
         j = table[t,2]
         corrfn(inputs[i], kernels[k], outputs[j], True)
+    return None
 
-def m1_back_correlate_table(np.ndarray[int, ndim=2] table       not None,
-                            np.ndarray[rtype_t, ndim=2] inputs  not None,
-                            np.ndarray[rtype_t, ndim=2] kernels not None,
-                            np.ndarray[rtype_t, ndim=2] outputs not None):
+def m1_back_correlate_table(np.ndarray[int, ndim=2] table not None,
+                            np.ndarray inputs  not None,
+                            np.ndarray kernels not None,
+                            np.ndarray outputs not None):
     cdef int kw
-    cdef np.ndarray[rtype_t, ndim=3] uoutputs
+    cdef np.ndarray uoutputs
     cdef int t, i, k, j
+    
+    assert (inputs.ndim==2 and kernels.ndim==2 and
+            outputs.ndim==2),                        "wrong dimensions"
+    
+    inputs  = cvt(inputs,  NPY_RTYPE, 0)
+    kernels = cvt(kernels, NPY_RTYPE, 0)
+    outputs = cvt(outputs, NPY_RTYPE, RESULTFLAGS)
     
     kw = kernels.shape[1]
     uoutputs = unfold(outputs, 1, kw, 1)
+    
+    assert (uoutputs.shape[1] == inputs.shape[1]  and
+            uoutputs.shape[2] == kernels.shape[1]),  "shapes don't match"
+    
     for t in range(table.shape[0]):
         i = table[t,0]
         k = table[t,1]
         j = table[t,2]
         c_m1extm1(inputs[i], kernels[k], uoutputs[j], True)
+    
+    return None
 
-def m2_back_correlate_table(np.ndarray[int, ndim=2] table       not None,
-                            np.ndarray[rtype_t, ndim=3] inputs  not None,
-                            np.ndarray[rtype_t, ndim=3] kernels not None,
-                            np.ndarray[rtype_t, ndim=3] outputs not None):
+def m2_back_correlate_table(np.ndarray[int, ndim=2] table not None,
+                            np.ndarray inputs  not None,
+                            np.ndarray kernels not None,
+                            np.ndarray outputs not None):
     cdef int kh, kw
-    cdef np.ndarray[rtype_t, ndim=5] uoutputs
+    cdef np.ndarray uoutputs
     cdef int t, i, k, j
+    
+    assert (inputs.ndim==3 and kernels.ndim==3 and
+            outputs.ndim==3),                        "wrong dimensions"
+    
+    inputs  = cvt(inputs,  NPY_RTYPE, 0)
+    kernels = cvt(kernels, NPY_RTYPE, 0)
+    outputs = cvt(outputs, NPY_RTYPE, RESULTFLAGS)
     
     kh, kw = kernels.shape[1], kernels.shape[2]
     uoutputs = unfold(unfold(outputs, 1, kh, 1), 2, kw, 1)
+    
+    assert (uoutputs.shape[1] == inputs.shape[1]  and
+            uoutputs.shape[2] == inputs.shape[2]  and
+            uoutputs.shape[3] == kernels.shape[1] and
+            uoutputs.shape[4] == kernels.shape[2]),  "shapes don't match"
+    
     for t in range(table.shape[0]):
         i = table[t,0]
         k = table[t,1]
         j = table[t,2]
         c_m2extm2(inputs[i], kernels[k], uoutputs[j], True)
+    
+    return None
 
-def m3_back_correlate_table(np.ndarray[int, ndim=2] table       not None,
-                            np.ndarray[rtype_t, ndim=4] inputs  not None,
-                            np.ndarray[rtype_t, ndim=4] kernels not None,
-                            np.ndarray[rtype_t, ndim=4] outputs not None):
+def m3_back_correlate_table(np.ndarray[int, ndim=2] table not None,
+                            np.ndarray inputs  not None,
+                            np.ndarray kernels not None,
+                            np.ndarray outputs not None):
     cdef int kd, kh, kw
-    cdef np.ndarray[rtype_t, ndim=7] uoutputs
+    cdef np.ndarray uoutputs
     cdef int t, i, k, j
+    
+    assert (inputs.ndim==4 and kernels.ndim==4 and
+            outputs.ndim==4),                        "wrong dimensions"
+    
+    inputs  = cvt(inputs,  NPY_RTYPE, 0)
+    kernels = cvt(kernels, NPY_RTYPE, 0)
+    outputs = cvt(outputs, NPY_RTYPE, RESULTFLAGS)
     
     kd, kh, kw = kernels.shape[1], kernels.shape[2], kernels.shape[3]
     uoutputs = unfold(unfold(unfold(outputs, 1, kd, 1), 2, kh, 1), 3, kw, 1)
+    
+    assert (uoutputs.shape[1] == inputs.shape[1]  and
+            uoutputs.shape[2] == inputs.shape[2]  and
+            uoutputs.shape[3] == inputs.shape[3]  and
+            uoutputs.shape[4] == kernels.shape[1] and
+            uoutputs.shape[5] == kernels.shape[2] and
+            uoutputs.shape[6] == kernels.shape[3]),  "shapes don't match"
+    
     for t in range(table.shape[0]):
         i = table[t,0]
         k = table[t,1]
         j = table[t,2]
         c_m3extm3(inputs[i], kernels[k], uoutputs[j], True)
+
+    return None
 
 def back_correlate_table_for_dim(int n):
     if n == 1: return m1_back_correlate_table
@@ -228,4 +337,4 @@ def back_correlate_table(np.ndarray[int, ndim=2] table not None,
                          np.ndarray outputs            not None):
     corrfn = back_correlate_table_for_dim(input.ndim-1)
     corrfn(table, inputs, kernels, outputs)
-
+    
