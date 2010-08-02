@@ -113,7 +113,7 @@ class around_methods (type):
             inner_fn  = getattr(cls, '_inner__'+k)
             around_fn = getattr(cls, '_around__'+k)
             setattr(cls, k, around_methods.make_wrapper(inner_fn, around_fn))
-        return type.__init__(cls, name, bases, dct)
+        type.__init__(cls, name, bases, dct)
 
 
 class around_super(object):

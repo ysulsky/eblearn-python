@@ -1,4 +1,6 @@
-from eblearn import *
+from state import state
+from util  import ensure_dims
+
 import numpy as np
 
 class eb_dsource (object):
@@ -9,7 +11,7 @@ class eb_dsource (object):
     def tell(self):     return self.current
     def fprop(self, input, output): raise NotImplementedError()
     def shape(self):
-        inp = state(()); outp = state(())
+        inp = state(); outp = state()
         self.fprop(inp, outp)
         return (inp.shape, outp.shape)
     def __len__(self):  return self.size()

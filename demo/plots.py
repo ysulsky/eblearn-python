@@ -1,10 +1,10 @@
-from eblearn.util import *
-from eblearn import state
+import eblearn.ui as ui
+from eblearn import empty, state
 
 def plot_filters(m, shape_in,
                  transpose=False, orig_x=5, orig_y=5, max_x=390, scale = 1.0):
     assert (len(shape_in) == 2)
-    ensure_window(title = 'PSD Filters')
+    ui.ensure_window(title = 'PSD Filters')
     h, w = shape_in; h *= scale; w *= scale
     padding, pos_x, pos_y = 5, 0, 0
     filters =m.parameter.states[0].x
@@ -15,11 +15,11 @@ def plot_filters(m, shape_in,
         k = k.reshape(shape_in)
         if pos_x + w > max_x:
             pos_x  = 0; pos_y += h + padding
-        draw_mat(k, orig_x + pos_x, orig_y + pos_y,
-                 minv = minv, maxv = maxv, scale = scale)
+        ui.draw_mat(k, orig_x + pos_x, orig_y + pos_y,
+                    minv = minv, maxv = maxv, scale = scale)
         pos_x += w + padding
     pos_y += h + padding + 16
-    draw_text(orig_x, orig_y + pos_y, 'Values range in %g .. %g' % (minv,maxv))
+    ui.draw_text(orig_x, orig_y + pos_y, 'Values range in %g .. %g' % (minv,maxv))
 
 def plot_reconstructions(ds, machine, n = 1000,
                          orig_x=5, orig_y=5, max_x=795, scale = 1.0):
@@ -29,7 +29,7 @@ def plot_reconstructions(ds, machine, n = 1000,
         shape_in=shape_in[1:]
         shape_out=shape_out[1:]
     assert (len(shape_in) == len(shape_out) == 2)
-    ensure_window(title = 'PSD Reconstructions')
+    ui.ensure_window(title = 'PSD Reconstructions')
     spacing, padding = 2, 10
     pic = empty((max(shape_in[0], shape_out[0]),
                  shape_in[1] + spacing + shape_out[1]))
@@ -50,6 +50,6 @@ def plot_reconstructions(ds, machine, n = 1000,
         pic[:shape_out[0],shape_in[1] + spacing:] = recx
         if pos_x + w > max_x:
             pos_x  = 0; pos_y += h + padding
-        draw_mat(pic, orig_x + pos_x, orig_y + pos_y,
-                 maxv = white, scale = scale)
+        ui.draw_mat(pic, orig_x + pos_x, orig_y + pos_y,
+                    maxv = white, scale = scale)
         pos_x += w + padding

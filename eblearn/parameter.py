@@ -1,7 +1,12 @@
+from state   import state
+from util    import debug_break, agenerator, ref, rtype
+from vecmath import clear, mdotc, sumsq, thresh_less
+
+from math    import sqrt
+
 import numpy as np
-from state import *
-from util  import *
 import weakref
+
 
 class parameter_forget (object):
     def __init__(self,
@@ -145,20 +150,22 @@ class parameter (object):
         return self.updater.iterstats()
     
     def iter_state_get(prop):
-        def xiter(self):
-            for state in self.states:
-                xs = getattr(state, prop)
-                for x in xs.flat: yield x
-        return xiter
+        def _get(self):
+            def xiter():
+                for state in self.states:
+                    xs = getattr(state, prop)
+                    for x in xs.flat: yield x
+            return agenerator(xiter, rtype, self.size())
+        return _get
 
     def iter_state_set(prop):
-        def xiter(self, vals):
+        def _set(self, vals):
+            vals = iter(vals)
             for state in self.states:
                 xs = getattr(state, prop)
-                vals = iter(vals)
                 for i in range(xs.size):
                     xs.flat[i] = vals.next()
-        return xiter
+        return _set
 
     x       = property(iter_state_get('x'),       iter_state_set('x'))
     dx      = property(iter_state_get('dx'),      iter_state_set('dx'))
@@ -323,7 +330,6 @@ class gd_linesearch_update (gd_update):
               super(gd_linesearch_update, self)._step_direction(p, False)
         
         feval  = self.feval
-        states = p.states
         bup    = p.backup()
         stop   = self.max_line_steps
         step   = 0
@@ -412,18 +418,20 @@ class parameter_container (object):
         return r
 
     def iter_param_get(prop):
-        def xiter(self):
-            for p in self.params:
-                for x in getattr(p, prop):
-                    yield x
-        return xiter
-
+        def _get(self):
+            def xiter():
+                for p in self.params:
+                    for x in getattr(p, prop):
+                        yield x
+            return agenerator(xiter, rtype, self.size())
+        return _get
+    
     def iter_param_set(prop):
-        def xiter(self, vals):
+        def _set(self, vals):
             vals = iter(vals)
             for p in self.params:
                 setattr(p, prop, vals)
-        return xiter
+        return _set
     
     x       = property(iter_param_get('x'),       iter_param_set('x'))
     dx      = property(iter_param_get('dx'),      iter_param_set('dx'))

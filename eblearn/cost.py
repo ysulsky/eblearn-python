@@ -1,5 +1,11 @@
-from module import *
-from basic import multiplication
+from basic   import multiplication
+from idx     import unfold
+from module  import module_1_1, module_2_1, no_params
+from state   import state
+from util    import ensure_tuple, zeros
+from vecmath import clear, sumabs, sumsq, sqdist, thresh_less
+
+import numpy as np
 
 class distance_l2 (no_params, module_2_1):
     def __init__(self, average = True):

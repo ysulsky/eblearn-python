@@ -1,13 +1,13 @@
-from   params       import *
+from params import *
 
-import eblearn as eb
-from   eblearn.psd  import psd_codec
-from   eblearn.util import *
+import eblearn    as eb
+import eblearn.ui as ui
+import numpy      as np
 
 ######################################################################
 # DATASOURCE
 
-train_mat  = map_matrix('%s/%s' % (data_dir, train_file))
+train_mat  = eb.map_matrix('%s/%s' % (data_dir, train_file))
 train_ds   = eb.dsource_unsup(train_mat)
 
 if bias is None or coeff is None:
@@ -61,10 +61,10 @@ else:
 ######################################################################
 # TRAINING
 
-machine = psd_codec( encoder, enc_cost,
-                     sparsity,
-                     decoder, rec_cost,
-                     alphae, alphaz, alphad )
+machine = eb.psd_codec( encoder, enc_cost,
+                        sparsity,
+                        decoder, rec_cost,
+                        alphae, alphaz, alphad )
 
 if encoder_arch in (1, 2, 4, 6):
     # ensure a positive code for these machines
@@ -94,18 +94,18 @@ print "============================================================"
 trainer.train(train_iters)
 
 if savedir is not None:
-    save_object(machine, savedir + '/machine.obj')
+    eb.save_object(machine, savedir + '/machine.obj')
 
 
 def plot():
     import plots
-    new_window()
+    ui.new_window()
     scale = 3
     plots.plot_filters(machine.encoder, conv_kernel, scale=scale)
     plots.plot_filters(machine.decoder, conv_kernel,
                        transpose = True, orig_x=405, scale=scale)
 
-    new_window()
+    ui.new_window()
     plots.plot_reconstructions(train_ds, machine, n=100, scale=scale)
 
 

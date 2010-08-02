@@ -1,9 +1,7 @@
-from util import *
-from state import *
-from parameter import *
-
-import numpy as np
-from around import * # around_methods metaclass
+from around    import around, around_methods
+from parameter import parameter
+from state     import state
+from util      import ref
 
 class eb_module (object):
     __metaclass__ = around_methods
@@ -182,11 +180,11 @@ class module_2_2 (eb_module):
     def bbprop_param(self, input1, input2, output1, output2):
         raise NotImplementedError()
 
-    def bprop(self, input1, input2, output):
+    def bprop(self, input1, input2, output1, output2):
         self.bprop_input(input1, input2, output1, output2)
         self.bprop_param(input1, input2, output1, output2)
 
-    def bbprop(self, input1, input2, output):
+    def bbprop(self, input1, input2, output1, output2):
         self.bbprop_input(input1, input2, output1, output2)
         self.bbprop_param(input1, input2, output1, output2)
 

@@ -30,10 +30,10 @@ def report_err (a, b, name, tol):
     rel_err = 2 * (thresh_less(d, abs(d), 1e-6))/((a+b) + 1e-6)
     max_rel_err = abs(rel_err).max()
     max_act_err = abs(d).max()
-    tot_rel_err = sqrt(sumsq(rel_err))
-    tot_act_err = sqrt(sumsq(d))
     report_str_err(max_rel_err, max_act_err,
                    'Max %s rel. (abs.) error' % (name,))
+    #tot_rel_err = sqrt(sumsq(rel_err))
+    #tot_act_err = sqrt(sumsq(d))
     #report_str_err(max_err, 'Total %s relative difference' % (name,))
 
 def clear_state(s):
@@ -67,13 +67,13 @@ def jacobian_bwd_m_1_1 (mod, sin, sout, snd=False):
 def jacobian_bwd_m_1_1_param (mod, sin, sout, snd=False):
     jac = zeros((mod.parameter.size(), sout.size))
     param    = mod.parameter
-    param_dx = lambda: np.fromiter((param.ddx if snd else param.dx), rtype)
+    param_dx = param.ddx if snd else param.dx
     for i in xrange(sout.size):
         clear_state(sout)
         sout.dx.flat[i] = 1.
         clear_param(param)
         mod_bprop11(snd, mod, sin, sout)
-        jac[:,i] = param_dx()
+        jac[:,i] = param_dx
     return jac
 
 def jacobian_fwd_m_1_1 (mod, sin, sout, snd=False):
@@ -176,13 +176,13 @@ def jacobian_bwd_m_2_1 (mod, sin1, sin2, sout, snd=False):
 def jacobian_bwd_m_2_1_param (mod, sin1, sin2, sout, snd=False):
     jac = zeros((mod.parameter.size(), sout.size))
     param    = mod.parameter
-    param_dx = lambda: np.fromiter((param.ddx if snd else param.dx), rtype)
+    param_dx = param.ddx if snd else param.dx
     for i in xrange(sout.size):
         clear_state(sout)
         sout.dx.flat[i] = 1.
         clear_param(param)
         mod_bprop21(snd, mod, sin1, sin2, sout)
-        jac[:,i] = param_dx()
+        jac[:,i] = param_dx
     return jac
 
 def jacobian_fwd_m_2_1 (mod, sin1, sin2, sout, snd=False):

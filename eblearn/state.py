@@ -1,4 +1,5 @@
-from util import *
+from util    import ones, zeros
+from vecmath import clear
 
 class state (object):
 

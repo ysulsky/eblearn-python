@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
-import numpy as np
+from eblearn      import vecmath
+from eblearn.util import random, rtype
+
 from math import sqrt
 from time import clock
 
-from eblearn      import vecmath
-from eblearn.util import debug_break, random, rtype
+import numpy as np
 
 dtype = rtype
 global_speed_test = 0

@@ -1,4 +1,5 @@
-from module import *
+from module import module_1_1, module_2_1, module_2_2
+from state import state
 
 class layers_1 (module_1_1):
     def __init__(self, *layers):
@@ -61,27 +62,27 @@ class layers_2 (module_2_2):
         for (lyr, inp, outp) in zip(self.layers, inputs, outputs):
             lyr.fprop(inp[0], inp[1], outp[0], outp[1])
     
-    def bprop_input(self, input, output):
+    def bprop_input(self, input1, input2, output1, output2):
         for (h1,h2) in self.hidden:
             h1.clear_dx(); h2.clear_dx()
         inputs  = [(input1, input2)] + self.hidden
         outputs = self.hidden + [(output1, output2)]
         for (lyr, inp, outp) in zip(self.layers, inputs, outputs)[::-1]:
             lyr.bprop_input(inp[0], inp[1], outp[0], outp[1])
-    def bprop_param(self, input, output):
+    def bprop_param(self, input1, input2, output1, output2):
         inputs  = [(input1, input2)] + self.hidden
         outputs = self.hidden + [(output1, output2)]
         for (lyr, inp, outp) in zip(self.layers, inputs, outputs)[::-1]:
             lyr.bprop_param(inp[0], inp[1], outp[0], outp[1])
     
-    def bbprop_input(self, input, output):
+    def bbprop_input(self, input1, input2, output1, output2):
         for (h1,h2) in self.hidden:
             h1.clear_ddx(); h2.clear_ddx()
         inputs  = [(input1, input2)] + self.hidden
         outputs = self.hidden + [(output1, output2)]
         for (lyr, inp, outp) in zip(self.layers, inputs, outputs)[::-1]:
             lyr.bbprop_input(inp[0], inp[1], outp[0], outp[1])
-    def bbprop_param(self, input, output):
+    def bbprop_param(self, input1, input2, output1, output2):
         inputs  = [(input1, input2)] + self.hidden
         outputs = self.hidden + [(output1, output2)]
         for (lyr, inp, outp) in zip(self.layers, inputs, outputs)[::-1]:

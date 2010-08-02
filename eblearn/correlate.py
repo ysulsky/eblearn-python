@@ -1,5 +1,6 @@
-from idx     import *
-from vecmath import mkextmk, m2kdotmk
+from idx     import unfold
+from vecmath import m2kdotmk, mkextmk
+
 import numpy as np
 
 try:

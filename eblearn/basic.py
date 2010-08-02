@@ -1,5 +1,10 @@
-from module import *
-from correlate import correlate_table_for_dim, back_correlate_table_for_dim
+from correlate import back_correlate_table_for_dim, correlate_table_for_dim
+from idx       import unfold
+from module    import module_1_1, module_2_1, no_params
+from util      import ensure_tuple, random
+from vecmath   import clear, m2dotm1, m2dotrows, normrows
+
+import numpy as np
 
 class linear (module_1_1):
     def __init__(self, shape_in, shape_out):

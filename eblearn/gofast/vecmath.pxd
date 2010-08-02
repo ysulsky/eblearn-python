@@ -1,5 +1,5 @@
 cimport numpy as np
-from util cimport *
+from util cimport rtype_t
 
 cdef c_dtanh (rtype_t *x, long n, rtype_t *r)
 cdef c_ddtanh(rtype_t *x, long n, rtype_t *r)

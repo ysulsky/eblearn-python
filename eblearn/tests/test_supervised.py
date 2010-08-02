@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
-from eblearn      import *
-from eblearn.util import *
+from eblearn import *
 
 def map_inputs(f, x):
     return array([f(i) for i in x])

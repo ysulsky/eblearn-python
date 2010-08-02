@@ -1,17 +1,8 @@
 import sys
 import numpy as np
-from math import pi, sqrt
-from vecmath import *
-from idx import *
-from lush_mat import *
 import pickle
 
 np.seterr('raise')
-
-try:
-    from ui import *
-except ImportError:
-    print "+++ Warning: UI libraries not found."
 
 try:
     from gofast.util import rtype
@@ -52,6 +43,16 @@ def save_object(obj, dest):
 def load_object(loc):
     if type(loc) == str: loc = open(loc, 'rb')
     return pickle.load(loc)
+
+class agenerator (object):
+    def __init__(self, gen, dtype=rtype, count=-1):
+        self.gen = gen
+        self.dtype = dtype
+        self.count = count
+    def __array__(self):
+        return np.fromiter(self.gen(), self.dtype, self.count)
+    def __iter__(self):
+        return self.gen()
 
 class abuffer (object):
     def __init__(self, n=(100,), dtype=rtype, initial=None):

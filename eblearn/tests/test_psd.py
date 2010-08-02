@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 from eblearn     import *
-from eblearn.psd import *
 
 def gen_sample():
     x = zeros((16,16))

@@ -1,8 +1,9 @@
-from module     import *
-from arch       import *
-from datasource import *
-from trainer    import *
-from parameter  import *
+from arch       import ebm_2
+from datasource import eb_dsource
+from module     import module_2_1
+from parameter  import feval_from_trainer, gd_linesearch_update, parameter
+from state      import state
+from trainer    import eb_trainer
 
 class psd_codec (module_2_1):
 
@@ -45,7 +46,7 @@ class psd_codec (module_2_1):
             self.code_penalty.forget()
             self.decoder_cost.forget()
 
-        def normalize():
+        def normalize(self):
             self.encoder_cost.normalize()
             self.code_penalty.normalize()
             self.decoder_cost.normalize()

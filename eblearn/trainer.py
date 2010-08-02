@@ -1,6 +1,7 @@
-from eblearn import *
-from util import *
+from state import state
+from util  import abuffer, save_object
 
+import numpy as np
 import time
 
 class eb_trainer (object):
@@ -60,8 +61,8 @@ class eb_trainer (object):
         
         self.train_num     = 0
         self.age           = 0
-        self.input         = state(())
-        self.target        = state(())
+        self.input         = state()
+        self.target        = state()
         self.energy        = state((1,))
         self.energy.dx[0]  = 1.
         self.energy.ddx[0] = 1.
@@ -270,10 +271,8 @@ class eb_trainer (object):
             self.ds_train.next()
         self.ds_train.seek(start_pos)
         self.parameter.compute_epsilon(self.hess_mu)
-        eps = None
         if self.verbose:
-            eps = np.fromiter(self.parameter.epsilon, rtype)
-            self.msg('avg. epsilon = %g' % eps.mean())
+            self.msg('avg. epsilon = %g' % np.mean(self.parameter.epsilon))
         else:
             self.msg('done.')
     

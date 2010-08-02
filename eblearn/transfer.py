@@ -1,5 +1,8 @@
-from module import *
-from arch import *
+from arch    import layers
+from module  import module_1_1, no_params
+from vecmath import ddtanh, dtanh, thresh_less
+
+import numpy as np
 
 class transfer_identity (no_params, module_1_1):
     def fprop(self, input, output):
