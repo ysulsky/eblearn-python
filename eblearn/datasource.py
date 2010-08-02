@@ -1,5 +1,5 @@
-from state import state
-from util  import ensure_dims
+from eblearn.state import state
+from eblearn.util  import ensure_dims
 
 import numpy as np
 

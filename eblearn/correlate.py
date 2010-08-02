@@ -1,5 +1,5 @@
-from idx     import unfold
-from vecmath import m2kdotmk, mkextmk
+from eblearn.idx     import unfold
+from eblearn.vecmath import m2kdotmk, mkextmk
 
 import numpy as np
 

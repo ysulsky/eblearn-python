@@ -1,7 +1,7 @@
-from around    import around, around_methods
-from parameter import parameter
-from state     import state
-from util      import ref
+from eblearn.around    import around, around_methods
+from eblearn.parameter import parameter
+from eblearn.state     import state
+from eblearn.util      import ref
 
 class eb_module (object):
     __metaclass__ = around_methods

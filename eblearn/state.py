@@ -1,5 +1,5 @@
-from util    import ones, zeros
-from vecmath import clear
+from eblearn.util    import ones, zeros
+from eblearn.vecmath import clear
 
 class state (object):
 

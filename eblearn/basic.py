@@ -1,8 +1,9 @@
-from correlate import back_correlate_table_for_dim, correlate_table_for_dim
-from idx       import unfold
-from module    import module_1_1, module_2_1, no_params
-from util      import ensure_tuple, random
-from vecmath   import clear, m2dotm1, m2dotrows, normrows
+from eblearn.correlate import back_correlate_table_for_dim, \
+                              correlate_table_for_dim
+from eblearn.idx       import unfold
+from eblearn.module    import module_1_1, module_2_1, no_params
+from eblearn.util      import ensure_tuple, random
+from eblearn.vecmath   import clear, m2dotm1, m2dotrows, normrows
 
 import numpy as np
 

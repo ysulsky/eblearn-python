@@ -113,5 +113,5 @@ def test_slow_fast():
     cmp_slow_fast('mdotc', (200,300), (), (200,300))
  
 if __name__ == '__main__':
-    global_speed_test=0.5
+    #global_speed_test=0.5
     test_slow_fast()

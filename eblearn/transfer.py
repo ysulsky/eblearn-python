@@ -1,6 +1,6 @@
-from arch    import layers
-from module  import module_1_1, no_params
-from vecmath import ddtanh, dtanh, thresh_less
+from eblearn.arch    import layers
+from eblearn.module  import module_1_1, no_params
+from eblearn.vecmath import ddtanh, dtanh, thresh_less
 
 import numpy as np
 

@@ -1,9 +1,9 @@
-from basic   import multiplication
-from idx     import unfold
-from module  import module_1_1, module_2_1, no_params
-from state   import state
-from util    import ensure_tuple, zeros
-from vecmath import clear, sumabs, sumsq, sqdist, thresh_less
+from eblearn.basic   import multiplication
+from eblearn.idx     import unfold
+from eblearn.module  import module_1_1, module_2_1, no_params
+from eblearn.state   import state
+from eblearn.util    import ensure_tuple, zeros
+from eblearn.vecmath import clear, sumabs, sumsq, sqdist, thresh_less
 
 import numpy as np
 

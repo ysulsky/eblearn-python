@@ -1,9 +1,10 @@
-from arch       import ebm_2
-from datasource import eb_dsource
-from module     import module_2_1
-from parameter  import feval_from_trainer, gd_linesearch_update, parameter
-from state      import state
-from trainer    import eb_trainer
+from eblearn.arch       import ebm_2
+from eblearn.datasource import eb_dsource
+from eblearn.module     import module_2_1
+from eblearn.parameter  import feval_from_trainer, \
+                               gd_linesearch_update, parameter
+from eblearn.state      import state
+from eblearn.trainer    import eb_trainer
 
 class psd_codec (module_2_1):
 

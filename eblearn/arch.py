@@ -1,5 +1,5 @@
-from module import module_1_1, module_2_1, module_2_2
-from state import state
+from eblearn.module import module_1_1, module_2_1, module_2_2
+from eblearn.state  import state
 
 class layers_1 (module_1_1):
     def __init__(self, *layers):

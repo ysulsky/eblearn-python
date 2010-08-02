@@ -1,12 +1,10 @@
-from state   import state
-from util    import debug_break, agenerator, ref, rtype
-from vecmath import clear, mdotc, sumsq, thresh_less
-
-from math    import sqrt
+from eblearn.state   import state
+from eblearn.util    import debug_break, agenerator, ref, rtype
+from eblearn.vecmath import clear, mdotc, sumsq, thresh_less
+from math            import sqrt
 
 import numpy as np
 import weakref
-
 
 class parameter_forget (object):
     def __init__(self,

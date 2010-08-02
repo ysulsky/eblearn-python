@@ -1,5 +1,5 @@
-from state import state
-from util  import abuffer, save_object
+from eblearn.state import state
+from eblearn.util  import abuffer, save_object
 
 import numpy as np
 import time

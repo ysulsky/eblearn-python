@@ -5,7 +5,7 @@ import pickle
 np.seterr('raise')
 
 try:
-    from gofast.util import rtype
+    from eblearn.gofast.util import rtype
 except ImportError:
     print "+++ Warning: gofast isn't compiled."
     rtype = float
