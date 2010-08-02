@@ -2,8 +2,7 @@
 
 cimport cython
 
-from util cimport *
-from util import *
+from eblearn.gofast.util cimport *
 
 import_array()
 

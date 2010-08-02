@@ -16,6 +16,7 @@ IPPS_LDFLAGS = -lippsemerged$(IPP_ARCH) -lippsmerged$(IPP_ARCH)
 IPPCORE_LDFLAGS = -lippcore$(IPP_ARCH)
 
 PYX_EXTS = util vecmath idx correlate
+PYX_INCDIRS = ../../
 
 ifneq (,$(IPP_DIR))
 PYX_EXTS += ipp
@@ -38,10 +39,10 @@ clean:
 -include $(ALLDEPS)
 
 $(PYX_DEPS) : %.d : %.pyx
-	@echo $*.o $*.d : $(shell ./pyx_deps $*) > $@
+	@echo $*.o $*.d : $(shell ./pyx_deps $* $(PYX_INCDIRS)) > $@
 
 $(addsuffix .o, $(PYX_EXTS)) : %.o : %.pyx
-	$(CYTHON) $*.pyx
+	$(CYTHON) $(addprefix -I, $(PYX_INCDIRS)) $*.pyx
 	$(CC) -c $(CFLAGS) $(INCLUDES) $(CFLAGS_$*) $*.c
 
 $(addsuffix .so, $(PYX_EXTS)) : %.so : %.o

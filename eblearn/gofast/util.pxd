@@ -1,4 +1,3 @@
-cimport cython
 cimport numpy as np
 
 cdef extern from "Python.h":

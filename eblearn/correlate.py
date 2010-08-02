@@ -3,27 +3,34 @@ from eblearn.vecmath import m2kdotmk, mkextmk
 
 import numpy as np
 
+sig_correlate = None
 try:
-    import scipy.signal
-    sig_correlate = scipy.signal.correlate
-    def correlate(input, kernel, output=None, accumulate=False):
-        y = sig_correlate(input, kernel, 'valid')
-        if output is None: output    = y
-        elif accumulate:   output   += y
-        else:              output[:] = y
-        return output
+    from scipy.signal import correlate as sig_correlate
 except ImportError:
-    # no scipy
-    def correlate(input, kernel, output=None, accumulate=False):
-        out_shape = tuple(np.subtract(input.shape, kernel.shape) + 1)
-        if output is None:
-            output = np.zeros(out_shape, input.dtype)
-        assert (out_shape == output.shape), "shapes don't match"
-        uin = input
-        for d, kd in enumerate(kernel.shape):
-            uin = unfold(uin, d, kd, 1)
-        m2kdotmk(uin, kernel, output, accumulate)
-        return output
+    pass
+
+def gen_correlate_scipy(input, kernel, output=None, accumulate=False):
+    y = sig_correlate(input, kernel, 'valid')
+    if output is None: output    = y
+    elif accumulate:   output   += y
+    else:              output[:] = y
+    return output
+
+def gen_correlate_noscipy(input, kernel, output=None, accumulate=False):
+    out_shape = tuple(np.subtract(input.shape, kernel.shape) + 1)
+    if output is None:
+        output = np.zeros(out_shape, input.dtype)
+    assert (out_shape == output.shape), "shapes don't match"
+    uin = input
+    for d, kd in enumerate(kernel.shape):
+        uin = unfold(uin, d, kd, 1)
+    m2kdotmk(uin, kernel, output, accumulate)
+    return output
+
+if sig_correlate is None:
+    correlate = gen_correlate_noscipy
+else:
+    correlate = gen_correlate_scipy
 
 def correlate_table(table, inputs, kernels, outputs):
     for (i,k,j) in table:

@@ -1,9 +1,9 @@
 # mode -*-python-*-
 
-cimport cython
+from eblearn.gofast.util cimport *
+from eblearn.util         import rtype
 
-from util cimport *
-from util import *
+import numpy as np
 
 import_array()
 

@@ -1,11 +1,7 @@
 # mode -*-python-*-
 
-cimport cython
-
-from util cimport *
-from util import *
-
-from idx import *
+from eblearn.gofast.util cimport *
+from eblearn.idx          import narrow, reverse, reverse_along
 
 import_array()
 
@@ -113,6 +109,7 @@ __all__ = ['m2_correlate', 'm2_correlate_table',
 
 def test():
     from scipy import lena
+    import numpy as np
     x = lena()
     k = np.random.random((10,10))
     y = np.zeros(np.asarray(x.shape)-k.shape+1)

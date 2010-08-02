@@ -6,14 +6,17 @@ As long as it doesn't miss anything, it's okay to be sloppy.
 """    
 
 import sys, os, re
+from os.path import basename, dirname, exists, join
 
-base  = sys.argv[1]
+base        = sys.argv[1]
+searchpaths = [dirname(base)] + sys.argv[1:]
+
 fname = base + '.pyx'
 
 lines = [line for line in re.sub(r'\\\n',' ',open(fname).read()).split('\n')
          if 'cimport' in line]
 
-deps = [os.path.basename(base)]
+deps = [basename(base)]
 for line in lines:
     m = re.match(r'cimport\s+(.*)', line)
     imps = []
@@ -27,7 +30,8 @@ for line in lines:
     deps.extend([imp.replace('.','/') for imp in imps])
 
 print fname
-bdir = os.path.dirname(base)
 for d in deps:
-    dpath = os.path.join(bdir, d+'.pxd')
-    if os.path.exists(dpath): print dpath
+    for pth in searchpaths:
+        dpath = join(pth, d+'.pxd')
+        if exists(dpath):
+            print dpath; break

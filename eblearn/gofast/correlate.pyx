@@ -1,26 +1,44 @@
 # mode -*-python-*-
 
-cimport cython
+from eblearn.gofast.util    cimport *
+from eblearn.gofast.vecmath cimport *
 
-from util cimport *
-from util import *
-
-from vecmath cimport *
-from vecmath import *
+from eblearn.idx     import unfold
+from eblearn.vecmath import mkextmk, m2kdotmk
 
 import scipy.signal
-from idx import *
+
 
 import_array()
 
-sig_correlate = scipy.signal.correlate
-def gen_correlate(np.ndarray input, np.ndarray kernel, np.ndarray output=None,
-                  bint accumulate=False):
+sig_correlate = None
+try:
+    from scipy.signal import correlate as sig_correlate
+except ImportError:
+    pass
+
+def gen_correlate_scipy(input, kernel, output=None, accumulate=False):
     y = sig_correlate(input, kernel, 'valid')
     if output is None: output    = y
     elif accumulate:   output   += y
     else:              output[:] = y
     return output
+
+def gen_correlate_noscipy(input, kernel, output=None, accumulate=False):
+    out_shape = tuple(np.subtract(input.shape, kernel.shape) + 1)
+    if output is None:
+        output = np.zeros(out_shape, input.dtype)
+    assert (out_shape == output.shape), "shapes don't match"
+    uin = input
+    for d, kd in enumerate(kernel.shape):
+        uin = unfold(uin, d, kd, 1)
+    m2kdotmk(uin, kernel, output, accumulate)
+    return output
+
+if sig_correlate is None:
+    gen_correlate = gen_correlate_noscipy
+else:
+    gen_correlate = gen_correlate_scipy
 
 def m1_correlate(np.ndarray input not None, np.ndarray kernel not None,
                  np.ndarray output=None, bint accumulate=False):
