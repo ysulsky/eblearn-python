@@ -49,15 +49,52 @@ def back_correlate_table(table, inputs, kernels, outputs):
 back_correlate_for_dim       = lambda n: back_correlate
 back_correlate_table_for_dim = lambda n: back_correlate_table
 
-try:
-    from gofast.correlate import *
-    fast = True
-except ImportError:
-    fast = False
-    pass
-
 __all__ = ['correlate',            'correlate_for_dim',
            'correlate_table',      'correlate_table_for_dim',
            'back_correlate',       'back_correlate_for_dim',
            'back_correlate_table', 'back_correlate_table_for_dim']
 
+slow_ver = dict([(k, globals()[k]) for k in __all__])
+
+try:
+    from gofast.correlate import *
+    have_fast = True
+except ImportError:
+    have_fast = False
+
+fast_ver = dict([(k, globals()[k]) for k in __all__])
+
+non_ipp_correlate_for_dim       = correlate_for_dim
+non_ipp_correlate_table_for_dim = correlate_table_for_dim
+try:
+    from gofast.ipp import *
+    
+    def correlate_for_dim(n):
+        if n == 2: return m2_correlate
+        return non_ipp_correlate_for_dim(n)
+    
+    def correlate_table_for_dim(n):
+        if n == 2: return m2_correlate_table
+        return non_ipp_correlate_table_for_dim(n)
+    
+    have_ipp = True
+except ImportError:
+    have_ipp = False
+
+ipp_ver = dict([(k, globals()[k]) for k in __all__])
+
+
+def eblearn_disable_ipp():
+    from eblearn.util import replace_global
+    for k in fast_ver:
+        ippfn, fastfn = ipp_ver[k], fast_ver[k]
+        if ippfn is not fastfn:
+            replace_global('eblearn', ippfn, fastfn)
+
+def eblearn_enable_ipp():
+    from eblearn.util import replace_global
+    for k in fast_ver:
+        ippfn, fastfn = ipp_ver[k], fast_ver[k]
+        if ippfn is not fastfn:
+            replace_global('eblearn', fastfn, ippfn)
+        

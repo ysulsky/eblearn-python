@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 from eblearn import *
 
 # test (g(f))'' instead of f'' to ensure a non-zero second derivative
@@ -8,7 +9,7 @@ test_xfer = transfer_square # |None | transfer_square | transfer_cube
 # Hessian matrix are zero, any bbprop test for a machine with
 # nonzero mixed second partial derivatives might fail
 
-
+dx, ddx      = 1e-6, 1e-4
 jacobian_tol = 0.01, 1e-6 # relative, actual
 hessian_tol  = 0.05, 1e-5 
 
@@ -77,8 +78,7 @@ def jacobian_bwd_m_1_1_param (mod, sin, sout, snd=False):
 
 def jacobian_fwd_m_1_1 (mod, sin, sout, snd=False):
     jac = zeros((sin.size, sout.size))
-    small = 1e-4 if snd else 1e-6
-    if rtype == np.float32: small *= 100
+    small = ddx if snd else dx
     sina  = state(sin.shape);     souta = state(sout.shape)
     sinb  = state(sin.shape);     soutb = state(sout.shape)
     sin_x = sin.x.ravel();
@@ -105,8 +105,7 @@ def jacobian_fwd_m_1_1 (mod, sin, sout, snd=False):
 
 def jacobian_fwd_m_1_1_param (mod, sin, sout, snd=False):
     jac = zeros((mod.parameter.size(), sout.size))
-    small = 1e-4 if snd else 1e-6
-    if rtype == np.float32: small *= 100
+    small = ddx if snd else dx
     souta = state(sout.shape)
     soutb = state(sout.shape)
     i = -1
@@ -189,8 +188,7 @@ def jacobian_bwd_m_2_1_param (mod, sin1, sin2, sout, snd=False):
 def jacobian_fwd_m_2_1 (mod, sin1, sin2, sout, snd=False):
     jac1 = zeros((sin1.size, sout.size))
     jac2 = zeros((sin2.size, sout.size))
-    small = 1e-4 if snd else 1e-6
-    if rtype == np.float32: small *= 100
+    small = ddx if snd else dx
     sins = [sin1, sin2]; jacs = [jac1, jac2]
     if snd: mod.fprop(sin1, sin2, sout)
     for which in [0, 1]:
@@ -220,8 +218,7 @@ def jacobian_fwd_m_2_1 (mod, sin1, sin2, sout, snd=False):
 
 def jacobian_fwd_m_2_1_param (mod, sin1, sin2, sout, snd=False):
     jac = zeros((mod.parameter.size(), sout.size))
-    small = 1e-4 if snd else 1e-6
-    if rtype == np.float32: small *= 100
+    small = ddx if snd else dx
     souta = state(sout.shape)
     soutb = state(sout.shape)
     i = -1
@@ -370,7 +367,7 @@ test_crossent_jac      = make_test_m21_jac(ctor_ns2(cross_entropy))
 test_penalty_l1_jac    = make_test_m11_jac(ctor_ns1(penalty_l1))
 test_penalty_l2_jac    = make_test_m11_jac(ctor_ns1(penalty_l2))
 
-def test_jac():
+def _test_jac():
     test_linear_jac( (2,2,2), (3,1,1) )
     test_bias_jac( (2,5,5) )
     test_bias_jac( (2,5,5), per_feature = True, name='bias (per feature)' )
@@ -399,7 +396,14 @@ def test_jac():
     test_back_convolution_jac( (2,3,4), (2,3),
                                convolution.full_table(2,1) )
     test_layers_1_jac(1, (2,1,1), (1,2,2))
-    
+
+def test_jac():
+    # disable IPP
+    correlate.eblearn_disable_ipp()
+    try:
+        _test_jac()
+    finally:
+        correlate.eblearn_enable_ipp()
 
 if __name__ == '__main__':
     test_jac()

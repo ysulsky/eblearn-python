@@ -1,8 +1,9 @@
 # mode -*-python-*-
+
 cimport cython
 
-from _util cimport *
-from _util import *
+from util cimport *
+from util import *
 
 import_array()
 
@@ -78,12 +79,22 @@ def reverse(np.ndarray x):
     cdef int i
     cdef long n = 0
     for i in range(x.ndim):
-        if x.shape[i] < 1: return x
-        n += (x.shape[i] - 1) * x.strides[i]
+        if x.shape[i] > 0:
+            n += (x.shape[i] - 1) * x.strides[i]
     x = x[:]
     x.data += n
     for i in range(x.ndim):
         x.strides[i] = -x.strides[i]
+    PyArray_UpdateFlags(x, np.NPY_C_CONTIGUOUS)
+    return x
+
+@cython.boundscheck(False)
+def reverse_along(np.ndarray x, int dim):
+    assert (0 <= dim < x.ndim), "dimension out of bounds"
+    if x.shape[dim] < 1: return x
+    x = x[:]
+    x.data += (x.shape[dim] - 1) * x.strides[dim]
+    x.strides[dim] = -x.strides[dim]
     PyArray_UpdateFlags(x, np.NPY_C_CONTIGUOUS)
     return x
 

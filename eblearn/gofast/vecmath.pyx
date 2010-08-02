@@ -2,8 +2,8 @@
 
 cimport cython
 
-from _util cimport *
-from _util import *
+from util cimport *
+from util import *
 
 import_array()
 
@@ -806,6 +806,10 @@ def normrows(np.ndarray m not None):
 
     return None
 
+def copy_normrows(m): # for testing
+    x=m.copy()
+    normrows(x)
+    return x
 
 def mdotc(np.ndarray m not None, rtype_t c,
           np.ndarray res = None, bint accumulate=False):

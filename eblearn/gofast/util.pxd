@@ -6,6 +6,7 @@ cdef extern from "Python.h":
     void Py_XINCREF(object)
     void Py_DECREF(object)
     void Py_XDECREF(object)
+    str PyString_FromString(char*)
 
 cdef extern from "numpy/arrayobject.h":
     void import_array()
@@ -78,6 +79,7 @@ cdef inline np.ndarray cvt(np.ndarray m, int npy_type, int flags):
     cdef np.dtype t
     if m is None: return None
     t = np.PyArray_DescrFromType(npy_type)
+    flags |= np.NPY_FORCECAST
     Py_INCREF(t) # the following steals a reference
     IF 1:
         return PyArray_FromArray(m, t, flags)

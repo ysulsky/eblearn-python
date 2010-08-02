@@ -4,14 +4,20 @@ import numpy as np
 from math import sqrt
 from time import clock
 
-from eblearn        import vecmath as slow_vecmath
-from eblearn.gofast import vecmath as fast_vecmath
-from eblearn.util   import debug_break, random, rtype
+from eblearn      import vecmath
+from eblearn.util import debug_break, random, rtype
 
 dtype = rtype
 def cmp_slow_fast(name, *arg_dims, **kwargs):
-    note = kwargs.get('note', '')
+    note      = kwargs.get('note', '')
     speedtest = kwargs.get('speedtest',0)
+    
+    slow_fn = vecmath.slow_ver[name]
+    fast_fn = vecmath.fast_ver[name]
+    
+    if slow_fn is fast_fn:
+        print '*** Slow and fast versions of %s are the same' % (name,)
+        return 
     
     def chg_scalars(args):
         for i in range(len(args)):
@@ -28,7 +34,8 @@ def cmp_slow_fast(name, *arg_dims, **kwargs):
         t3 = clock()
         if t3 - t2 < 1e-2:
             return speedup(n * 10, fn1, args1, fn2, args2)
-        return "%s -> %s" % ((t2 - t1), (t3 - t2))
+        i1, i2 = t2 - t1, t3 - t2
+        return "%s -> %s (%gx)" % (i1, i2, float(i1)/i2)
     
     args1 = [random(dims).astype(dtype)*10-2 for dims in arg_dims]
     args2 = [arg1.copy() for arg1 in args1]
@@ -37,10 +44,7 @@ def cmp_slow_fast(name, *arg_dims, **kwargs):
     args2_noncontig = [arg2.transpose().copy().transpose() for arg2 in args2]
 
     chg_scalars(args1);           chg_scalars(args2)
-    chg_scalars(args1_noncontig); chg_scalars(args2_noncontig)
-    
-    slow_fn = getattr(slow_vecmath, name)
-    fast_fn = getattr(fast_vecmath, name)
+    chg_scalars(args1_noncontig); chg_scalars(args2_noncontig)        
     
     ctg_res1 = slow_fn(*args1)
     ctg_res2 = fast_fn(*args2)
@@ -75,38 +79,33 @@ def cmp_slow_fast(name, *arg_dims, **kwargs):
     print '%-45s error = %-15g %10s%s' % (cmsg, ctg_err,  cpass, cspd)
     print '%-45s error = %-15g %10s%s' % (nmsg, nctg_err, npass, nspd)
 
-def test():
-    fast_fns = fast_vecmath.__all__
-    try:
-        fast_vecmath.__all__ = []
-        reload(slow_vecmath)
-
-        cmp_slow_fast('sumabs',  (3,4,5))
-        cmp_slow_fast('sumsq',   (3,4,5))
-        cmp_slow_fast('sqdist',  (3,4,5), (3,4,5))
-        cmp_slow_fast('dtanh',   (30,20,20))
-        cmp_slow_fast('ddtanh',  (30,20,20))
-        cmp_slow_fast('m2dotm1', (30,400), (400,), (30,))
-        cmp_slow_fast('m4dotm2', (3,4,5,6), (5,6), (3,4))
-        cmp_slow_fast('m6dotm3', (3,4,5,6,7,8), (6,7,8), (3,4,5))
-        cmp_slow_fast('m2kdotmk', (3,4,5,1,1,2, 6,7,8,1,2,1), (6,7,8,1,2,1),
-                                  (3,4,5,1,1,2))
-        cmp_slow_fast('m1ldot',  (5,), (5,))
-        cmp_slow_fast('m2ldot',  (30,50), (30,50))
-        cmp_slow_fast('m3ldot',  (3,4,5), (3,4,5))
-        cmp_slow_fast('ldot',    (30,2,5,2), (30,2,5,2))
-        cmp_slow_fast('m1extm1', (30,), (400,), (30,400))
-        cmp_slow_fast('m2extm2', (3,4), (5,6), (3,4,5,6))
-        cmp_slow_fast('m3extm3', (3,4,5), (6,7,8), (3,4,5,6,7,8))
-        cmp_slow_fast('mkextmk', (3,1,2,1,1,2), (6,3,2,1,2,1),
-                                 (3,1,2,1,1,2,   6,3,2,1,2,1))
-        cmp_slow_fast('m2dotrows', (200,300), (200,300),)
-        cmp_slow_fast('copy_normrows', (256,3,3))
-        cmp_slow_fast('mdotc', (200,300), (), (200,300))
+def test_slow_fast():
+    if not vecmath.have_fast:
+        print "*** Can't find fast vecmath versions"
+        return
     
-    finally:
-        fast_vecmath.__all__ = fast_fns
-        reload(slow_vecmath)
-
+    cmp_slow_fast('sumabs',  (3,4,5))
+    cmp_slow_fast('sumsq',   (3,4,5))
+    cmp_slow_fast('sqdist',  (3,4,5), (3,4,5))
+    cmp_slow_fast('dtanh',   (30,20,20))
+    cmp_slow_fast('ddtanh',  (30,20,20))
+    cmp_slow_fast('m2dotm1', (30,400), (400,), (30,))
+    cmp_slow_fast('m4dotm2', (3,4,5,6), (5,6), (3,4))
+    cmp_slow_fast('m6dotm3', (3,4,5,6,7,8), (6,7,8), (3,4,5))
+    cmp_slow_fast('m2kdotmk', (3,4,5,1,1,2, 6,7,8,1,2,1), (6,7,8,1,2,1),
+                              (3,4,5,1,1,2))
+    cmp_slow_fast('m1ldot',  (5,), (5,))
+    cmp_slow_fast('m2ldot',  (30,50), (30,50))
+    cmp_slow_fast('m3ldot',  (3,4,5), (3,4,5))
+    cmp_slow_fast('ldot',    (30,2,5,2), (30,2,5,2))
+    cmp_slow_fast('m1extm1', (30,), (400,), (30,400))
+    cmp_slow_fast('m2extm2', (3,4), (5,6), (3,4,5,6))
+    cmp_slow_fast('m3extm3', (3,4,5), (6,7,8), (3,4,5,6,7,8))
+    cmp_slow_fast('mkextmk', (3,1,2,1,1,2), (6,3,2,1,2,1),
+                             (3,1,2,1,1,2,   6,3,2,1,2,1))
+    cmp_slow_fast('m2dotrows', (200,300), (200,300),)
+    cmp_slow_fast('copy_normrows', (256,3,3))
+    cmp_slow_fast('mdotc', (200,300), (), (200,300))
+ 
 if __name__ == '__main__':
-    test()
+    test_slow_fast()

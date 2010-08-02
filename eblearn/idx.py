@@ -35,13 +35,21 @@ def narrow(x, dim, size, offset = 0):
 
 def reverse(x):
     strides, shape = x.strides, x.shape
-    if 0 in x.shape: return x[:]
     for i in xrange(x.ndim):
-        x = narrow(x,i,1,shape[i]-1)
+        if x.shape[i] > 0:
+            x = narrow(x,i,1,shape[i]-1)
     return as_strided(x, shape, [-s for s in strides])
 
+def reverse_along(x, dim):
+    shape, strides = x.shape, x.strides
+    d = shape[dim]
+    if d < 1: return x
+    x = narrow(x, dim, 1, d-1)
+    strides = list(strides)
+    strides[dim] = -strides[dim]
+    return as_strided(x, shape, strides)
 
 try:
-    from gofast._idx import *
+    from gofast.idx import *
 except ImportError:
     pass

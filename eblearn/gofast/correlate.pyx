@@ -2,14 +2,14 @@
 
 cimport cython
 
-from _util cimport *
-from _util import *
+from util cimport *
+from util import *
 
-from _vecmath cimport *
-from _vecmath import *
+from vecmath cimport *
+from vecmath import *
 
 import scipy.signal
-from _idx import *
+from idx import *
 
 import_array()
 
@@ -50,7 +50,7 @@ def m2_correlate(np.ndarray input not None, np.ndarray kernel not None,
     if output is None:
         rr = output = PyArray_EMPTY(2, uinput.shape, NPY_RTYPE, 0)
     else:
-        assert (output.ndim == 1 and
+        assert (output.ndim == 2 and
                 output.shape[0] == uinput.shape[0] and
                 output.shape[1] == uinput.shape[1]), "shapes don't match"
         rr = cvt(output, NPY_RTYPE, RESULTFLAGS)
@@ -69,7 +69,7 @@ def m3_correlate(np.ndarray input not None, np.ndarray kernel not None,
     if output is None:
         rr = output = PyArray_EMPTY(3, uinput.shape, NPY_RTYPE, 0)
     else:
-        assert (output.ndim == 1 and
+        assert (output.ndim == 3 and
                 output.shape[0] == uinput.shape[0] and
                 output.shape[1] == uinput.shape[1] and
                 output.shape[2] == uinput.shape[2]), "shapes don't match"
@@ -330,11 +330,9 @@ def back_correlate_table_for_dim(int n):
     if n == 3: return m3_back_correlate_table
     return gen_back_correlate_table
 
-
 def back_correlate_table(np.ndarray[int, ndim=2] table not None,
                          np.ndarray inputs             not None,
                          np.ndarray kernels            not None,
                          np.ndarray outputs            not None):
     corrfn = back_correlate_table_for_dim(input.ndim-1)
     corrfn(table, inputs, kernels, outputs)
-    
