@@ -404,8 +404,14 @@ def m2dotm1(np.ndarray m1 not None, np.ndarray m2 not None,
     if res is not None:
         assert (res.ndim == 1 and
                 res.shape[0] == m1.shape[0]),  "shapes don't match"
+        if m1.shape[0]*m1.shape[1] > 1000: # NumPy uses BLAS
+            if accumulate:         res += np.dot(m1, m2)
+            else: PyArray_CopyInto(res,   np.dot(m1, m2))
+            return res
         rr = cvt(res, NPY_RTYPE, RESULTFLAGS)
     else:
+        if m1.shape[0]*m1.shape[1] > 1000: # NumPy uses BLAS
+            return np.dot(m1, m2)
         rr = res = PyArray_EMPTY(1, m1.shape, NPY_RTYPE, 0)
     m1 = cvt(m1, NPY_RTYPE, 0)
     m2 = cvt(m2, NPY_RTYPE, 0)

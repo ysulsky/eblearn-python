@@ -25,6 +25,13 @@ cdef extern from "numpy/arrayobject.h":
     np.ndarray PyArray_ZEROS(int, np.npy_intp *dims, int, bint)
     np.ndarray PyArray_EMPTY(int, np.npy_intp *dims, int, bint)
     void     PyArray_UpdateFlags(np.ndarray, int)
+    
+    int      PyArray_CopyInto(np.ndarray dest, np.ndarray src)
+    int      PyArray_MoveInto(np.ndarray dest, np.ndarray src)
+    
+    # this is slower than going through python 
+    # (NumPy replaces np.dot but not this)
+    np.ndarray PyArray_InnerProduct(np.ndarray, np.ndarray)
 
     # steals a reference from dtype
     np.ndarray PyArray_FromArray(np.ndarray, np.dtype, int) 

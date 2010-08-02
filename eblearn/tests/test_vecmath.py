@@ -8,9 +8,10 @@ from eblearn      import vecmath
 from eblearn.util import debug_break, random, rtype
 
 dtype = rtype
+global_speed_test = 0
 def cmp_slow_fast(name, *arg_dims, **kwargs):
     note      = kwargs.get('note', '')
-    speedtest = kwargs.get('speedtest',0)
+    speedtest = max(global_speed_test, kwargs.get('speedtest',0))
     
     slow_fn = vecmath.slow_ver[name]
     fast_fn = vecmath.fast_ver[name]
@@ -24,22 +25,25 @@ def cmp_slow_fast(name, *arg_dims, **kwargs):
             if args[i].ndim == 0:
                 args[i] = args[i].item()
 
-    def speedup(n, fn1, args1, fn2, args2):
-        t1 = clock()
-        for i in xrange(n):
-            fn1(*args1)
-        t2 = clock()
-        for i in xrange(n):
-            fn2(*args2)
-        t3 = clock()
-        if t3 - t2 < 1e-2:
-            return speedup(n * 10, fn1, args1, fn2, args2)
-        i1, i2 = t2 - t1, t3 - t2
-        return "%s -> %s (%gx)" % (i1, i2, float(i1)/i2)
+    def speedup(mintime, fn1, args1, fn2, args2):
+        i1 = i2 = 0
+        n = 10
+        while (i1 < mintime and i2 < mintime) or i2 < 1e-6:
+            t1 = clock()
+            for i in xrange(n):
+                fn1(*args1)
+            t2 = clock()
+            for i in xrange(n):
+                fn2(*args2)
+            t3 = clock()
+            i1, i2 = t2 - t1, t3 - t2
+            n *= 2
+        warn = '' if i1 >= i2 else '  *** slowdown ***'
+        return "%s -> %s (%gx)%s" % (i1, i2, float(i1)/i2, warn)
     
     args1 = [random(dims).astype(dtype)*10-2 for dims in arg_dims]
     args2 = [arg1.copy() for arg1 in args1]
-
+    
     args1_noncontig = [arg1.transpose().copy().transpose() for arg1 in args1]
     args2_noncontig = [arg2.transpose().copy().transpose() for arg2 in args2]
 
@@ -98,7 +102,7 @@ def test_slow_fast():
     cmp_slow_fast('m2ldot',  (30,50), (30,50))
     cmp_slow_fast('m3ldot',  (3,4,5), (3,4,5))
     cmp_slow_fast('ldot',    (30,2,5,2), (30,2,5,2))
-    cmp_slow_fast('m1extm1', (30,), (400,), (30,400))
+    cmp_slow_fast('m1extm1', (30,), (40,), (30,40))
     cmp_slow_fast('m2extm2', (3,4), (5,6), (3,4,5,6))
     cmp_slow_fast('m3extm3', (3,4,5), (6,7,8), (3,4,5,6,7,8))
     cmp_slow_fast('mkextmk', (3,1,2,1,1,2), (6,3,2,1,2,1),
@@ -108,4 +112,5 @@ def test_slow_fast():
     cmp_slow_fast('mdotc', (200,300), (), (200,300))
  
 if __name__ == '__main__':
+    global_speed_test=0.5
     test_slow_fast()
