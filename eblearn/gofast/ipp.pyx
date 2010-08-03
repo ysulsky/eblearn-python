@@ -103,9 +103,6 @@ def m2_correlate_table(np.ndarray[int, ndim=2] table not None,
 
 ippStaticInit()
 
-__all__ = ['m2_correlate', 'm2_correlate_table',
-           'm2_convolve',  'm2_convolve_table']
-
 
 def test():
     from scipy import lena
@@ -115,9 +112,9 @@ def test():
     y = np.zeros(np.asarray(x.shape)-k.shape+1)
     y1=m2_correlate(x,k,y)
 
-    from eblearn.gofast.correlate import correlate_for_dim,\
-                                         correlate_table_for_dim
-    old_corr = correlate_for_dim(2)
+    from eblearn.correlate.fast_ver import config_correlate,\
+                                           config_correlate_table
+    old_corr = config_correlate(2)
     y2=old_corr(x,k,y)
 
     print '|y1-y2|', ((y1-y2)**2).sum()
@@ -138,7 +135,7 @@ def test():
     tbl = np.asarray([(0,a,a) for a in range(len(y1tbl))], 'i')
     
     m2_correlate_table(tbl, xtbl, ktbl, y1tbl)
-    old_corr_tbl = correlate_table_for_dim(2)
+    old_corr_tbl = config_correlate_table(2)
     old_corr_tbl(tbl, xtbl, ktbl, y2tbl)
     
     print '|y1tbl-y2tbl|', ((y1tbl-y2tbl)**2).sum()

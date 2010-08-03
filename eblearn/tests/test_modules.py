@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from eblearn import *
+import numpy as np
 
 # test (g(f))'' instead of f'' to ensure a non-zero second derivative
 test_xfer = transfer_square # |None | transfer_square | transfer_cube
@@ -392,18 +393,28 @@ def _test_jac():
     test_penalty_l2_jac( (2,1,1) )
     test_penalty_l2_jac( (2,1,1), average=False, name='penalty_l2 (no avg)')
     test_crossent_jac( (10,1,1) )
-    test_convolution_jac( (2,3,4), (2,3), convolution.full_table(2,1) )
+    test_convolution_jac( (2,3,4), (2,3), convolution.full_table(2,1)
+                          correlation = False, name = 'convolution')
+    test_convolution_jac( (2,3,4), (2,3), convolution.full_table(2,1),
+                          correlation = True,  name = 'correlation')
     test_back_convolution_jac( (2,3,4), (2,3),
-                               convolution.full_table(2,1) )
+                               convolution.full_table(2,1),
+                               correlation = False, name = 'back convolution')
+    test_back_convolution_jac( (2,3,4), (2,3),
+                               convolution.full_table(2,1),
+                               correlation = True,  name = 'back correlation')
     test_layers_1_jac(1, (2,1,1), (1,2,2))
 
 def test_jac():
-    # disable IPP
-    correlate.eblearn_disable_ipp()
-    try:
-        _test_jac()
-    finally:
-        correlate.eblearn_enable_ipp()
+    # disable IPP if it'll destroy accuracy
+    if correlate.ipp_ver_enabled and rtype != np.float32:
+        correlate.ipp_ver_enabled = False
+        try:
+            correlate.reset_implementations()
+            _test_jac()
+        finally:
+            correlate.ipp_ver_enabled = True
+            correlate.reset_implementations()
 
 if __name__ == '__main__':
     test_jac()

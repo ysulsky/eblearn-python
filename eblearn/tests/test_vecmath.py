@@ -14,8 +14,8 @@ def cmp_slow_fast(name, *arg_dims, **kwargs):
     note      = kwargs.get('note', '')
     speedtest = max(global_speed_test, kwargs.get('speedtest',0))
     
-    slow_fn = vecmath.slow_ver[name]
-    fast_fn = vecmath.fast_ver[name]
+    slow_fn = getattr(vecmath.slow_ver, name)
+    fast_fn = getattr(vecmath.fast_ver, name, slow_fn)
     
     if slow_fn is fast_fn:
         print '*** Slow and fast versions of %s are the same' % (name,)
@@ -85,7 +85,7 @@ def cmp_slow_fast(name, *arg_dims, **kwargs):
     print '%-45s error = %-15g %10s%s' % (nmsg, nctg_err, npass, nspd)
 
 def test_slow_fast():
-    if not vecmath.have_fast:
+    if not vecmath.fast_ver:
         print "*** Can't find fast vecmath versions"
         return
     

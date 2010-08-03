@@ -7,7 +7,7 @@ INCLUDES = $(shell python-config --includes) \
            $(shell ./numpy_includes)
 
 # optional IPP support -- enter a non-empty IPP_DIR to enable
-IPP_DIR = #/opt/intel/ipp/5.3.1.062/em64t
+IPP_DIR = /opt/intel/ipp/5.3.1.062/em64t
 IPP_ARCH    = em64t
 IPP_CFLAGS  = -I$(IPP_DIR)/include
 IPP_LDFLAGS = -L$(IPP_DIR)/lib

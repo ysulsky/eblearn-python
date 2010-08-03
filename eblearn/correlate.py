@@ -1,108 +1,86 @@
-from eblearn.idx     import unfold
-from eblearn.vecmath import m2kdotmk, mkextmk
+from eblearn.util import replace_global, rtype
+from numpy        import float32
 
-import numpy as np
+# The public interface is via the [config_][back_]<correlate|convolve>[_table]
+# functions
+__all__      = [meta + prefix + fn + suffix
+                for meta   in ('config_', '')
+                for prefix in ('back_',   '')
+                for fn     in ('correlate', 'convolve')
+                for suffix in ('_table', '')]
 
-sig_correlate = None
+# Implementations may override individual pieces such as "m2_correlate_table"
+__all_impl__ = [dim + prefix + fn + suffix
+                for dim    in (['gen_']+['m%d_' % d for d in range(1,4)])
+                for prefix in ('back_', '')
+                for fn     in ('correlate', 'convolve')
+                for suffix in ('_table', '')]
+
+
+import eblearn.goslow.correlate as slow_ver
+
+fast_ver_enabled = True
 try:
-    from scipy.signal import correlate as sig_correlate
+    import eblearn.gofast.correlate as fast_ver
 except ImportError:
-    pass
+    fast_ver = None
+    fast_ver_enabled = False
 
-def gen_correlate_scipy(input, kernel, output=None, accumulate=False):
-    y = sig_correlate(input, kernel, 'valid')
-    if output is None: output    = y
-    elif accumulate:   output   += y
-    else:              output[:] = y
-    return output
-
-def gen_correlate_noscipy(input, kernel, output=None, accumulate=False):
-    out_shape = tuple(np.subtract(input.shape, kernel.shape) + 1)
-    if output is None:
-        output = np.zeros(out_shape, input.dtype)
-    assert (out_shape == output.shape), "shapes don't match"
-    uin = input
-    for d, kd in enumerate(kernel.shape):
-        uin = unfold(uin, d, kd, 1)
-    m2kdotmk(uin, kernel, output, accumulate)
-    return output
-
-if sig_correlate is None:
-    correlate = gen_correlate_noscipy
-else:
-    correlate = gen_correlate_scipy
-
-def correlate_table(table, inputs, kernels, outputs):
-    for (i,k,j) in table:
-        correlate(inputs[i], kernels[k], outputs[j], True)
-
-correlate_for_dim       = lambda n: correlate
-correlate_table_for_dim = lambda n: correlate_table
-
-def back_correlate(input, kernel, output=None, accumulate=False):
-    out_shape = tuple(np.subtract(input.shape, 1) + kernel.shape)
-    if output is None:
-        output = np.zeros(out_shape, input.dtype)
-    assert (out_shape == output.shape), "shapes don't match"
-    uout = output
-    for d, kd in enumerate(kernel.shape):
-        uout = unfold(uout, d, kd, 1)
-    mkextmk(input, kernel, uout, accumulate)
-    return output
-
-def back_correlate_table(table, inputs, kernels, outputs):
-    for (i,k,j) in table:
-        back_correlate(inputs[i], kernels[k], outputs[j], True)
-
-back_correlate_for_dim       = lambda n: back_correlate
-back_correlate_table_for_dim = lambda n: back_correlate_table
-
-__all__ = ['correlate',            'correlate_for_dim',
-           'correlate_table',      'correlate_table_for_dim',
-           'back_correlate',       'back_correlate_for_dim',
-           'back_correlate_table', 'back_correlate_table_for_dim']
-
-slow_ver = dict([(k, globals()[k]) for k in __all__])
-
+ipp_ver_enabled = True
 try:
-    from gofast.correlate import *
-    have_fast = True
+    import eblearn.gofast.ipp as ipp_ver
 except ImportError:
-    have_fast = False
+    ipp_ver = None
+    ipp_ver_enabled = False
 
-fast_ver = dict([(k, globals()[k]) for k in __all__])
-
-non_ipp_correlate_for_dim       = correlate_for_dim
-non_ipp_correlate_table_for_dim = correlate_table_for_dim
+theano_ver_enabled = True
 try:
-    from gofast.ipp import *
-    
-    def correlate_for_dim(n):
-        if n == 2: return m2_correlate
-        return non_ipp_correlate_for_dim(n)
-    
-    def correlate_table_for_dim(n):
-        if n == 2: return m2_correlate_table
-        return non_ipp_correlate_table_for_dim(n)
-    
-    have_ipp = True
+    import eblearn.gofast.theano as theano_ver
 except ImportError:
-    have_ipp = False
+    theano_ver = None
+    theano_ver_enabled = False
+                
+all_vers = filter(lambda x: x is not None,
+                  [slow_ver, fast_ver, ipp_ver, theano_ver])
 
-ipp_ver = dict([(k, globals()[k]) for k in __all__])
+def reset_implementations(packages = ('eblearn',)):
+    mod_globals = globals()
+    def use_ver(ver):
+        if ver is None: return
+        assert (ver in all_vers), "forgot to update all_vers"
+        updates = [(k, getattr(ver, k)) for k in __all_impl__ + __all__ 
+                   if  hasattr(ver, k)]
+        mod_globals.update(updates)
+    
+    use_ver(slow_ver)
+    if fast_ver_enabled: 
+        use_ver(fast_ver)
+    
+    # theano only does has GPU implementations for rtype = float32
+    # so prefer IPP otherwise
+    if rtype == float32:
+        if ipp_ver_enabled:    use_ver(ipp_ver)
+        if theano_ver_enabled: use_ver(theano_ver)
+    else:
+        if theano_ver_enabled: use_ver(theano_ver)
+        if ipp_ver_enabled:    use_ver(ipp_ver)
+    
+    # update the vtables
+    correlate_vtable = dict([(k, mod_globals[k]) 
+                             for k in __all_impl__ + __all__])
+    for ver in all_vers:
+        if hasattr(ver, 'set_correlate_module_vtable'):
+            ver.set_correlate_module_vtable(correlate_vtable)
+    
+    # update modules that have done "from correlate import ..."
+    if packages:
+        for k in __all__:
+            new_fn  = mod_globals[k]
+            old_fns = set(getattr(ver, k, new_fn) for ver in all_vers)
+            old_fns.remove(new_fn)
+            for old_fn in old_fns:
+                replace_global(old_fn, new_fn, packages)
 
 
-def eblearn_disable_ipp():
-    from eblearn.util import replace_global
-    for k in fast_ver:
-        ippfn, fastfn = ipp_ver[k], fast_ver[k]
-        if ippfn is not fastfn:
-            replace_global('eblearn', ippfn, fastfn)
+reset_implementations(packages=None)
 
-def eblearn_enable_ipp():
-    from eblearn.util import replace_global
-    for k in fast_ver:
-        ippfn, fastfn = ipp_ver[k], fast_ver[k]
-        if ippfn is not fastfn:
-            replace_global('eblearn', fastfn, ippfn)
-        

@@ -1,6 +1,8 @@
-from eblearn.correlate import back_correlate_table_for_dim, \
-                              correlate_table_for_dim
-from eblearn.idx       import unfold
+from eblearn.correlate import config_back_convolve_table,  \
+                              config_convolve_table,       \
+                              config_back_correlate_table, \
+                              config_correlate_table
+from eblearn.idx       import reverse, reverse_along, unfold
 from eblearn.module    import module_1_1, module_2_1, no_params
 from eblearn.util      import ensure_tuple, random
 from eblearn.vecmath   import clear, m2dotm1, m2dotrows, normrows
@@ -136,21 +138,31 @@ class convolution (module_1_1):
         tab.sort()
         return tab
     
-    def __init__(self, kernel_shape, conn_table):
+    def __init__(self, kernel_shape, conn_table, correlation=False):
         ''' out[j][] += in[i][] <*> kernel[k][]
-            where conn_table[k] = (i,j) '''
+            where conn_table[k] = (i,j)
+             
+            correlation=True -> <*> is correlation instead of convolution
+        '''
         kernel_shape = ensure_tuple(kernel_shape)
         
         self.conn_table = np.asarray(conn_table, int)
+        self.correlation= correlation
         self.kernels    = self.param((len(conn_table),) + kernel_shape)
         self.feat_out   = 1 + self.conn_table[:,1].max()
         self.fanin      = np.zeros(self.feat_out, dtype=int)
         for j in self.conn_table[:,1]: self.fanin[j] += 1
         
+        # we can configure these further, but then we would need to use
+        # individual functions per table
         ndim = len(kernel_shape)
-        self.fcorr   = correlate_table_for_dim(ndim)
-        self.bcorr   = back_correlate_table_for_dim(ndim)
-
+        if correlation:
+            self.fconv   = config_correlate_table(ndim)
+            self.bconv   = config_back_correlate_table(ndim)
+        else:
+            self.fconv   = config_convolve_table(ndim)
+            self.bconv   = config_back_convolve_table(ndim)
+        
         e = enumerate
         self.tbl_ikj = np.asarray([(a,k,b) for (k,(a,b)) in e(conn_table)], 'i')
         self.tbl_jki = np.asarray([(b,k,a) for (k,(a,b)) in e(conn_table)], 'i')
@@ -173,19 +185,30 @@ class convolution (module_1_1):
         out_shape[0] = self.feat_out
         output.resize(out_shape)
         clear(output.x)
-        self.fcorr(self.tbl_ikj, input.x, self.kernels.x, output.x)
+        self.fconv(self.tbl_ikj, input.x, self.kernels.x, output.x)
             
     def bprop_input(self, input, output):
-        self.bcorr(self.tbl_jki, output.dx, self.kernels.x, input.dx)
+        self.bconv(self.tbl_jki, output.dx, self.kernels.x, input.dx)
     def bprop_param(self, input, output):
-        self.fcorr(self.tbl_ijk, input.x, output.dx, self.kernels.dx)
+        if self.correlation:
+            self.fconv(self.tbl_ijk, input.x, output.dx, self.kernels.dx)
+        else:
+            rev_odx = reverse_along(reverse(output.dx), 0)
+            rev_kdx = reverse_along(reverse(self.kernels.dx), 0)
+            self.fconv(self.tbl_ijk, input.x, rev_odx, rev_kdx)
     
     def bbprop_input(self, input, output):
         sq = np.square
-        self.bcorr(self.tbl_jki, output.ddx, sq(self.kernels.x), input.ddx)
+        self.bconv(self.tbl_jki, output.ddx, sq(self.kernels.x), input.ddx)
     def bbprop_param(self, input, output):
         sq = np.square
-        self.fcorr(self.tbl_ijk, sq(input.x), output.ddx, self.kernels.ddx)
+        if self.correlation:
+            self.fconv(self.tbl_ijk, sq(input.x), output.ddx, self.kernels.ddx)
+        else:
+            rev_oddx = reverse_along(reverse(output.ddx), 0)
+            rev_kddx = reverse_along(reverse(self.kernels.ddx), 0)
+            self.fconv(self.tbl_ijk, sq(input.x), rev_oddx, rev_kddx)
+
 
 
 class back_convolution (convolution):
@@ -193,10 +216,10 @@ class back_convolution (convolution):
     def decoder_table(encoder_table):
         return [(b,a) for (a,b) in encoder_table]
 
-    def __init__(self, kernel_shape, conn_table):
+    def __init__(self, kernel_shape, conn_table, correlation=False):
         kernel_shape = ensure_tuple(kernel_shape)
-        super(back_convolution, self).__init__(kernel_shape, conn_table)
-        
+        super(back_convolution, self).__init__(kernel_shape,
+                                               conn_table, correlation)
         e = enumerate
         self.tbl_jik = np.asarray([(b,a,k) for (k,(a,b)) in e(conn_table)], 'i')
         self.dsize = np.asarray((1,) + kernel_shape, 'i') - 1
@@ -206,19 +229,29 @@ class back_convolution (convolution):
         out_shape[0] = self.feat_out
         output.resize(out_shape)
         clear(output.x)
-        self.bcorr(self.tbl_ikj, input.x, self.kernels.x, output.x)
+        self.bconv(self.tbl_ikj, input.x, self.kernels.x, output.x)
     
     def bprop_input(self, input, output):
-        self.fcorr(self.tbl_jki, output.dx, self.kernels.x, input.dx)
+        self.fconv(self.tbl_jki, output.dx, self.kernels.x, input.dx)
     def bprop_param(self, input, output):
-        self.fcorr(self.tbl_jik, output.dx, input.x, self.kernels.dx)
+        if self.correlation:
+            self.fconv(self.tbl_jik, output.dx, input.x, self.kernels.dx)
+        else:
+            rev_ix  = reverse_along(reverse(input.x), 0)
+            rev_kdx = reverse_along(reverse(self.kernels.dx), 0)
+            self.fconv(self.tbl_jik, output.dx, rev_ix, rev_kdx)
 
     def bbprop_input(self, input, output):
         sq = np.square
-        self.fcorr(self.tbl_jki, output.ddx, sq(self.kernels.x), input.ddx)
+        self.fconv(self.tbl_jki, output.ddx, sq(self.kernels.x), input.ddx)
     def bbprop_param(self, input, output):
         sq = np.square
-        self.fcorr(self.tbl_jik, output.ddx, sq(input.x), self.kernels.ddx)
+        if self.correlation:
+            self.fconv(self.tbl_jik, output.ddx, sq(input.x), self.kernels.ddx)
+        else:
+            rev_sqix  = reverse_along(reverse(sq(input.x)), 0)
+            rev_kddx = reverse_along(reverse(self.kernels.ddx), 0)
+            self.fconv(self.tbl_jik, output.ddx, rev_sqix, rev_kddx)
 
 
 class multiplication (no_params, module_2_1):

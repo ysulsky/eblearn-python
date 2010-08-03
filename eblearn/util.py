@@ -115,13 +115,14 @@ def debug_break(msg = None):
         p = pdb.Pdb()
         p.set_trace(sys._getframe().f_back)
 
-def replace_global(package, oldver, newver):
+def replace_global(oldver, newver, packages):
     assert (oldver not in (None, (), [], False, True))
     assert (not isinstance(oldver, (int,long,float)))
     for mod in sys.modules.itervalues():
         mod_package = getattr(mod, '__package__', None)
         if mod_package is None: continue
-        if mod_package == package or mod_package.startswith(package+'.'):
+        if any((mod_package == pkg or mod_package.startswith(pkg+'.'))
+               for pkg in packages):
             changes = {}
             for k, v in mod.__dict__.iteritems():
                 if v is oldver: changes[k] = newver
