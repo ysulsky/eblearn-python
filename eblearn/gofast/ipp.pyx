@@ -103,39 +103,3 @@ def m2_correlate_table(np.ndarray[int, ndim=2] table not None,
 
 ippStaticInit()
 
-
-def test():
-    from scipy import lena
-    import numpy as np
-    x = lena()
-    k = np.random.random((10,10))
-    y = np.zeros(np.asarray(x.shape)-k.shape+1)
-    y1=m2_correlate(x,k,y)
-
-    from eblearn.correlate.fast_ver import config_correlate,\
-                                           config_correlate_table
-    old_corr = config_correlate(2)
-    y2=old_corr(x,k,y)
-
-    print '|y1-y2|', ((y1-y2)**2).sum()
-
-    xsm = narrow(narrow(x,0,9,30),1,9,20)
-    ksm = np.random.random((3,3))
-    ysm = np.zeros(np.asarray(xsm.shape)-ksm.shape+1)
-    
-    y1sm=m2_correlate(xsm,ksm,ysm)
-    y2sm=old_corr(xsm,ksm,ysm)
-    
-    print '|y1sm-y2sm|', ((y1sm-y2sm)**2).sum()
-    
-    xtbl = np.random.random((1,9,9))
-    ktbl = np.random.random((256,3,3))
-    y1tbl = np.zeros((256,7,7))
-    y2tbl = np.zeros((256,7,7))
-    tbl = np.asarray([(0,a,a) for a in range(len(y1tbl))], 'i')
-    
-    m2_correlate_table(tbl, xtbl, ktbl, y1tbl)
-    old_corr_tbl = config_correlate_table(2)
-    old_corr_tbl(tbl, xtbl, ktbl, y2tbl)
-    
-    print '|y1tbl-y2tbl|', ((y1tbl-y2tbl)**2).sum()
