@@ -25,7 +25,7 @@ def m2_convolve(input, kernel, output=None, accumulate=False):
     if output is None: return res
     if accumulate: output   += res
     else:          output[:] = res
-    return res
+    return output
 
 def m2_convolve_fulltable(table, inputs, kernels, outputs):
     res = theano_m2_convolve_fulltable(inputs, kernels)

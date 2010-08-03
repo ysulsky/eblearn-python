@@ -4,7 +4,7 @@ from eblearn.gofast.util    cimport *
 from eblearn.gofast.vecmath cimport *
 
 from eblearn.idx     import reverse, reverse_along, unfold
-from eblearn.vecmath import mkextmk, m2kdotmk
+from eblearn.vecmath import clear, mkextmk, m2kdotmk
 
 import_array()
 
@@ -33,12 +33,13 @@ def m1_correlate(np.ndarray input not None, np.ndarray kernel not None,
     kernel = cvt(kernel, NPY_RTYPE, 0)
     uinput = unfold(input, 0, kernel.shape[0], 1)
     if output is None:
-        rr = output = PyArray_EMPTY(1, uinput.shape, NPY_RTYPE, 0)
+        rr = output = PyArray_ZEROS(1, uinput.shape, NPY_RTYPE, 0)
     else:
         assert (output.ndim == 1 and
                 output.shape[0] == uinput.shape[0]), "shapes don't match"
         rr = cvt(output, NPY_RTYPE, RESULTFLAGS)
-    c_m2dotm1(uinput, kernel, rr, accumulate)
+        if not accumulate: clear(rr)
+    c_m2dotm1(uinput, kernel, rr, True)
     return output
 
 cdef object _m1_correlate = m1_correlate
@@ -56,13 +57,14 @@ def m2_correlate(np.ndarray input not None, np.ndarray kernel not None,
     kernel = cvt(kernel, NPY_RTYPE, 0)
     uinput = unfold(unfold(input, 0, kh, 1), 1, kw, 1)
     if output is None:
-        rr = output = PyArray_EMPTY(2, uinput.shape, NPY_RTYPE, 0)
+        rr = output = PyArray_ZEROS(2, uinput.shape, NPY_RTYPE, 0)
     else:
         assert (output.ndim == 2 and
                 output.shape[0] == uinput.shape[0] and
                 output.shape[1] == uinput.shape[1]), "shapes don't match"
         rr = cvt(output, NPY_RTYPE, RESULTFLAGS)
-    c_m4dotm2(uinput, kernel, rr, accumulate)
+        if not accumulate: clear(rr)
+    c_m4dotm2(uinput, kernel, rr, True)
     return output
 
 cdef object _m2_correlate = m2_correlate
@@ -80,14 +82,15 @@ def m3_correlate(np.ndarray input not None, np.ndarray kernel not None,
     kernel = cvt(kernel, NPY_RTYPE, 0)
     uinput = unfold(unfold(unfold(input, 0, kd, 1), 1, kh, 1), 2, kw, 1)
     if output is None:
-        rr = output = PyArray_EMPTY(3, uinput.shape, NPY_RTYPE, 0)
+        rr = output = PyArray_ZEROS(3, uinput.shape, NPY_RTYPE, 0)
     else:
         assert (output.ndim == 3 and
                 output.shape[0] == uinput.shape[0] and
                 output.shape[1] == uinput.shape[1] and
                 output.shape[2] == uinput.shape[2]), "shapes don't match"
         rr = cvt(output, NPY_RTYPE, RESULTFLAGS)
-    c_m6dotm3(uinput, kernel, rr, accumulate)
+        if not accumulate: clear(rr)
+    c_m6dotm3(uinput, kernel, rr, True)
     return output
 
 cdef object _m3_correlate = m3_correlate
@@ -138,7 +141,7 @@ def m1_correlate_table(np.ndarray[int, ndim=2] table not None,
     uinputs = unfold(inputs, 1, kw, 1)
     
     assert (outputs.shape[1] == uinputs.shape[1]),   "shapes don't match"
-
+    
     for t in range(table.shape[0]):
         i = table[t,0]
         k = table[t,1]

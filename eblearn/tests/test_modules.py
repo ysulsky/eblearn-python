@@ -368,7 +368,7 @@ test_crossent_jac      = make_test_m21_jac(ctor_ns2(cross_entropy))
 test_penalty_l1_jac    = make_test_m11_jac(ctor_ns1(penalty_l1))
 test_penalty_l2_jac    = make_test_m11_jac(ctor_ns1(penalty_l2))
 
-def _test_jac():
+def test_jac():
     test_linear_jac( (2,2,2), (3,1,1) )
     test_bias_jac( (2,5,5) )
     test_bias_jac( (2,5,5), per_feature = True, name='bias (per feature)' )
@@ -393,7 +393,7 @@ def _test_jac():
     test_penalty_l2_jac( (2,1,1) )
     test_penalty_l2_jac( (2,1,1), average=False, name='penalty_l2 (no avg)')
     test_crossent_jac( (10,1,1) )
-    test_convolution_jac( (2,3,4), (2,3), convolution.full_table(2,1)
+    test_convolution_jac( (2,3,4), (2,3), convolution.full_table(2,1),
                           correlation = False, name = 'convolution')
     test_convolution_jac( (2,3,4), (2,3), convolution.full_table(2,1),
                           correlation = True,  name = 'correlation')
@@ -405,17 +405,17 @@ def _test_jac():
                                correlation = True,  name = 'back correlation')
     test_layers_1_jac(1, (2,1,1), (1,2,2))
 
-def test_jac():
+def test():
     # disable IPP if it'll destroy accuracy
     if correlate.ipp_ver_enabled and rtype != np.float32:
         correlate.ipp_ver_enabled = False
         try:
             correlate.reset_implementations()
-            _test_jac()
+            test_jac()
         finally:
             correlate.ipp_ver_enabled = True
             correlate.reset_implementations()
 
 if __name__ == '__main__':
-    test_jac()
+    test()
 

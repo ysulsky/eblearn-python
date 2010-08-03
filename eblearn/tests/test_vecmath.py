@@ -4,7 +4,7 @@ from eblearn      import vecmath
 from eblearn.util import random, rtype
 
 from math import sqrt
-from time import clock
+from timeit import Timer
 
 import numpy as np
 
@@ -29,18 +29,16 @@ def cmp_slow_fast(name, *arg_dims, **kwargs):
     def speedup(mintime, fn1, args1, fn2, args2):
         i1 = i2 = 0
         n = 10
+        t1 = Timer(lambda: fn1(*args1))
+        t2 = Timer(lambda: fn2(*args2))
         while (i1 < mintime and i2 < mintime) or i2 < 1e-6:
-            t1 = clock()
-            for i in xrange(n):
-                fn1(*args1)
-            t2 = clock()
-            for i in xrange(n):
-                fn2(*args2)
-            t3 = clock()
-            i1, i2 = t2 - t1, t3 - t2
+            i1 = t1.timeit(n)
+            i2 = t2.timeit(n)
             n *= 2
         warn = '' if i1 >= i2 else '  *** slowdown ***'
-        return "%s -> %s (%gx)%s" % (i1, i2, float(i1)/i2, warn)
+        si1 = '%.6g' % (i1,)
+        si2 = '%.6g' % (i2,)
+        return "%10s -> %-10s (%.3gx)%s" % (si1, si2, float(i1)/i2, warn)
     
     args1 = [random(dims).astype(dtype)*10-2 for dims in arg_dims]
     args2 = [arg1.copy() for arg1 in args1]
@@ -111,7 +109,10 @@ def test_slow_fast():
     cmp_slow_fast('m2dotrows', (200,300), (200,300),)
     cmp_slow_fast('copy_normrows', (256,3,3))
     cmp_slow_fast('mdotc', (200,300), (), (200,300))
+
+def test():
+    test_slow_fast()
  
 if __name__ == '__main__':
     #global_speed_test=0.5
-    test_slow_fast()
+    test()

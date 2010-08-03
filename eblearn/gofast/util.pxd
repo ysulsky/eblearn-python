@@ -53,30 +53,58 @@ ctypedef struct npy_intp6:
 cdef inline PyArray_EMPTY1(np.npy_intp d0, int t):
      return PyArray_EMPTY(1, &d0, t, 0)
 
+cdef inline PyArray_ZEROS1(np.npy_intp d0, int t):
+     return PyArray_ZEROS(1, &d0, t, 0)
+
 cdef inline PyArray_EMPTY2(np.npy_intp d0, np.npy_intp d1, int t):
      cdef npy_intp2 d = dict(d0=d0, d1=d1)
      return PyArray_EMPTY(2, <np.npy_intp*>&d, t, 0)
      
+cdef inline PyArray_ZEROS2(np.npy_intp d0, np.npy_intp d1, int t):
+     cdef npy_intp2 d = dict(d0=d0, d1=d1)
+     return PyArray_ZEROS(2, <np.npy_intp*>&d, t, 0)
+
 cdef inline PyArray_EMPTY3(np.npy_intp d0, np.npy_intp d1, np.npy_intp d2, 
                            int t):
      cdef npy_intp3 d = dict(d0=d0, d1=d1, d2=d2)
      return PyArray_EMPTY(3, <np.npy_intp*>&d, t, 0)
+
+cdef inline PyArray_ZEROS3(np.npy_intp d0, np.npy_intp d1, np.npy_intp d2, 
+                           int t):
+     cdef npy_intp3 d = dict(d0=d0, d1=d1, d2=d2)
+     return PyArray_ZEROS(3, <np.npy_intp*>&d, t, 0)
 
 cdef inline PyArray_EMPTY4(np.npy_intp d0, np.npy_intp d1, np.npy_intp d2,
                            np.npy_intp d3, int t):
      cdef npy_intp4 d = dict(d0=d0, d1=d1, d2=d2, d3=d3)
      return PyArray_EMPTY(4, <np.npy_intp*>&d, t, 0)
 
+cdef inline PyArray_ZEROS4(np.npy_intp d0, np.npy_intp d1, np.npy_intp d2,
+                           np.npy_intp d3, int t):
+     cdef npy_intp4 d = dict(d0=d0, d1=d1, d2=d2, d3=d3)
+     return PyArray_ZEROS(4, <np.npy_intp*>&d, t, 0)
+
 cdef inline PyArray_EMPTY5(np.npy_intp d0, np.npy_intp d1, np.npy_intp d2,
                            np.npy_intp d3, np.npy_intp d4, int t):
      cdef npy_intp5 d = dict(d0=d0, d1=d1, d2=d2, d3=d3, d4=d4)
      return PyArray_EMPTY(5, <np.npy_intp*>&d, t, 0)
+
+cdef inline PyArray_ZEROS5(np.npy_intp d0, np.npy_intp d1, np.npy_intp d2,
+                           np.npy_intp d3, np.npy_intp d4, int t):
+     cdef npy_intp5 d = dict(d0=d0, d1=d1, d2=d2, d3=d3, d4=d4)
+     return PyArray_ZEROS(5, <np.npy_intp*>&d, t, 0)
 
 cdef inline PyArray_EMPTY6(np.npy_intp d0, np.npy_intp d1, np.npy_intp d2,
                            np.npy_intp d3, np.npy_intp d4, np.npy_intp d5,
                            int t):
      cdef npy_intp6 d = dict(d0=d0, d1=d1, d2=d2, d3=d3, d4=d4, d5=d5)
      return PyArray_EMPTY(6, <np.npy_intp*>&d, t, 0)
+
+cdef inline PyArray_ZEROS6(np.npy_intp d0, np.npy_intp d1, np.npy_intp d2,
+                           np.npy_intp d3, np.npy_intp d4, np.npy_intp d5,
+                           int t):
+     cdef npy_intp6 d = dict(d0=d0, d1=d1, d2=d2, d3=d3, d4=d4, d5=d5)
+     return PyArray_ZEROS(6, <np.npy_intp*>&d, t, 0)
 
 cdef enum:
     RESULTFLAGS = np.NPY_UPDATEIFCOPY | np.NPY_WRITEABLE

@@ -1,5 +1,5 @@
 from eblearn.idx     import unfold, reverse, reverse_along
-from eblearn.vecmath import m2kdotmk, mkextmk
+from eblearn.vecmath import clear, m2kdotmk, mkextmk
 
 import numpy as np
 
@@ -38,11 +38,13 @@ def gen_correlate_noscipy(input, kernel, output=None, accumulate=False):
     out_shape = tuple(np.subtract(input.shape, kernel.shape) + 1)
     if output is None:
         output = np.zeros(out_shape, input.dtype)
-    assert (out_shape == output.shape), "shapes don't match"
+    else:
+        assert (out_shape == output.shape), "shapes don't match"
+        if not accumulate: clear(output)
     uin = input
     for d, kd in enumerate(kernel.shape):
         uin = unfold(uin, d, kd, 1)
-    m2kdotmk(uin, kernel, output, accumulate)
+    m2kdotmk(uin, kernel, output, True)
     return output
 
 def gen_convolve_noscipy (input, kernel, output=None, accumulate=False):
@@ -85,11 +87,13 @@ def gen_back_correlate(input, kernel, output=None, accumulate=False):
     out_shape = tuple(np.subtract(input.shape, 1) + kernel.shape)
     if output is None:
         output = np.zeros(out_shape, input.dtype)
-    assert (out_shape == output.shape), "shapes don't match"
+    else:
+        assert (out_shape == output.shape), "shapes don't match"
+        if not accumulate: clear(output)
     uout = output
     for d, kd in enumerate(kernel.shape):
         uout = unfold(uout, d, kd, 1)
-    mkextmk(input, kernel, uout, accumulate)
+    mkextmk(input, kernel, uout, True)
     return output
 
 def gen_back_convolve (input, kernel, output=None, accumulate=False):

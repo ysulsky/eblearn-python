@@ -40,14 +40,16 @@ except ImportError:
     theano_ver = None
     theano_ver_enabled = False
                 
-all_vers = filter(lambda x: x is not None,
-                  [slow_ver, fast_ver, ipp_ver, theano_ver])
+all_vers = dict(slow_ver   = slow_ver,
+                fast_ver   = fast_ver,
+                ipp_ver    = ipp_ver,
+                theano_ver = theano_ver)
 
 def reset_implementations(packages = ('eblearn',)):
     mod_globals = globals()
     def use_ver(ver):
         if ver is None: return
-        assert (ver in all_vers), "forgot to update all_vers"
+        assert (ver in all_vers.values()), "forgot to update all_vers"
         updates = [(k, getattr(ver, k)) for k in __all_impl__ + __all__ 
                    if  hasattr(ver, k)]
         mod_globals.update(updates)
@@ -68,7 +70,8 @@ def reset_implementations(packages = ('eblearn',)):
     # update the vtables
     correlate_vtable = dict([(k, mod_globals[k]) 
                              for k in __all_impl__ + __all__])
-    for ver in all_vers:
+    for ver in all_vers.values():
+        if ver is None: continue
         if hasattr(ver, 'set_correlate_module_vtable'):
             ver.set_correlate_module_vtable(correlate_vtable)
     
@@ -76,7 +79,8 @@ def reset_implementations(packages = ('eblearn',)):
     if packages:
         for k in __all__:
             new_fn  = mod_globals[k]
-            old_fns = set(getattr(ver, k, new_fn) for ver in all_vers)
+            old_fns = set(getattr(ver, k, new_fn) 
+                          for ver in all_vers.values() if ver is not None)
             old_fns.remove(new_fn)
             for old_fn in old_fns:
                 replace_global(old_fn, new_fn, packages)
