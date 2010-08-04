@@ -94,8 +94,8 @@ print "============================================================"
 trainer.train(train_iters)
 
 if savedir is not None:
-    eb.save_object(machine, savedir + '/machine.obj')
-
+    trainer.backup_machine(savedir + '/machine.obj')
+    trainer.backup_stats(savedir + '/train_stats.obj')
 
 def plot():
     import plots
