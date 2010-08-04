@@ -91,9 +91,9 @@ class psd_codec (module_2_1):
             encoder_energy, code_energy, decoder_energy =\
                 self.encoder_energy, self.code_energy, self.decoder_energy
             
-            encoder_energy.dx[:] = energy.ddx
-            code_energy.dx[:]    = energy.ddx
-            decoder_energy.dx[:] = energy.ddx
+            encoder_energy.ddx[:] = energy.ddx
+            code_energy.ddx[:]    = energy.ddx
+            decoder_energy.ddx[:] = energy.ddx
         
             self.code_penalty.bbprop_input(code, code_energy)
             self.encoder_cost.bbprop_input(encoder_out, code,   encoder_energy)

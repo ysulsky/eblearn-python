@@ -103,6 +103,9 @@ gd_params = dict (
 ,   debugging = True
 )
 
+if hessian_interval:
+    gd_params['eta'] *= 0.1
+
 if linesearch:
     feval = feval_from_trainer(trainer)
     #gd_params['quiet']  = False

@@ -26,14 +26,19 @@ class distance_l2 (no_params, module_2_1):
         input2.dx -= r
     
     def bbprop_input(self, input1, input2, energy):
-        edx, eddx = energy.dx[0], energy.ddx[0]
-        d = input1.x - input2.x
+        iddx = energy.dx[0]
         if self.average:
-            d   /= input1.size
-            edx /= input1.size
-        ddx = np.square(d) * eddx + edx
-        input1.ddx += ddx
-        input2.ddx += ddx
+            iddx /= input1.size
+        
+        eddx = energy.ddx[0]
+        if self.average:
+            eddx /= (input1.size ** 2)
+        
+        if eddx:
+            iddx += eddx * np.square(input1.x - input2.x)
+        
+        input1.ddx += iddx
+        input2.ddx += iddx
 
 
 class cross_entropy (no_params, module_2_1):

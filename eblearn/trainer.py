@@ -64,8 +64,8 @@ class eb_trainer (object):
         self.input         = state()
         self.target        = state()
         self.energy        = state((1,))
-        self.energy.dx[0]  = 1.
-        self.energy.ddx[0] = 1.
+        self.energy.dx[0]  = 1
+        self.energy.ddx[0] = 0
         
         self.msg = eb_trainer.reporter(self)
         self.clear_log()
