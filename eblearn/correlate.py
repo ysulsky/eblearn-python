@@ -58,7 +58,7 @@ def reset_implementations(packages = ('eblearn',)):
     if fast_ver_enabled: 
         use_ver(fast_ver)
     
-    # theano only does has GPU implementations for rtype = float32
+    # theano only has GPU implementations for rtype = float32
     # so prefer IPP otherwise
     if rtype == float32:
         if ipp_ver_enabled:    use_ver(ipp_ver)
