@@ -415,6 +415,8 @@ def test():
         finally:
             correlate.ipp_ver_enabled = True
             correlate.reset_implementations()
+    else:
+        test_jac()
 
 if __name__ == '__main__':
     test()
