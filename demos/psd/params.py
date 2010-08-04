@@ -3,7 +3,7 @@
 exper_nr  = 1
 
 debugging    = False
-eblearn_path = '../'
+eblearn_path = '../../'
 import sys; sys.path.append(eblearn_path)
 
 ######################################################################
