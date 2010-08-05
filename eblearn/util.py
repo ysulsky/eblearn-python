@@ -16,10 +16,10 @@ class ref(object):
     def __getstate__(self): return self.contents
     def __setstate__(self, v): self.contents=v
 
-array = lambda items: np.array(items, rtype)
-empty = lambda shape: np.empty(shape, rtype, 'C')
-zeros = lambda shape: np.zeros(shape, rtype, 'C')
-ones  = lambda shape: np.ones(shape, rtype, 'C')
+array = lambda items, dtype=rtype: np.array(items, dtype)
+empty = lambda shape, dtype=rtype: np.empty(shape, dtype, 'C')
+zeros = lambda shape, dtype=rtype: np.zeros(shape, dtype, 'C')
+ones  = lambda shape, dtype=rtype: np.ones(shape,  dtype, 'C')
 if rtype == float:
     random = np.random.random
 else:
