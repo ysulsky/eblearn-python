@@ -10,7 +10,7 @@ tk_def_root = None
 tk_cur_root = None
 tk_max      = 1
 def set_window(id = None):
-    global tk_roots, tk_def_root, tk_cur_root
+    global tk_cur_root
     if id is None: id = tk_def_root
     if id is None: new_window()
     else:
@@ -18,7 +18,6 @@ def set_window(id = None):
         tk_cur_root = id
 
 def ensure_window(width=None, height=None, title=None):
-    global tk_roots, tk_cur_root
     r = tk_cur_root
     if r is None:
         kwargs = {}
@@ -27,16 +26,16 @@ def ensure_window(width=None, height=None, title=None):
         if title:  kwargs['title']=title
         new_window(**kwargs)
     else:
-        r = tk_roots[r]
+        w = tk_roots[r]
         if width or height:
-            if not height: height = r.geometry().split('+')[0].split('x')[1]
-            if not width:   width = r.geometry().split('+')[0].split('x')[0]
-            r.geometry('%sx%s' % (width, height))
+            if not height: height = w.geometry().split('+')[0].split('x')[1]
+            if not width:   width = w.geometry().split('+')[0].split('x')[0]
+            w.geometry('%sx%s' % (width, height))
         if title:
-            r.title(title)
+            w.title(title)
 
 def new_window(width=800, height=600, title = 'Python Window'):
-    global tk_roots, tk_cur_root, tk_def_root, tk_max
+    global tk_cur_root, tk_def_root, tk_max
     
     root = tk.Tk(); root.geometry('%dx%d'%(width, height)); root.title(title)
 
@@ -55,7 +54,7 @@ def new_window(width=800, height=600, title = 'Python Window'):
     root.canvas = canvas
     
     def root_destr():
-        global tk_roots, tk_def_root, tk_cur_root
+        global tk_def_root, tk_cur_root
         id = root.id
         cls(id); canvas.destroy(); root.destroy(); del tk_roots[id]
         next_id = None if not tk_roots else tk_roots.keys()[0]
@@ -67,15 +66,17 @@ def new_window(width=800, height=600, title = 'Python Window'):
 
 def cls(id = None):
     ''' clear window '''
-    global tk_roots, tk_cur_root
     if id is None: id = tk_cur_root
     if id is None: return
     canvas = tk_roots[id].canvas
     for i in canvas.find_all(): canvas.delete(i)
     canvas.images = []
 
+def redisplay():
+    for r in tk_roots.values():
+        r.update()
+
 def draw_mat(mat, x=0, y=0, minv=None, maxv=None, scale=1.0):
-    global tk_roots, tk_cur_root
     assert (len(mat.shape) == 2 or (len(mat.shape) == 3 and mat.shape[2] == 3))
     if tk_cur_root is None: new_window()
 
@@ -106,15 +107,21 @@ def draw_mat(mat, x=0, y=0, minv=None, maxv=None, scale=1.0):
     root.canvas.images.append(tkimg)
 
 def draw_lines(x1, y1, x2, y2, *rest):
-    global tk_roots, tk_cur_root
     if tk_cur_root is None: new_window()
-
     root = tk_roots[tk_cur_root]
     root.canvas.create_line(x1, y1, x2, y2, *rest)
 
 def draw_text(x, y, text):
-    global tk_roots, tk_cur_root
     if tk_cur_root is None: new_window()
-
     root = tk_roots[tk_cur_root]
     root.canvas.create_text(x, y, text=text, anchor=tk.SW, font=('courier',8))
+
+def draw_circle(x, y, r):
+    if tk_cur_root is None: new_window()
+    root = tk_roots[tk_cur_root]
+    root.canvas.create_oval(x-r, y-r, x+r, y+r)
+
+def draw_rect(x, y, w, h):
+    if tk_cur_root is None: new_window()
+    root = tk_roots[tk_cur_root]
+    root.canvas.create_rectangle(x,y, x+w, y+h)
