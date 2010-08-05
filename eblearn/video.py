@@ -27,6 +27,8 @@ class video_base (object):
         if args is not None:
             self._cap_args = args
         self.cap = self.create_capture( *self._cap_args )
+        if self.cap is None:
+            raise IOError("couldn't initialize capture")
     
     def _destr_cap(self):
         hg.cvReleaseCapture(self.cap)
@@ -57,7 +59,7 @@ class video_base (object):
             raise Exception('call next before the first frame!')
         
         format = self.format
-        img = hg.cvQueryFrame(self.cap)
+        img = hg.cvRetrieveFrame(self.cap)
         nchannels = 1 if format == FORMAT_GRAY else 3
         shape = \
             (img.height, img.width) if nchannels == 1 else \
@@ -92,26 +94,27 @@ class video_base (object):
 
 
 class video_file (video_base):
-    def __init__(self, *args):
+    def __init__(self, fname, format=FORMAT_RGB):
         self.create_capture = hg.cvCreateFileCapture
-        super(video_file, self).__init__(*args)
-
+        super(video_file, self).__init__(format, fname)
+        
         self.fps    =     hg.cvGetCaptureProperty(self.cap,
                                                   hg.CV_CAP_PROP_FPS)
         self.nframes= int(hg.cvGetCaptureProperty(self.cap,
                                                   hg.CV_CAP_PROP_FRAME_COUNT))
         
     def seek(self, pos):
-        #if pos < self.pos:
+        #if pos < self.framepos:
         #    self._destr_cap()
         #    self._init_cap()
-        if pos < self.pos:
+        if pos < self.framepos:
             hg.cvSetCaptureProperty(self.cap, hg.CV_CAP_PROP_POS_FRAMES, 0.0)
             self.framepos = -1
         return super(video_file, self).seek(pos)
 
 
 class video_cam (video_base):
-    def __init__(self, *args):
+    def __init__(self, camno = -1, format=FORMAT_RGB):
         self.create_capture = hg.cvCreateCameraCapture
-        super(video_cam, self).__init__(*args)
+        super(video_cam, self).__init__(format, camno)
+        
