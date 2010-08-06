@@ -39,6 +39,7 @@ class video_base (object):
         return ret
 
     def seek(self, pos):
+        pos = pos - 1 # seek so next() takes us to this position
         if pos < self.framepos:
             raise Exception('unable to seek backward')
         ret = 1
@@ -104,10 +105,10 @@ class video_file (video_base):
                                                   hg.CV_CAP_PROP_FRAME_COUNT))
         
     def seek(self, pos):
-        #if pos < self.framepos:
+        #if pos <= self.framepos:
         #    self._destr_cap()
         #    self._init_cap()
-        if pos < self.framepos:
+        if pos <= self.framepos:
             hg.cvSetCaptureProperty(self.cap, hg.CV_CAP_PROP_POS_FRAMES, 0.0)
             self.framepos = -1
         return super(video_file, self).seek(pos)
