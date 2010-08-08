@@ -71,6 +71,7 @@ def narrow(np.ndarray x, int dim, int size, int offset = 0):
     x.shape[dim] = size
     if offset:
         x.data += offset * x.strides[dim]
+    PyArray_UpdateFlags(x, np.NPY_C_CONTIGUOUS)
     return x
 
 @cython.boundscheck(False)
