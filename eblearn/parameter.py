@@ -246,12 +246,13 @@ class gd_update (parameter_update):
         step_coeff = -eta
         if self.norm_grad:
             step_coeff /= max(grad_norm, eta)
-        
+
+        self.stop_code = None
         if self.max_iters >= 0 and p.age > self.max_iters:
             self.stop_code = 'iteration limit reached'
         if grad_norm < self.grad_thresh:
             self.stop_code = 'gradient threshold reached'
-
+        
         if self.debugging:
             if min([state.epsilon.min() for state in states]) < 0:
                 debug_break('negative epsilon')
