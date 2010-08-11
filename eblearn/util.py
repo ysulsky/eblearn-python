@@ -3,6 +3,7 @@ import numpy as np
 import pickle
 
 np.seterr('raise')
+np.seterr(under = 'ignore')
 
 try:
     from eblearn.gofast.util import rtype
