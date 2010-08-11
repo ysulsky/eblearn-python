@@ -45,30 +45,28 @@ class cross_entropy (no_params, module_2_1):
     def fprop(self, input1, input2, energy):
         energy.resize((1,))
         assert (input1.shape == input2.shape)
-        expin1 = np.exp(input1.x)
-        softmaxin1 = expin1 * (1.0 / expin1.sum())
-        energy.x[0] = np.dot(-input2.x.ravel(),
-                              np.log(softmaxin1).ravel())
-
+        in1x   = input1.x.clip(max = 50)
+        log_softmaxin1 = in1x - np.log(np.exp(in1x).sum())
+        energy.x[0] = np.dot(-input2.x.ravel(), log_softmaxin1.ravel())
+    
     def bprop_input(self, input1, input2, energy):
-        expin1 = np.exp(input1.x)
-        softmaxin1 = expin1 * (1.0 / expin1.sum())
-        d1 = ((input2.x.sum() * softmaxin1) - input2.x)
-        d2 = np.log(softmaxin1) 
-        input1.dx += energy.dx[0] * d1
-        input2.dx -= energy.dx[0] * d2
+        in1x   = input1.x.clip(max = 50)
+        log_softmaxin1 = in1x - np.log(np.exp(in1x).sum())
+        softmaxin1     = np.exp(log_softmaxin1)
+        sum2x = input2.x.sum()
+        
+        input1.dx += energy.dx[0] * ((sum2x * softmaxin1) - input2.x)
+        input2.dx -= energy.dx[0] * log_softmaxin1
         
     def bbprop_input(self, input1, input2, energy):
-        expin1 = np.exp(input1.x)
-        expin1_sum_inv = 1.0 / expin1.sum()
-        softmaxin1 = expin1 * expin1_sum_inv
-        sum2 = input2.x.sum()
+        in1x  = input1.x.clip(max = 50)
+        log_softmaxin1 = in1x - np.log(np.exp(in1x).sum())
+        softmaxin1     = np.exp(log_softmaxin1)
+        sum2x = input2.x.sum()
         
-        d1 = (sum2 * softmaxin1) - input2.x
-        d2 = np.log(softmaxin1) 
-        input1.ddx += energy.ddx[0] * np.square(d1)
-        input1.ddx += (energy.dx[0] * sum2) * softmaxin1 * (1 - softmaxin1)
-        input2.ddx += energy.ddx[0] * np.square(d2)
+        input1.ddx += energy.ddx[0] * np.square((sum2x * softmaxin1) - input2.x)
+        input1.ddx += (energy.dx[0] * sum2x) * softmaxin1 * (1 - softmaxin1)
+        input2.ddx += energy.ddx[0] * np.square(log_softmaxin1)
 
 
 class penalty_l1 (no_params, module_1_1):
