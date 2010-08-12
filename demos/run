@@ -1,0 +1,286 @@
+#!/usr/bin/env python
+
+import sys, os, shutil, socket, time
+
+params_mod      = 'params'
+def_params_file = params_mod+'.py'
+
+check_param_header = True
+
+def usage():
+    print '%s [-b|--batch] [parameter-file]' % (sys.argv[0],)
+    print '    or'
+    print '%s --clean <output-dir>' % (sys.argv[0],)
+    sys.exit(0)
+
+def expand_path(path):
+    return os.path.expanduser(os.path.expandvars(path))
+
+def basename(path, *suffixes):
+    r = os.path.basename(path)
+    for suffix in suffixes:
+        if r.endswith(suffix):
+            r = r[:-len(suffix)]; break
+    return r
+
+class filename_completer (object):
+    def __init__(self):
+        self.this_text  = None
+        self.this_list = None
+    def __call__(self, text, state):
+        from os.path import sep, dirname, basename, isdir, curdir
+        text = expand_path(text)
+        tdir, rest = dirname(text), basename(text)
+        if self.this_text != text:
+            self.this_text = text
+            self.this_list = sorted([x for x in os.listdir(tdir or curdir)
+                                    if x.startswith(rest)])
+        if state >= len(self.this_list): return None
+        if tdir and not tdir.endswith(sep):
+            tdir += sep
+        ret = tdir + self.this_list[state]
+        return  ret + (sep if isdir(ret) else '')
+    
+def ask_file(prompt, default=None, check_file=None):
+    prompt = prompt + ('' if default is None else ' [%s]' % (default,)) + '> '
+    if check_file is None:
+        def check_file_exists(f):
+            f = expand_path(f)
+            if not os.path.exists(f):
+                print "File '%s' does not exist." % (f,)
+                return False
+            return True
+        check_file = check_file_exists
+    def ask():
+        while True:
+            r = raw_input(prompt).strip()
+            if not r:
+                if default is not None: r = default
+                else:                   continue
+            if not check_file(r):       continue
+            return r
+    
+    try:
+        import readline
+        readline.parse_and_bind('tab: complete')
+    except ImportError:
+        return ask()
+    else:
+        old_completer_delims = readline.get_completer_delims()
+        old_completer = readline.get_completer()
+        try:
+            readline.set_completer_delims(' \t\r\n')
+            readline.set_completer(filename_completer())
+            return ask()
+        finally:
+            readline.set_completer_delims(old_completer_delims)
+            readline.set_completer(old_completer)
+
+def check_params_file(f):
+    f = expand_path(f)
+    if not os.path.exists(f):
+        print "File '%s' does not exist." % (f,)
+        return False
+    
+    if not check_param_header:
+        return True
+    try:
+        firstline = open(f).readline()
+        if not firstline.startswith('#!') or \
+               not basename(sys.argv[0]) in firstline:
+            print "File '%s' doesn't have a parameter file header" % (f,)
+            return False
+    except IOError:
+        print "Can't open file '%s'." % (f,)
+        return False
+
+    return True
+
+py_import_exts = ('.py', '.so', '.pyd', '.dylib')
+def import_file(fname):
+    fname = expand_path(fname)
+    fdir  = os.path.dirname(fname)
+    sys.path = [fdir] + [x for x in sys.path if x != fdir]
+    ret = __import__(basename(fname, *py_import_exts))
+    return ret
+
+def page_profile_stats(stats):
+    import subprocess
+    pager = subprocess.Popen([os.getenv('PAGER', 'less'), '-'],
+                             stdin = subprocess.PIPE)
+    stats.stream = pager.stdin
+    stats.print_stats()
+    stats.stream = sys.stdout
+
+def open_interactive_shell(local_ns = None):
+    if local_ns is None: local_ns = globals()
+    try:
+        import IPython.Shell
+        IPython.Shell.IPShellEmbed()(local_ns=local_ns)
+    except ImportError:
+        import code
+        code.interact(local=local_ns)
+
+def exec_profiled(what, _globals=None, _locals=None, savedir=None):
+    if _globals is None: _globals = globals()
+    if _locals is None:  _locals = _globals
+    
+    from cProfile import Profile
+    from pstats   import Stats
+    profiler = Profile()
+    exc, stats = True, None
+    try:
+        profiler.runctx(what, _globals, _locals)
+        exc = False
+    finally:
+        stats = Stats(profiler)
+        stats.sort_stats(1)
+        stats.print_stats(20)
+        if savedir:
+            profiler.dump_stats(os.path.join(savedir, 'prof.out'))
+    
+    if not exc:
+        try:    page_profile_stats(stats)
+        except: pass
+    
+    return stats
+
+def run(params_file, interactive=False, profiling=False):
+    from os.path import join as join_path, curdir
+    
+    params = import_file(params_file)
+    params_name = basename(params_file, *py_import_exts)
+    params_dir  = os.path.dirname(params_file) or curdir
+    exec_script = expand_path(params.script)
+    
+    run_dir = params_dir
+    os.chdir(run_dir)
+
+    machine = socket.gethostname().split('.')[0]
+    timestr = time.strftime('%Y%m%d_%H%M%S')
+    
+    if not os.path.exists(params.outputs):
+        os.makedirs(params.outputs)
+
+    exper_id = 'exper%d_%s_%s'%(params.exper_nr, machine,timestr)
+    savedir = os.path.join(params.outputs, exper_id)
+    os.makedirs(savedir)
+    
+    params.exper_id = exper_id
+    params.savedir  = savedir
+    
+    slnk = 'exper%d' % (params.exper_nr,)
+    if os.path.exists(slnk): os.unlink(slnk)
+    os.symlink(savedir, slnk)
+        
+    shutil.copyfile(params_file, join_path(savedir, params_mod + '.py'))
+    shutil.copyfile(exec_script, join_path(savedir, basename(exec_script)))
+    
+    sys.path = [savedir] + sys.path
+    m_vars = {}
+    
+    try:
+        if profiling:
+            exec_profiled(open(exec_script), m_vars, savedir = savedir)
+        else:
+            exec open(exec_script) in m_vars
+    except:
+        if interactive:
+            print '==================================='
+            print '    *** Uncaught Exception ***'
+            print '==================================='
+            import traceback; traceback.print_exc()
+            import pdb; pdb.post_mortem()
+        else: raise
+    finally:
+        # restore path
+        sys.path = [x for x in sys.path if x != savedir]
+        
+        # copy over files from run_dir
+        run_dir     = os.path.realpath(run_dir)
+        exec_script = os.path.realpath(exec_script)
+        params_file = os.path.realpath(params_file)
+        for imp_mod in sys.modules.values():
+            if not imp_mod:                     continue
+            if imp_mod.__name__ == params_mod:  continue
+            imp_file = getattr(imp_mod, '__file__', None)
+            if imp_file is None:                continue
+            if imp_file == exec_script:         continue
+            if imp_file.endswith('.pyc'): imp_file = imp_file[:-1]
+            if not imp_file.endswith('.py'):    continue
+            imp_dir = os.path.realpath(os.path.dirname(imp_file))
+            if imp_dir.startswith(run_dir):
+                imp_savedir = savedir + imp_dir[len(run_dir):]
+                dest = join_path(imp_savedir, basename(imp_file))
+                if os.path.exists(dest):        continue
+                if not os.path.exists(imp_savedir):
+                    os.makedirs(imp_savedir)
+                shutil.copyfile(imp_file, dest)
+        
+        if interactive:
+            open_interactive_shell(m_vars)
+
+    return m_vars
+
+def clean_outputs(outputs_dir):
+    import re
+    exper_dirs = {}
+    deleted = 0
+    found_expers = False
+    for exper_dir in os.listdir(outputs_dir):
+        m = re.match('^exper([0-9]+)_(.*)_(.*)_(.*)$', exper_dir)
+        if m is None: continue
+        found_expers = True
+        exper_id, machine, date, time = m.groups()
+        exper_dirs.setdefault(exper_id,[]).append((long(date+time), exper_dir))
+    if not found_expers:
+        print "Could not find any experiments in '%s'."%(outputs_dir,)
+        sys.exit(-1)
+    for exper, dirs in exper_dirs.items():
+        dirs  = sorted(dirs)
+        todel = dirs[:-1]
+        for (x,d) in todel:
+            shutil.rmtree(os.path.join(outputs_dir, d))
+        deleted += len(todel)
+    print "Deleted %d old experiments from '%s'."%(deleted, outputs_dir,)
+
+if __name__ == '__main__':
+    interactive = True
+    def set_batch():
+        global interactive
+        interactive =False
+
+    profiling = False
+    def set_prof():
+        global profiling
+        profiling = True
+
+    options = {'-h' : usage,     '--help':    usage,
+               '-b' : set_batch, '--batch':   set_batch,
+               '-p' : set_prof,  '--profile': set_prof}
+    [options[x]() for x in sys.argv if x in options]
+    
+    if '--clean' in sys.argv:
+        i = sys.argv.index('--clean')
+        if i+1 < len(sys.argv):
+            clean_outputs(sys.argv[i+1])
+            sys.exit(0)
+        else: usage()
+    
+    sys.argv = [x for x in sys.argv if x not in options
+                and not x.startswith('#')]
+    params_file = def_params_file
+    if len(sys.argv) > 1:
+        params_file = sys.argv.pop(1)
+        if not check_params_file(params_file):
+            sys.exit(-1)
+    else:
+        try:
+            params_file = ask_file('Enter input file', def_params_file,
+                                   check_params_file)
+        except KeyboardInterrupt:
+            print
+            sys.exit(-1)
+    
+    run(params_file, interactive, profiling)
+
