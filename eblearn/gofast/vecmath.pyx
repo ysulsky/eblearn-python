@@ -19,7 +19,7 @@ def sumabs(np.ndarray m not None):
     cdef rtype_t x, acc = 0.
     cdef long i, size
     
-    m = cvt(m, NPY_RTYPE, np.NPY_CONTIGUOUS)
+    m = cvt(m, NPY_RTYPE, NPY_CONTIGUOUS)
     
     base = <rtype_t*> m.data
     size = PyArray_SIZE(m)
@@ -37,7 +37,7 @@ def sumsq(np.ndarray m not None):
     cdef rtype_t x, acc = 0.
     cdef long i, size
     
-    m = cvt(m, NPY_RTYPE, np.NPY_CONTIGUOUS)
+    m = cvt(m, NPY_RTYPE, NPY_CONTIGUOUS)
     
     base = <rtype_t*> m.data
     size = PyArray_SIZE(m)
@@ -56,8 +56,8 @@ def sqdist(np.ndarray a not None, np.ndarray b not None):
     
     assert (PyArray_SAMESHAPE(a, b)), "shapes don't match"
     
-    a = cvt(a, NPY_RTYPE, np.NPY_CONTIGUOUS)
-    b = cvt(b, NPY_RTYPE, np.NPY_CONTIGUOUS)
+    a = cvt(a, NPY_RTYPE, NPY_CONTIGUOUS)
+    b = cvt(b, NPY_RTYPE, NPY_CONTIGUOUS)
     
     base_a = <rtype_t*> a.data
     base_b = <rtype_t*> b.data
@@ -99,12 +99,12 @@ def dtanh(np.ndarray x not None, np.ndarray out = None):
     cdef long i, size
     cdef np.ndarray e
 
-    x = cvt(x, NPY_RTYPE, np.NPY_CONTIGUOUS)
+    x = cvt(x, NPY_RTYPE, NPY_CONTIGUOUS)
     if out is None:
         e = out = PyArray_EMPTY(x.ndim, x.shape, NPY_RTYPE, 0)
     else:
         assert (PyArray_SAMESHAPE(x, out)), "shapes don't match"
-        e = cvt(out, NPY_RTYPE, np.NPY_CONTIGUOUS | RESULTFLAGS)
+        e = cvt(out, NPY_RTYPE, NPY_CONTIGUOUS | RESULTFLAGS)
     
     c_dtanh(<rtype_t*> x.data, PyArray_SIZE(x), <rtype_t*> e.data)
     return out
@@ -116,12 +116,12 @@ def ddtanh(np.ndarray x not None, np.ndarray out = None):
     cdef long i, size
     cdef np.ndarray e
 
-    x = cvt(x, NPY_RTYPE, np.NPY_CONTIGUOUS)
+    x = cvt(x, NPY_RTYPE, NPY_CONTIGUOUS)
     if out is None:
         e = out = PyArray_EMPTY(x.ndim, x.shape, NPY_RTYPE, 0)
     else:
         assert (PyArray_SAMESHAPE(x, out)), "shapes don't match"
-        e = cvt(out, NPY_RTYPE, np.NPY_CONTIGUOUS | RESULTFLAGS)
+        e = cvt(out, NPY_RTYPE, NPY_CONTIGUOUS | RESULTFLAGS)
     
     c_ddtanh(<rtype_t*> x.data, PyArray_SIZE(x), <rtype_t*> e.data)
     return out
@@ -767,13 +767,13 @@ def m2dotrows(np.ndarray m1 not None, np.ndarray m2 not None,
     
     m, n = m1.shape[0], m1.shape[1]
     assert (m == m2.shape[0] and n == m2.shape[1]), "shapes don't match"
-    m1 = cvt(m1, NPY_RTYPE, np.NPY_CONTIGUOUS)
-    m2 = cvt(m2, NPY_RTYPE, np.NPY_CONTIGUOUS)
+    m1 = cvt(m1, NPY_RTYPE, NPY_CONTIGUOUS)
+    m2 = cvt(m2, NPY_RTYPE, NPY_CONTIGUOUS)
     if res is None:
         rr = res = PyArray_EMPTY1(m, NPY_RTYPE)
     else:
         assert (res.ndim == 1 and res.shape[0] == m), "shapes don't match"
-        rr = cvt(res, NPY_RTYPE, np.NPY_CONTIGUOUS | RESULTFLAGS)
+        rr = cvt(res, NPY_RTYPE, NPY_CONTIGUOUS | RESULTFLAGS)
     
     pm1, pm2, pr = m1.data, m2.data, <rtype_t*>rr.data
     m1s0, m1s1 = m1.strides[0], m1.strides[1]
@@ -795,7 +795,7 @@ def normrows(np.ndarray m not None):
     cdef int col, row, stride, rowsize
     cdef char *p
     cdef rtype_t x, v
-    m = cvt(m, NPY_RTYPE, np.NPY_CONTIGUOUS | RESULTFLAGS)
+    m = cvt(m, NPY_RTYPE, NPY_CONTIGUOUS | RESULTFLAGS)
     
     rowsize = PyArray_SIZE(m) / m.shape[0]
     stride  = m.strides[0]
@@ -823,12 +823,12 @@ def mdotc(np.ndarray m not None, rtype_t c,
     cdef rtype_t *pm, *pr
     cdef np.ndarray rr
     
-    m = cvt(m, NPY_RTYPE, np.NPY_CONTIGUOUS)
+    m = cvt(m, NPY_RTYPE, NPY_CONTIGUOUS)
     if res is None:
         rr = res = PyArray_EMPTY(m.ndim, m.shape, NPY_RTYPE, 0)
     else:
         assert (PyArray_SAMESHAPE(m, res)), "shapes don't match"
-        rr = cvt(res, NPY_RTYPE, np.NPY_CONTIGUOUS | RESULTFLAGS)
+        rr = cvt(res, NPY_RTYPE, NPY_CONTIGUOUS | RESULTFLAGS)
     
     pm = <rtype_t*>m.data
     pr = <rtype_t*>rr.data

@@ -46,10 +46,10 @@ def m2_convolve(np.ndarray input not None, np.ndarray kernel not None,
         if accumulate:
             rr = PyArray_EMPTY2(oh, ow, np.NPY_FLOAT)
         else:
-            rr = cvt(output, np.NPY_FLOAT, np.NPY_C_CONTIGUOUS | RESULTFLAGS)
+            rr = cvt(output, np.NPY_FLOAT, NPY_C_CONTIGUOUS | RESULTFLAGS)
     
-    input  = cvt(input,  np.NPY_FLOAT, np.NPY_C_CONTIGUOUS)
-    kernel = cvt(kernel, np.NPY_FLOAT, np.NPY_C_CONTIGUOUS)
+    input  = cvt(input,  np.NPY_FLOAT, NPY_C_CONTIGUOUS)
+    kernel = cvt(kernel, np.NPY_FLOAT, NPY_C_CONTIGUOUS)
     
     ret = c_ipp_fconv2(input, kernel, rr)
     if ret != 0: raise ValueError(ipp_status_string(ret))
@@ -74,8 +74,8 @@ def m2_convolve_table(np.ndarray[int, ndim=2] table not None,
     assert (outputs.shape[1] == oh and 
             outputs.shape[2] == ow),                 "shapes don't match"
     
-    inputs  = cvt(inputs,  np.NPY_FLOAT, np.NPY_C_CONTIGUOUS)
-    kernels = cvt(kernels, np.NPY_FLOAT, np.NPY_C_CONTIGUOUS)
+    inputs  = cvt(inputs,  np.NPY_FLOAT, NPY_C_CONTIGUOUS)
+    kernels = cvt(kernels, np.NPY_FLOAT, NPY_C_CONTIGUOUS)
     
     buf = PyArray_EMPTY2(oh, ow, np.NPY_FLOAT)
     

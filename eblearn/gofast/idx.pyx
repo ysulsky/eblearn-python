@@ -59,7 +59,7 @@ def select(np.ndarray x, int dim, int idx):
             ret.shape[i]   = ret.shape[i-1]
         ret.strides[0] = stride
         ret.shape[0] = size
-    PyArray_UpdateFlags(ret, np.NPY_C_CONTIGUOUS)
+    PyArray_UpdateFlags(ret, NPY_C_CONTIGUOUS)
     return ret
 
 
@@ -71,7 +71,7 @@ def narrow(np.ndarray x, int dim, int size, int offset = 0):
     x.shape[dim] = size
     if offset:
         x.data += offset * x.strides[dim]
-    PyArray_UpdateFlags(x, np.NPY_C_CONTIGUOUS)
+    PyArray_UpdateFlags(x, NPY_C_CONTIGUOUS)
     return x
 
 @cython.boundscheck(False)
@@ -85,7 +85,7 @@ def reverse(np.ndarray x):
     x.data += n
     for i in range(x.ndim):
         x.strides[i] = -x.strides[i]
-    PyArray_UpdateFlags(x, np.NPY_C_CONTIGUOUS)
+    PyArray_UpdateFlags(x, NPY_C_CONTIGUOUS)
     return x
 
 @cython.boundscheck(False)
@@ -95,6 +95,6 @@ def reverse_along(np.ndarray x, int dim):
     x = x[:]
     x.data += (x.shape[dim] - 1) * x.strides[dim]
     x.strides[dim] = -x.strides[dim]
-    PyArray_UpdateFlags(x, np.NPY_C_CONTIGUOUS)
+    PyArray_UpdateFlags(x, NPY_C_CONTIGUOUS)
     return x
 

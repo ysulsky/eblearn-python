@@ -9,6 +9,15 @@ cdef extern from "Python.h":
 
 cdef extern from "numpy/arrayobject.h":
     void import_array()
+
+    cdef enum:
+         # missing in Cython < 0.12
+         NPY_CONTIGUOUS, NPY_C_CONTIGUOUS,
+         NPY_UPDATEIFCOPY, NPY_WRITEABLE,
+         NPY_FORCECAST
+
+    np.dtype PyArray_DescrFromType(int) # also missing from Cython < 0.12
+    
     bint     PyArray_ISCONTIGUOUS(np.ndarray)
     bint     PyArray_ISBEHAVED(np.ndarray)
     bint     PyArray_ISCARRAY(np.ndarray)
@@ -31,7 +40,7 @@ cdef extern from "numpy/arrayobject.h":
     # this is slower than going through python 
     # (NumPy replaces np.dot but not this)
     np.ndarray PyArray_InnerProduct(np.ndarray, np.ndarray)
-
+    
     # steals a reference from dtype
     np.ndarray PyArray_FromArray(np.ndarray, np.dtype, int) 
 
@@ -57,63 +66,63 @@ cdef inline PyArray_ZEROS1(np.npy_intp d0, int t):
      return PyArray_ZEROS(1, &d0, t, 0)
 
 cdef inline PyArray_EMPTY2(np.npy_intp d0, np.npy_intp d1, int t):
-     cdef npy_intp2 d = dict(d0=d0, d1=d1)
+     cdef npy_intp2 d = {'d0':d0, 'd1':    d1}
      return PyArray_EMPTY(2, <np.npy_intp*>&d, t, 0)
      
 cdef inline PyArray_ZEROS2(np.npy_intp d0, np.npy_intp d1, int t):
-     cdef npy_intp2 d = dict(d0=d0, d1=d1)
+     cdef npy_intp2 d = {'d0':d0, 'd1':d1}
      return PyArray_ZEROS(2, <np.npy_intp*>&d, t, 0)
 
 cdef inline PyArray_EMPTY3(np.npy_intp d0, np.npy_intp d1, np.npy_intp d2, 
                            int t):
-     cdef npy_intp3 d = dict(d0=d0, d1=d1, d2=d2)
+     cdef npy_intp3 d = {'d0':d0, 'd1':d1, 'd2':d2}
      return PyArray_EMPTY(3, <np.npy_intp*>&d, t, 0)
 
 cdef inline PyArray_ZEROS3(np.npy_intp d0, np.npy_intp d1, np.npy_intp d2, 
                            int t):
-     cdef npy_intp3 d = dict(d0=d0, d1=d1, d2=d2)
+     cdef npy_intp3 d = {'d0':d0, 'd1':d1, 'd2':d2}
      return PyArray_ZEROS(3, <np.npy_intp*>&d, t, 0)
 
 cdef inline PyArray_EMPTY4(np.npy_intp d0, np.npy_intp d1, np.npy_intp d2,
                            np.npy_intp d3, int t):
-     cdef npy_intp4 d = dict(d0=d0, d1=d1, d2=d2, d3=d3)
+     cdef npy_intp4 d = {'d0':d0, 'd1':d1, 'd2':d2, 'd3':d3}
      return PyArray_EMPTY(4, <np.npy_intp*>&d, t, 0)
 
 cdef inline PyArray_ZEROS4(np.npy_intp d0, np.npy_intp d1, np.npy_intp d2,
                            np.npy_intp d3, int t):
-     cdef npy_intp4 d = dict(d0=d0, d1=d1, d2=d2, d3=d3)
+     cdef npy_intp4 d = {'d0':d0, 'd1':d1, 'd2':d2, 'd3':d3}
      return PyArray_ZEROS(4, <np.npy_intp*>&d, t, 0)
 
 cdef inline PyArray_EMPTY5(np.npy_intp d0, np.npy_intp d1, np.npy_intp d2,
                            np.npy_intp d3, np.npy_intp d4, int t):
-     cdef npy_intp5 d = dict(d0=d0, d1=d1, d2=d2, d3=d3, d4=d4)
+     cdef npy_intp5 d = {'d0':d0, 'd1':d1, 'd2':d2, 'd3':d3, 'd4':d4}
      return PyArray_EMPTY(5, <np.npy_intp*>&d, t, 0)
 
 cdef inline PyArray_ZEROS5(np.npy_intp d0, np.npy_intp d1, np.npy_intp d2,
                            np.npy_intp d3, np.npy_intp d4, int t):
-     cdef npy_intp5 d = dict(d0=d0, d1=d1, d2=d2, d3=d3, d4=d4)
+     cdef npy_intp5 d = {'d0':d0, 'd1':d1, 'd2':d2, 'd3':d3, 'd4':d4}
      return PyArray_ZEROS(5, <np.npy_intp*>&d, t, 0)
 
 cdef inline PyArray_EMPTY6(np.npy_intp d0, np.npy_intp d1, np.npy_intp d2,
                            np.npy_intp d3, np.npy_intp d4, np.npy_intp d5,
                            int t):
-     cdef npy_intp6 d = dict(d0=d0, d1=d1, d2=d2, d3=d3, d4=d4, d5=d5)
+     cdef npy_intp6 d = {'d0':d0, 'd1':d1, 'd2':d2, 'd3':d3, 'd4':d4, 'd5':d5}
      return PyArray_EMPTY(6, <np.npy_intp*>&d, t, 0)
 
 cdef inline PyArray_ZEROS6(np.npy_intp d0, np.npy_intp d1, np.npy_intp d2,
                            np.npy_intp d3, np.npy_intp d4, np.npy_intp d5,
                            int t):
-     cdef npy_intp6 d = dict(d0=d0, d1=d1, d2=d2, d3=d3, d4=d4, d5=d5)
+     cdef npy_intp6 d = {'d0':d0, 'd1':d1, 'd2':d2, 'd3':d3, 'd4':d4, 'd5':d5}
      return PyArray_ZEROS(6, <np.npy_intp*>&d, t, 0)
 
 cdef enum:
-    RESULTFLAGS = np.NPY_UPDATEIFCOPY | np.NPY_WRITEABLE
+    RESULTFLAGS = NPY_UPDATEIFCOPY | NPY_WRITEABLE
 
 cdef inline np.ndarray cvt(np.ndarray m, int npy_type, int flags):
     cdef np.dtype t
     if m is None: return None
-    t = np.PyArray_DescrFromType(npy_type)
-    flags |= np.NPY_FORCECAST
+    t = PyArray_DescrFromType(npy_type)
+    flags |= NPY_FORCECAST
     Py_INCREF(t) # the following steals a reference
     IF 1:
         return PyArray_FromArray(m, t, flags)
