@@ -2,7 +2,7 @@
 
 exper_nr  = 1
 
-debugging    = True
+debugging = True
 
 ######################################################################
 # CLASSIFIER
@@ -10,7 +10,7 @@ debugging    = True
 classifier_arch = 1        # 1 -> linear
                            # 2 -> 2-layer mlp (decrease the learning rate)
 
-hidden          = 512      # number of hidden units
+hidden_units    = 512      # number of hidden units (for arch = 2)
 
 cost_type       = 1        # 1 -> cross-entropy
                            # 2 -> euclidean distance
@@ -34,7 +34,7 @@ train_params = dict (
 ######################################################################
 # DATA
 
-data_file       = './iris.data'
+data_file = './iris.data'
 
 ######################################################################
 script   = './run_classifier.py'

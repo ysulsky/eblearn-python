@@ -14,6 +14,12 @@ class eb_dsource (object):
         inp = state(); outp = state()
         self.fprop(inp, outp)
         return (inp.shape, outp.shape)
+    def iterall(self, input, output):
+        self.seek(0)
+        for i in xrange(self.size()):
+            self.fprop(input, output);
+            yield i
+            self.next()
     def __len__(self):  return self.size()
 
 class dsource_unsup (eb_dsource):

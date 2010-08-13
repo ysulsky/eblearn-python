@@ -1,4 +1,5 @@
 import eblearn as eb
+import numpy   as np
 
 from params import *
 
@@ -7,24 +8,19 @@ from params import *
 
 lines = [x.split(',') for x in open(data_file).read().split('\n') if x]
 
-all_labels   = sorted(set([x[-1] for x in lines]))
+all_classes = sorted(set([x[-1] for x in lines]))
+all_targets = np.diag(np.ones(len(all_classes)))
 
-targets = {}
-for i,lbl in enumerate(all_labels):
-    targets[lbl] = eb.zeros(len(all_labels))
-    targets[lbl][i] = 1
+class_target = dict(zip(all_classes, all_targets))
 
-inputs_train  = [map(float,x[:-1]) for x in lines[0::2]]
-inputs_test   = [map(float,x[:-1]) for x in lines[1::2]]
+inputs  = [map(float, x[:-1])  for x in lines]
+targets = [class_target[x[-1]] for x in lines]
 
-targets_train = [targets[x[-1]] for x in lines[0::2]]
-targets_test  = [targets[x[-1]] for x in lines[1::2]]
+ds_train = eb.dsource_sup(inputs[0::2], targets[0::2])
+ds_test  = eb.dsource_sup(inputs[1::2], targets[1::2])
 
-ds_train = eb.dsource_sup(inputs_train, targets_train)
 ds_train.normalize()
-
-ds_test  = eb.dsource_sup(inputs_test,  targets_test,
-                          bias = ds_train.bias, coeff = ds_train.coeff)
+ds_test.bias, ds_test.coeff = ds_train.bias, ds_train.coeff
 
 shape_in, shape_out = ds_train.shape()
 
@@ -35,10 +31,10 @@ if   classifier_arch == 1: # linear
     classifier = eb.layers(eb.linear(shape_in, shape_out),
                            eb.bias_module(shape_out))
 elif classifier_arch == 2: # two-layer mlp
-    classifier = eb.layers(eb.linear(shape_in, hidden),
-                           eb.bias_module(hidden),
+    classifier = eb.layers(eb.linear(shape_in, hidden_units),
+                           eb.bias_module(hidden_units),
                            eb.transfer_tanh(),
-                           eb.linear(hidden, shape_out),
+                           eb.linear(hidden_units, shape_out),
                            eb.bias_module(shape_out))
 else:
     msg = 'run_classifier: classifier_arch = %d' % (classifier_arch,)
@@ -63,7 +59,8 @@ parameter = machine.parameter
 parameter.updater = eb.gd_update( **train_params )
 
 verbose = False
-if debugging: verbose = True
+if debugging:
+    verbose = True
 
 trainer   = eb.eb_trainer(parameter, machine, ds_train,
                           ds_valid = None,
@@ -85,27 +82,22 @@ if savedir is not None:
 ######################################################################
 # TESTING
 
-
 print "============================================================"
 print "TESTING"
 print "============================================================"
 
-import numpy as np
+input, output, target = map(eb.state, (shape_in, shape_out, shape_out))
 
-ds_test.seek(0)
-input,output,target = eb.state(shape_in),eb.state(shape_out),eb.state(shape_out)
-nclasses  = target.x.size
-confusion = np.zeros((nclasses, nclasses), 'i')
-correct   = 0
+num_classes = len(all_classes)
+confusion   = np.zeros((num_classes, num_classes), 'i')
 
-for i in xrange(len(ds_test)):
-    ds_test.fprop(input, target)
+correct = 0
+for i in ds_test.iterall(input, target):
     classifier.fprop(input, output)
     ct = target.x.argmax()
     co = output.x.argmax()
     confusion[ct, co] += 1
     if ct == co: correct += 1
-    ds_test.next()
 
 print 'Accuracy = %.1f%%' % ((100.0 * correct) / len(ds_test))
 print 'Confusion Matrix:'
@@ -114,4 +106,3 @@ for crow in confusion:
     line = ' '.join(['%-10.3g' % (float(c)/occurs,) for c in crow])
     print line + '    (occurred %d times)' % (occurs,)
 
- 
