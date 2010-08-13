@@ -146,7 +146,9 @@ def exec_profiled(what, _globals=None, _locals=None, savedir=None):
     return stats
 
 def run(params_file, interactive=False, profiling=False):
-    from os.path import join as join_path, curdir
+    from os.path import abspath, join as join_path, curdir
+    
+    params_file = abspath(params_file)
     
     params = import_file(params_file)
     params_name = basename(params_file, *py_import_exts)
@@ -155,7 +157,7 @@ def run(params_file, interactive=False, profiling=False):
     
     run_dir = params_dir
     os.chdir(run_dir)
-
+    
     machine = socket.gethostname().split('.')[0]
     timestr = time.strftime('%Y%m%d_%H%M%S')
     
