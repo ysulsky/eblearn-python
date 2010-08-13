@@ -2,13 +2,15 @@
 
 exper_nr  = 1
 
-debugging    = False
+debugging    = True
 
 ######################################################################
 # CLASSIFIER
 
-encoder_arch    = 1        # 1 -> linear
-                           # 2 -> 2-layer mlp
+classifier_arch = 1        # 1 -> linear
+                           # 2 -> 2-layer mlp (decrease the learning rate)
+
+hidden          = 512      # number of hidden units
 
 cost_type       = 1        # 1 -> cross-entropy
                            # 2 -> euclidean distance
@@ -20,7 +22,7 @@ train_iters     = 50000    # number of training iterations
 compute_hessian = 5000     # hessian update interval (disable with 0)
 
 train_params = dict (
-    eta         = 0.02
+    eta         = 0.01
 ,   anneal_amt  = 0.1
 ,   anneal_time = 1000
 ,   decay_l2    = 0.0      # L2 regularization

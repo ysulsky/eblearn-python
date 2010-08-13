@@ -19,7 +19,7 @@ class eb_dsource (object):
 class dsource_unsup (eb_dsource):
     def __init__(self, inputs, bias = 0., coeff = 1.):
         self.current = 0
-        self.inputs  = ensure_dims(inputs, 2)
+        self.inputs  = ensure_dims(np.asarray(inputs), 2)
         self.bias    = bias
         self.coeff   = coeff
         self.shuffle = np.arange(len(inputs))
@@ -47,7 +47,7 @@ class dsource_unsup (eb_dsource):
 class dsource_sup (dsource_unsup):
     def __init__(self, inputs, targets, bias = 0., coeff = 1.):
         super(dsource_sup, self).__init__(inputs, bias, coeff)
-        self.targets = ensure_dims(targets, 2)
+        self.targets = ensure_dims(np.asarray(targets), 2)
 
     def fprop(self, input, output):
         self._fprop_input(input)

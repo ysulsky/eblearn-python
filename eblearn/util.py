@@ -21,6 +21,7 @@ array = lambda items, dtype=rtype: np.array(items, dtype)
 empty = lambda shape, dtype=rtype: np.empty(shape, dtype, 'C')
 zeros = lambda shape, dtype=rtype: np.zeros(shape, dtype, 'C')
 ones  = lambda shape, dtype=rtype: np.ones(shape,  dtype, 'C')
+
 if rtype == float:
     random = np.random.random
 else:
