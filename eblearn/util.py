@@ -94,6 +94,65 @@ class abuffer (object):
         # return 'abuffer(%s, %s, %s)' % (self._bufsize,
         #                                 self._buf.dtype, self.__array__())
 
+class rolling_average (object):
+    def __new__(cls, shape, dtype=rtype):
+        shape = ensure_tuple(shape)
+        if shape[0] == 1:
+            return degen_rolling_average(shape, dtype)
+        
+        return object.__new__(cls)
+    
+    def __init__(self, shape, dtype=rtype):
+        self.buf = np.zeros(shape, dtype)
+        self.clear()
+    
+    def _zero(self):
+        buf = self.buf
+        if buf.ndim == 1: return 0
+        return np.zeros(buf.shape[1:], buf.dtype)
+    
+    def clear(self):
+        self._avg = self._zero()
+        self.pos  = 0
+        self.full = False
+    
+    def append(self, val):
+        buf, pos = self.buf, self.pos
+        n = float(len(buf))
+        
+        if self.full: self._avg += (val - buf[pos]) / n
+        else:         self._avg += val / n
+        buf[pos] = val
+        
+        self.pos = (pos + 1) % len(buf)
+        if self.pos == 0: self.full = True
+    
+    def average(self, redo=False):
+        if self.full:
+            if redo: self._avg = self.buf.mean(0)
+            return self._avg
+        
+        buf, pos = self.buf, self.pos
+        n   = float(len(buf))
+        if pos == 0:
+            return self._zero()
+        
+        if redo: self._avg = buf[:pos].sum(0) / n
+        return self._avg * (n / pos)
+
+class degen_rolling_average (rolling_average):
+    def __new__(cls, shape, dtype=rtype):
+        return object.__new__(cls)
+    def __init__(self, shape, dtype=rtype):
+        shape = ensure_tuple(shape)
+        assert (shape[0] == 1)
+        super(degen_rolling_average, self).__init__(shape, dtype)
+    def append(self, val):
+        self._avg = val
+        self.full = True
+    def average(self, redo=False):
+        return self._avg
+
 
 ENABLE_BREAKPOINTS = True
 def enable_breaks(b = True):

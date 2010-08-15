@@ -3,8 +3,6 @@
 exper_nr  = 1
 
 debugging    = False
-eblearn_path = '../../'
-import sys; sys.path.append(eblearn_path)
 
 ######################################################################
 # MACHINE

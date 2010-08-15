@@ -98,8 +98,8 @@ machine.code_parameter.updater = gd_linesearch_update( machine.code_feval,
                                                        grad_thresh = 0.001,
                                                        anneal_time = 10,
                                                        anneal_amt  = 0.1 ,
-                                                       #quiet = False
-                                                       )
+                                                       #quiet = False,
+                                                       stop_batch  = 1     )
 encoder.parameter.updater = gd_update( eta = 0.1 )
 decoder.parameter.updater = gd_update( eta = 0.01 )
 

@@ -1,5 +1,5 @@
 from eblearn.state   import state
-from eblearn.util    import debug_break, agenerator, ref, rtype
+from eblearn.util    import debug_break, agenerator, ref, rolling_average, rtype
 from eblearn.vecmath import clear, mdotc, sumsq, thresh_less
 from math            import sqrt
 
@@ -192,22 +192,30 @@ class gd_update (parameter_update):
                  grad_thresh = 0.0001,
                  norm_grad   = False,
                  thresh_x    = None,
+                 stop_batch  = 1000,
                  debugging   = False):
         vals = dict(locals())
         del vals['self']
         self.__dict__.update(vals)
+        
+        # init-only
+        del self.__dict__['stop_batch']
+        assert (stop_batch >= 1), "stop_batch must be positive"
+        self._stop_batch = stop_batch
+        
         self.reset()
-
+    
     def stop_reason(self):
         if self.stop_code is None: return 'none'
         return self.stop_code
-
+    
     def reset(self):
         self.stop_code = None
+        self.rolling_grad_norm = rolling_average(self._stop_batch)
         self.cur_grad_norm = -1.
-
+    
     def iterstats(self): return {'grad norm': self.cur_grad_norm}
-
+    
     def _perform_step(self, p, grad, coeff):
         states = p.states
         for (g, state) in zip(grad,states):
@@ -246,11 +254,14 @@ class gd_update (parameter_update):
         step_coeff = -eta
         if self.norm_grad:
             step_coeff /= max(grad_norm, eta)
-
+        
         self.stop_code = None
         if self.max_iters >= 0 and p.age > self.max_iters:
             self.stop_code = 'iteration limit reached'
-        if grad_norm < self.grad_thresh:
+        
+        rgn = self.rolling_grad_norm
+        rgn.append(grad_norm)
+        if rgn.full and rgn.average() < self.grad_thresh:
             self.stop_code = 'gradient threshold reached'
         
         if self.debugging:
@@ -258,9 +269,9 @@ class gd_update (parameter_update):
                 debug_break('negative epsilon')
             if grad_norm > 50000.0:
                 debug_break('huge gradient norm: %g' % grad_norm)
-
+        
         self.cur_grad_norm = grad_norm
-
+        
         if dostep:
             self._perform_step(p, grad, step_coeff)
         
@@ -311,12 +322,13 @@ class gd_linesearch_update (gd_update):
         self.feval                = feval
         self.max_line_steps       = max_line_steps
         self.quiet                = quiet
-
+        
         if 'eta' not in kwargs: kwargs['eta'] = 0.5
         super(gd_linesearch_update, self).__init__(**kwargs)
     
     def reset(self):
         self.cur_num_steps        = -1
+        self.consecutive_linesearch_failures = 0
         super(gd_linesearch_update, self).reset()
 
     def iterstats(self):
@@ -346,11 +358,14 @@ class gd_linesearch_update (gd_update):
             
             step_coeff /= 2.
             p.restore(bup)
-            
         
         self.cur_num_steps = step
         if new_energy >= cur_energy:
-            self.stop_code = 'line search failed'
+            self.consecutive_linesearch_failures += 1
+            if self.consecutive_linesearch_failures >= self._stop_batch:
+                self.stop_code = 'line search failed'
+        else:
+            self.consecutive_linesearch_failures  = 0
         
         if not self.quiet:
             print 'linesearch: stopped after %d iterations because: %s' % \

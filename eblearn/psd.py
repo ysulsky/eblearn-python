@@ -145,7 +145,8 @@ class psd_codec (module_2_1):
             self.code_trainer.input  = self.code
 
             self.code_feval = feval_from_trainer(self.code_trainer)
-            self.code_parameter.updater = gd_linesearch_update(self.code_feval)
+            self.code_parameter.updater = gd_linesearch_update(self.code_feval,
+                                                               stop_batch = 1)
     
     def forget(self):
         self.encoder.forget()

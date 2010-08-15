@@ -71,6 +71,7 @@ if encoder_arch in (1, 2, 4, 6):
     machine.code_parameter.thresh_x = 0.
 
 machine.code_parameter.updater = eb.gd_linesearch_update( machine.code_feval,
+                                                          stop_batch = 1,
                                                           **minimize_code     )
 machine.code_trainer.keep_log = True
 
