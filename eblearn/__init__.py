@@ -4,6 +4,7 @@ from .cost       import *
 from .datasource import *
 from .idx        import *
 from .lush_mat   import *
+from .margin     import *
 from .parameter  import *
 from .psd        import *
 from .state      import *

@@ -2,7 +2,7 @@
 
 exper_nr  = 1
 
-debugging    = False
+debugging = False
 
 ######################################################################
 # MACHINE

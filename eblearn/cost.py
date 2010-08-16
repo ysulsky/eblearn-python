@@ -12,8 +12,8 @@ class distance_l2 (no_params, module_2_1):
         self.average = average
     
     def fprop(self, input1, input2, energy):
-        energy.resize((1,))
         assert (input1.shape == input2.shape)
+        energy.resize((1,))
         coeff = 0.5
         if self.average: coeff /= input1.size
         energy.x[0] = sqdist(input1.x, input2.x) * coeff
@@ -43,8 +43,8 @@ class distance_l2 (no_params, module_2_1):
 
 class cross_entropy (no_params, module_2_1):
     def fprop(self, input1, input2, energy):
-        energy.resize((1,))
         assert (input1.shape == input2.shape)
+        energy.resize((1,))
         in1x   = input1.x.clip(max = 50)
         log_softmaxin1 = in1x - np.log(np.exp(in1x).sum())
         energy.x[0] = np.dot(-input2.x.ravel(), log_softmaxin1.ravel())

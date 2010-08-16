@@ -12,8 +12,9 @@ classifier_arch = 1        # 1 -> linear
 
 hidden_units    = 512      # number of hidden units (for arch = 2)
 
-cost_type       = 1        # 1 -> cross-entropy
+cost_type       = 3        # 1 -> cross-entropy
                            # 2 -> euclidean distance
+                           # 3 -> hinge loss
 
 ######################################################################
 # TRAINING

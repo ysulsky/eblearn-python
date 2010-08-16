@@ -257,9 +257,9 @@ if __name__ == '__main__':
         global profiling
         profiling = True
 
-    options = {'-h' : usage,     '--help':    usage,
-               '-b' : set_batch, '--batch':   set_batch,
-               '-p' : set_prof,  '--profile': set_prof}
+    options = {'-h': usage,     '--help':    usage,
+               '-b': set_batch, '--batch':   set_batch,
+               '-p': set_prof,  '--profile': set_prof}
     [options[x]() for x in sys.argv if x in options]
     
     if '--clean' in sys.argv:

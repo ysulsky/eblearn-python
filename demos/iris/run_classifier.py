@@ -47,6 +47,8 @@ if   cost_type == 1: # cross-entropy
     cost = eb.cross_entropy()
 elif cost_type == 2: # distance
     cost = eb.distance_l2()
+elif cost_type == 3: # hinge loss
+    cost = eb.hinge_loss()
 else:
     raise NotImplementedError('run_classifier: cost_type = %d' % (cost_type,))
 
