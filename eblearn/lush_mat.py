@@ -42,16 +42,25 @@ def load_matrix_header(f):
     ndim, = struct.unpack(ifmt, f.read(4))
     if ndim == -1: return (None, magic, swapflag)
     if ndim < 0 or ndim > MAXDIMS:
-        raise IOError('Bad number of dimensions (%d)' % ndim)
+        raise IOError('Bad number of dimensions (%d)' % (ndim,))
     if ndim == 0:  return ((),   magic, swapflag)
     ndim_read = max(ndim, 3)
     shape = struct.unpack(ifmt+('I'*(ndim_read-1)), f.read(4*ndim_read))
     for d in shape[ndim:]:
         if d != 1: raise IOError('Bad matrix format')
     shape = shape[:ndim]
-    for d in shape:
-        if d  < 1: raise IOError('Bad shape: %s' % shape)
+    # -- empty arrays aren't allowed in Lush (doesn't hurt to support them)
+    # for d in shape:
+    #     if d  < 1: raise IOError('Bad shape: %s' % (shape,))
     return (shape, magic, swapflag)
+
+def save_matrix_header(shape, dtype, f):
+    magic = dict([(v.name,k) for (k,v) in magic_values.iteritems()
+                  if k not in (ASCII_MATRIX, PACKED_MATRIX,)])[dtype.name]
+    ndim  = len(shape)
+    shape = list(shape)
+    if 0 < len(shape) < 3: shape.extend([1]*(3-len(shape)))
+    np.array([magic, ndim]+shape, dtype = 'u4').tofile(f)
 
 def map_matrix(f, mode='c'):
     if type(f) == str: f = open(f, 'r')
@@ -69,10 +78,6 @@ def load_matrix(f):
 
 def save_matrix(m, f):
     if type(f) == str: f = open(f, 'w')
-    if not m.flags['C_CONTIGUOUS']: m = m.copy()
-    magic = dict([(v.name,k) for (k,v) in magic_values.iteritems()
-                  if k not in (ASCII_MATRIX, PACKED_MATRIX,)])[m.dtype.name]
-    shape = list(m.shape)
-    if 0 < len(shape) < 3: shape.extend([1]*(3-len(shape)))
-    np.array([magic, m.ndim]+shape, dtype = 'u4').tofile(f)
+    m = np.ascontiguousarray(m)
+    save_matrix_header(m.shape, m.dtype, f)
     f.write(m.data)

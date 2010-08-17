@@ -2,6 +2,8 @@ import sys
 import numpy as np
 import pickle
 
+from eblearn import lush_mat as lm
+
 np.seterr('raise')
 np.seterr(under = 'ignore')
 
@@ -57,42 +59,85 @@ class agenerator (object):
         return self.gen()
 
 class abuffer (object):
-    def __init__(self, n=(100,), dtype=rtype, initial=None):
+    def __init__(self, n=(100,), dtype=rtype):
         n = ensure_tuple(n)
         assert (len(n) > 0 and np.prod(n) > 0), 'initial size must be positive'
-        self._buf = np.empty(n, dtype=dtype)
-        self._len = 0
-        if initial is not None: self.extend(initial)
+        self.buf = np.empty(n, dtype=dtype)
+        self.len = 0
     def __array__(self):
-        return self._buf[:self._len]
+        return self.buf[:self.len]
     def _resize_buf(self, newsize):
         try:
-            self._buf.resize(newsize)
+            self.buf.resize(newsize)
         except ValueError:
-            newbuf = np.empty(newsize, dtype=self._buf.dtype)
-            newbuf[:self._len] = self._buf
-            self._buf = newbuf
+            newbuf = np.empty(newsize, dtype=self.buf.dtype)
+            newbuf[:self.len] = self.buf
+            self.buf = newbuf
     def append(self, x):
-        if len(self._buf) == self._len:
-            self._resize_buf((self._len * 2,)+self._buf.shape[1:])
-        self._buf[self._len] = x
-        self._len += 1
+        if len(self.buf) == self.len:
+            self._resize_buf((self.len * 2,)+self.buf.shape[1:])
+        self.buf[self.len] = x
+        self.len += 1
     def extend(self, other):
         other = np.asarray(other)
-        assert (self._buf.shape[1:] == other.shape[1:])
+        assert (self.buf.shape[1:] == other.shape[1:])
         olen = len(other)
-        if olen > len(self._buf) - self._len:
-            newlen = len(self._buf) + max(len(self._buf), olen)
-            self._resize_buf((newlen,)+self._buf.shape[1:])
-        self._buf[self._len:self._len+olen] = other
-        self._len += olen
-    def __len__(self): return self._len
+        if olen > len(self.buf) - self.len:
+            newlen = len(self.buf) + max(len(self.buf), olen)
+            self._resize_buf((newlen,)+self.buf.shape[1:])
+        self.buf[self.len:self.len+olen] = other
+        self.len += olen
+    def __len__    (self):       return self.len
     def __getitem__(self, i):    return self.__array__().__getitem__(i)
     def __setitem__(self, i, v): return self.__array__().__setitem__(i, v)
-    def __str__(self):           return str(self.__array__())
-    def __repr__(self):          return repr(self.__array__())
-        # return 'abuffer(%s, %s, %s)' % (self._bufsize,
-        #                                 self._buf.dtype, self.__array__())
+    def __str__    (self):       return str(self.__array__())
+    def __repr__   (self):       return repr(self.__array__())
+
+class abuffer_disk (object):
+    def __init__(self, f, shape=(), dtype=rtype):
+        if type(f) == str: f = open(f, 'w+b')
+        shape = ensure_tuple(shape)
+        self.len   = 0
+        self.shape = shape
+        self.dtype = dtype
+        self.f     = f
+        self.arr   = None
+        self.update_header()
+    
+    def update_header(self):
+        self.f.seek(0, 0) # seek start
+        lm.save_matrix_header((self.len,)+self.shape,
+                              np.dtype(self.dtype), self.f)
+        self.f.seek(0, 2) # seek end
+    
+    def __array__(self):
+        if self.arr is not None: return self.arr
+        self.update_header()
+        self.f.seek(0, 0)
+        self.arr = lm.map_matrix(self.f, mode='r+')
+        self.f.seek(0, 2)
+        return self.arr
+    
+    def append(self, x):
+        self.extend([x])
+    
+    def extend(self, xs):
+        if len(xs) == 0: return
+        self.arr = None
+        xs = np.ascontiguousarray(xs, dtype=self.dtype)
+        assert (xs.shape[1:] == self.shape), "shapes don't match"
+        self.f.write(xs.data)
+        self.len += len(xs)
+    
+    def __del__(self):
+        self.update_header()
+    
+    def __len__    (self):       return self.len
+    def __getitem__(self, i):    return self.__array__().__getitem__(i)
+    def __setitem__(self, i, v): return self.__array__().__setitem__(i, v)
+    def __str__    (self):       return str(self.__array__())
+    def __repr__   (self):       return repr(self.__array__())
+            
 
 class rolling_average (object):
     def __new__(cls, shape, dtype=rtype):
