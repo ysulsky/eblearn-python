@@ -88,6 +88,7 @@ class abuffer (object):
         self.buf[self.len:self.len+olen] = other
         self.len += olen
     def __len__    (self):       return self.len
+    def __iter__   (self):       return self.__array__().__iter__()
     def __getitem__(self, i):    return self.__array__().__getitem__(i)
     def __setitem__(self, i, v): return self.__array__().__setitem__(i, v)
     def __str__    (self):       return str(self.__array__())
@@ -133,6 +134,7 @@ class abuffer_disk (object):
         self.update_header()
     
     def __len__    (self):       return self.len
+    def __iter__   (self):       return self.__array__().__iter__()
     def __getitem__(self, i):    return self.__array__().__getitem__(i)
     def __setitem__(self, i, v): return self.__array__().__setitem__(i, v)
     def __str__    (self):       return str(self.__array__())
