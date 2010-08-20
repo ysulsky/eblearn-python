@@ -47,7 +47,7 @@ def select(np.ndarray x, int dim, int idx):
     x.shape[0]     = x.shape[dim]
     x.strides[dim] = stride
     x.shape[dim]   = size
-    ret = x[dim]
+    ret = x[idx]
     x.strides[dim] = x.strides[0]
     x.shape[dim]   = x.shape[0]
     x.strides[0]   = stride
