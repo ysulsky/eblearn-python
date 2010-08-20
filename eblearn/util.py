@@ -142,8 +142,11 @@ class abuffer_disk (object):
             
 
 class rolling_average (object):
-    def __new__(cls, shape, dtype=rtype):
-        shape = ensure_tuple(shape)
+    def __new__(cls, *args):
+        if len(args) == 0: return object.__new__(cls)
+        shape = ensure_tuple(args[0])
+        dtype = rtype if len(args) < 2 else args[1]
+        
         if shape[0] == 1:
             return degen_rolling_average(shape, dtype)
         
@@ -188,7 +191,7 @@ class rolling_average (object):
         return self._avg * (n / pos)
 
 class degen_rolling_average (rolling_average):
-    def __new__(cls, shape, dtype=rtype):
+    def __new__(cls, *args):
         return object.__new__(cls)
     def __init__(self, shape, dtype=rtype):
         shape = ensure_tuple(shape)
