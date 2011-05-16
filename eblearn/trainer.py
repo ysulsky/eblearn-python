@@ -147,8 +147,7 @@ class eb_trainer (object):
     
     def backup_stats(self, dest = None):
         if dest is None:
-            dest = '%s/%s_%d.obj' % (self.backup_location,
-                                     'train_stats', self.age)
+            dest = '%s/%s.obj' % (self.backup_location, 'train_stats')
         save_object(self.train_stats, dest)
     
     def report_stats(self):
