@@ -45,8 +45,14 @@ def save_object(obj, dest):
     pickle.dump(obj, dest, protocol = pickle.HIGHEST_PROTOCOL)
 
 def load_object(loc):
-    if type(loc) == str: loc = open(loc, 'rb')
-    return pickle.load(loc)
+    parts = []
+    if type(loc) == str:
+        parts = loc.split(':')
+        loc = parts[0]; parts = parts[1:]
+        loc = open(loc, 'rb')
+    obj = pickle.load(loc)
+    for p in parts: obj = obj.__dict__[p]
+    return obj
 
 class agenerator (object):
     def __init__(self, gen, dtype=rtype, count=-1):

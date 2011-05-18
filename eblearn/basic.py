@@ -267,3 +267,16 @@ class multiplication (no_params, module_2_1):
         input2.ddx += output.ddx * np.square(input1.x)
         
         
+class concatenation (no_params, module_2_1):
+    def fprop(self, input1, input2, output):
+        assert(input1.shape[1:] == input2.shape[1:])
+        output.resize((input1.shape[0] + input2.shape[0],) + input1.shape[1:])
+        output.x[:] = np.concatenate((input1.x, input2.x))
+    def bprop_input(self, input1, input2, output):
+        n = len(input1.dx)
+        input1.dx += output.dx[:n]
+        input2.dx += output.dx[n:]
+    def bbprop_input(self, input1, input2, output):
+        n = len(input1.ddx)
+        input1.ddx += output.ddx[:n]
+        input2.ddx += output.ddx[n:]
